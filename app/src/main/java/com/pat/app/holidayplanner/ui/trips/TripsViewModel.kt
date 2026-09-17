@@ -3,8 +3,10 @@ package com.pat.app.holidayplanner.ui.trips
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.TripEntity
+import com.pat.app.holidayplanner.data.repo.HierarchyResolver
 import com.pat.app.holidayplanner.data.repo.TripRepository
 import com.pat.app.holidayplanner.domain.AppClock
+import com.pat.app.holidayplanner.domain.CountryOption
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -25,6 +27,7 @@ data class TripsUiState(
 
 class TripsViewModel(
     private val repository: TripRepository,
+    private val resolver: HierarchyResolver,
     private val clock: AppClock,
 ) : ViewModel() {
 
@@ -35,11 +38,17 @@ class TripsViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TripsUiState())
 
-    /** Dates come later; a trip starts life as a name so the idea can be written down. */
-    fun addTrip(name: String, onCreated: (String) -> Unit) {
+    /**
+     * A trip starts life as a name and a country; the dates come later.
+     *
+     * The country is found or created, so planning a trip somewhere new puts that country on the
+     * explore list too rather than leaving the trip pointing at nothing.
+     */
+    fun addTrip(name: String, country: CountryOption, onCreated: (String) -> Unit) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            onCreated(repository.add(name = name, startDate = "", endDate = "", countryIds = emptyList()))
+            val countryId = resolver.resolveCountry(country.isoCode, country.name)
+            onCreated(repository.add(name = name, startDate = "", endDate = "", countryIds = listOf(countryId)))
         }
     }
 

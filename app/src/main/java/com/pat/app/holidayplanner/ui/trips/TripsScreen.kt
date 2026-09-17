@@ -99,13 +99,10 @@ fun TripsScreen(
     }
 
     if (adding) {
-        TextInputDialog(
-            title = stringResource(R.string.trips_add),
-            label = stringResource(R.string.label_name),
-            confirmLabel = stringResource(R.string.action_add),
-            onConfirm = { name ->
+        NewTripDialog(
+            onConfirm = { name, country ->
                 adding = false
-                viewModel.addTrip(name, onOpenTrip)
+                viewModel.addTrip(name, country, onOpenTrip)
             },
             onDismiss = { adding = false },
         )

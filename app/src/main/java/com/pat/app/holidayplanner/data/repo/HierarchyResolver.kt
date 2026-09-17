@@ -26,6 +26,17 @@ class HierarchyResolver(
     private val cityRepository: CityRepository,
 ) {
 
+    /**
+     * The id of the country with this ISO code, creating it if this is the first thing filed there.
+     *
+     * Separate from [resolve] because adding a city only needs the country: resolving the whole
+     * hierarchy would create a second city alongside the one being added.
+     */
+    suspend fun resolveCountry(isoCode: String, countryName: String): String {
+        val existing = countryRepository.findByIsoCode(isoCode)
+        return existing?.meta?.id ?: countryRepository.add(name = countryName, isoCode = isoCode)
+    }
+
     /** [cityName] overrides what Google said, for when the person used the Change option. */
     suspend fun resolve(hierarchy: PlaceHierarchy, cityName: String = hierarchy.cityName): ResolvedHierarchy {
         val country = countryRepository.findByIsoCode(hierarchy.isoCode)

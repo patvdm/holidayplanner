@@ -48,7 +48,7 @@
     <string name="countries_add">Add a country</string>
     <string name="countries_search">Search countries</string>
     <string name="countries_rename">Rename country</string>
-    <string name="countries_empty">No countries yet. Add the first one with the button below.</string>
+    <string name="countries_empty">Nothing saved yet. Add a place with the button below, and its country appears here on its own.</string>
     <string name="countries_counts">%1$d cities · %2$d spots</string>
 
     <string name="country_add_city">Add a city</string>
@@ -278,4 +278,10 @@
         <item quantity="one">%1$d new trip</item>
         <item quantity="other">%1$d new trips</item>
     </plurals>
+
+    <!-- Home screen add affordances -->
+    <string name="countries_add_place">Add a place</string>
+    <string name="countries_add_country">Add a country on its own</string>
+    <string name="trips_country">Which country?</string>
+    <string name="trips_pick_country">Choose a country</string>
 </resources>

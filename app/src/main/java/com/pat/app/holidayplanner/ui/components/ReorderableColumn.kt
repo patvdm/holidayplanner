@@ -39,7 +39,8 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
  * point of fractional keys: reordering writes a single row, not the whole list.
  *
  * [itemContent] receives a handle to place wherever the row should be grabbed. When [reorderable]
- * is false no handle is drawn and the list behaves like an ordinary one.
+ * is false no handle is drawn and the list behaves like an ordinary one. [footer] is pinned after
+ * the last row, inside the scroll, for actions that belong with the list rather than over it.
  */
 @Composable
 fun <T> ReorderableColumn(
@@ -49,6 +50,7 @@ fun <T> ReorderableColumn(
     reorderable: Boolean,
     onMoved: (id: String, previousKey: String?, nextKey: String?) -> Unit,
     modifier: Modifier = Modifier,
+    footer: (@Composable () -> Unit)? = null,
     itemContent: @Composable (item: T, handle: (@Composable () -> Unit)?) -> Unit,
 ) {
     var ordered by remember { mutableStateOf(items) }
@@ -94,6 +96,7 @@ fun <T> ReorderableColumn(
                 }
             }
         }
+        if (footer != null) item(key = "footer") { footer() }
     }
 }
 

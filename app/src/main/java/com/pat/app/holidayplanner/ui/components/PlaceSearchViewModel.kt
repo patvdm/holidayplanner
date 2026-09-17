@@ -82,8 +82,10 @@ data class PlaceSearchUiState(
     val errorDetail: String? = null,
     val pending: PendingPick? = null,
     val saving: Boolean = false,
-    /** Set when a new spot has no parent place, so a country and city have to be chosen. */
+    /** Set when what is being added has no parent yet, so a country has to be chosen. */
     val needsHome: Boolean = false,
+    /** A spot also needs a city under that country. A city being added IS the city, so it does not. */
+    val asksForCity: Boolean = false,
     val country: CountryOption? = null,
     val homeCityName: String = "",
     /** Cities already known in the chosen country, offered so a second spot reuses the first's city. */
@@ -118,14 +120,21 @@ class PlaceSearchViewModel(
 
     private val mode get() = target.mode
 
-    /** A spot with no parent place would be orphaned, so the sheet has to collect one. */
-    private val needsHome = target.mode == PlaceSearchMode.SPOT && target.cityId.isEmpty()
+    /**
+     * Anything saved without a parent is invisible everywhere, so the sheet collects one first: a
+     * country for a city, a country and city for a spot.
+     */
+    private val needsHome = when (target.mode) {
+        PlaceSearchMode.SPOT -> target.cityId.isEmpty()
+        PlaceSearchMode.CITY -> target.countryId.isEmpty()
+    }
 
     private val state = MutableStateFlow(
         PlaceSearchUiState(
             query = target.prefillName,
             manual = !search.isConfigured,
             needsHome = needsHome,
+            asksForCity = target.mode == PlaceSearchMode.SPOT,
             // Preselected so a spot can be filed without a decision when nothing is known about it.
             country = if (needsHome) countryOrDefault(target.knownIsoCode) else null,
             homeCityName = target.knownCityName,
@@ -209,7 +218,7 @@ class PlaceSearchViewModel(
             state.update { it.copy(saving = true) }
             val name = current.query.trim().ifEmpty { GENERAL_CITY_NAME }
             val id = when (mode) {
-                PlaceSearchMode.CITY -> cityRepository.add(countryId = target.countryId, name = name)
+                PlaceSearchMode.CITY -> cityRepository.add(countryId = homeCountryId(current, null), name = name)
                 // Coordinates from a Maps link survive even when the name was typed by hand.
                 PlaceSearchMode.SPOT -> spotRepository.add(
                     cityId = homeCityId(current),
@@ -226,7 +235,7 @@ class PlaceSearchViewModel(
 
     private suspend fun save(pending: PendingPick): String = when (mode) {
         PlaceSearchMode.CITY -> cityRepository.add(
-            countryId = target.countryId,
+            countryId = homeCountryId(state.value, pending.hierarchy),
             name = pending.name,
             googlePlaceId = pending.details.googlePlaceId,
             lat = pending.details.lat,
@@ -245,6 +254,19 @@ class PlaceSearchViewModel(
                 address = pending.details.address,
             )
         }
+    }
+
+    /**
+     * The country a city will live in. A country passed in wins; otherwise Google's answer does,
+     * since it knows where the place actually is; otherwise the one chosen in the sheet. Each is
+     * found or created, which is how adding a city can bring a new country onto the list with it.
+     */
+    private suspend fun homeCountryId(current: PlaceSearchUiState, hierarchy: PlaceHierarchy?): String {
+        if (target.countryId.isNotEmpty()) return target.countryId
+        val fromGoogle = hierarchy?.takeIf { it.isoCode.isNotBlank() }
+        val isoCode = fromGoogle?.isoCode ?: current.country?.isoCode ?: return ""
+        val name = fromGoogle?.countryName ?: current.country?.name.orEmpty()
+        return resolver.resolveCountry(isoCode, name)
     }
 
     /**

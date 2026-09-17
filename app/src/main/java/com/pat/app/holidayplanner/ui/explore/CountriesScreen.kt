@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,7 +41,9 @@ import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
+import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
+import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.feed.ThisWeekStrip
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
@@ -61,6 +64,7 @@ fun CountriesScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showPicker by remember { mutableStateOf(false) }
+    var addingPlace by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<CountryRow?>(null) }
 
     Scaffold(
@@ -79,8 +83,8 @@ fun CountriesScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showPicker = true }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.countries_add))
+            FloatingActionButton(onClick = { addingPlace = true }) {
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.countries_add_place))
             }
         },
     ) { padding ->
@@ -94,6 +98,7 @@ fun CountriesScreen(
                 if (state.rows.isEmpty()) {
                     PullableEmptyState(modifier = Modifier.weight(1f)) {
                         EmptyListMessage(stringResource(R.string.countries_empty))
+                        AddCountryButton { showPicker = true }
                     }
                 } else {
                     ReorderableColumn(
@@ -103,6 +108,7 @@ fun CountriesScreen(
                         reorderable = state.canReorder,
                         onMoved = viewModel::move,
                         modifier = Modifier.weight(1f),
+                        footer = { AddCountryButton { showPicker = true } },
                     ) { row, handle ->
                         CountryRowItem(
                             row = row,
@@ -116,6 +122,14 @@ fun CountriesScreen(
                 }
             }
         }
+    }
+
+    if (addingPlace) {
+        PlaceSearchSheet(
+            mode = PlaceSearchMode.CITY,
+            onDismiss = { addingPlace = false },
+            onSaved = { addingPlace = false },
+        )
     }
 
     if (showPicker) {
@@ -246,4 +260,15 @@ fun Priority.label(): Int = when (this) {
     Priority.MUST -> R.string.priority_must
     Priority.LIKE -> R.string.priority_like
     Priority.MAYBE -> R.string.priority_maybe
+}
+
+/**
+ * Adding a country with nothing in it, which is the rarer case now that adding a place brings its
+ * country along. It sits under the list rather than on the button, where the common action lives.
+ */
+@Composable
+private fun AddCountryButton(onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Text(stringResource(R.string.countries_add_country))
+    }
 }

@@ -188,8 +188,9 @@ private fun SearchStep(
 }
 
 /**
- * Country and city for a spot that has no parent yet, so it is never saved orphaned. Both are found
- * or created by name, which is how a new spot can bring a new country and city along with it.
+ * The parent for something that has no home yet, so it is never saved orphaned. A spot needs a
+ * country and a city; a city needs only a country, since it is the city. Each is found or created
+ * by name, which is how adding one can bring a new country along with it.
  */
 @Composable
 private fun HomeFields(state: PlaceSearchUiState, viewModel: PlaceSearchViewModel) {
@@ -202,7 +203,7 @@ private fun HomeFields(state: PlaceSearchUiState, viewModel: PlaceSearchViewMode
         )
     }
 
-    if (state.country != null) {
+    if (state.country != null && state.asksForCity) {
         OutlinedTextField(
             value = state.homeCityName,
             onValueChange = viewModel::onHomeCityNameChange,
@@ -259,7 +260,7 @@ private fun ConfirmStep(
         )
     }
 
-    if (mode == PlaceSearchMode.SPOT && pending.hierarchy == null && state.needsHome) {
+    if (pending.hierarchy == null && state.needsHome) {
         // Google gave no usable address, so the spot still needs somewhere to live.
         HomeFields(state, viewModel)
     } else if (mode == PlaceSearchMode.SPOT) {
