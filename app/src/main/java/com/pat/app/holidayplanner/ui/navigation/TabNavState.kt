@@ -61,6 +61,23 @@ class TabNavState(
         if (stack.last() != key) stack.add(key)
     }
 
+    /**
+     * Closes the current screen, then opens [key] on [tab]. Used by search, where the result often
+     * lives under a different tab than the one the search was started from.
+     */
+    fun openIn(tab: AppTab, key: NavKey) {
+        back()
+        if (tab != currentTab) selectTab(tab)
+        push(key)
+    }
+
+    /** Closes the current screen and shows [tab] at its root. */
+    fun openTabRoot(tab: AppTab) {
+        back()
+        if (tab != currentTab) selectTab(tab)
+        popToRoot(tab)
+    }
+
     fun back() {
         val stack = stacks.getValue(currentTab)
         when {

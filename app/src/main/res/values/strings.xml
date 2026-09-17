@@ -240,4 +240,42 @@
     <string name="plan_day_pick_trip">Which trip is this day part of?</string>
     <string name="plan_day_no_trips">Make a trip first, then plan a day inside it.</string>
     <string name="plan_day_route_name">%1$s day</string>
+
+    <!-- Search -->
+    <string name="search_hint">Search spots, trips, notes</string>
+    <string name="search_clear">Clear search</string>
+    <string name="search_empty">Nothing matches that yet.</string>
+    <string name="search_prompt">Search everything you have saved.</string>
+    <string name="search_group_country">Countries</string>
+    <string name="search_group_city">Cities</string>
+    <string name="search_group_spot">Spots</string>
+    <string name="search_group_link">Links</string>
+    <string name="search_group_trip">Trips</string>
+    <string name="search_group_trip_item">Trip items</string>
+
+    <!-- This week feed -->
+    <string name="feed_title">This week</string>
+    <string name="feed_see_all">See everything</string>
+    <string name="feed_empty">Nothing new from anyone else this week.</string>
+    <string name="feed_by">%1$s, %2$s</string>
+    <plurals name="feed_spots_in">
+        <item quantity="one">%1$d new spot in %2$s</item>
+        <item quantity="other">%1$d new spots in %2$s</item>
+    </plurals>
+    <plurals name="feed_links_in">
+        <item quantity="one">%1$d new link in %2$s</item>
+        <item quantity="other">%1$d new links in %2$s</item>
+    </plurals>
+    <plurals name="feed_links_loose">
+        <item quantity="one">%1$d new link</item>
+        <item quantity="other">%1$d new links</item>
+    </plurals>
+    <plurals name="feed_hearts_in">
+        <item quantity="one">%1$d spot hearted in %2$s</item>
+        <item quantity="other">%1$d spots hearted in %2$s</item>
+    </plurals>
+    <plurals name="feed_trips">
+        <item quantity="one">%1$d new trip</item>
+        <item quantity="other">%1$d new trips</item>
+    </plurals>
 </resources>

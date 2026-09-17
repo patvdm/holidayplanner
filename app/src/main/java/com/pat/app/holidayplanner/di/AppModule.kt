@@ -18,6 +18,8 @@ import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.DayPlanner
 import com.pat.app.holidayplanner.data.repo.RouteRepository
+import com.pat.app.holidayplanner.data.repo.FeedRepository
+import com.pat.app.holidayplanner.data.repo.SearchRepository
 import com.pat.app.holidayplanner.data.repo.TripRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
 import com.pat.app.holidayplanner.data.sync.RoomTransactor
@@ -43,6 +45,8 @@ import com.pat.app.holidayplanner.ui.trips.TripItemViewModel
 import com.pat.app.holidayplanner.ui.trips.TripViewModel
 import com.pat.app.holidayplanner.ui.trips.TripsViewModel
 import com.pat.app.holidayplanner.ui.onboarding.OnboardingViewModel
+import com.pat.app.holidayplanner.ui.feed.FeedViewModel
+import com.pat.app.holidayplanner.ui.search.SearchViewModel
 import com.pat.app.holidayplanner.ui.settings.SettingsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -67,6 +71,8 @@ val appModule = module {
     single { get<AppDatabase>().tripDao() }
     single { get<AppDatabase>().tripItemDao() }
     single { get<AppDatabase>().routeStopDao() }
+    single { get<AppDatabase>().searchDao() }
+    single { get<AppDatabase>().feedDao() }
     single { get<AppDatabase>().cascadeDao() }
     single { get<AppDatabase>().syncStateDao() }
 
@@ -89,6 +95,8 @@ val appModule = module {
     single { TripRepository(get(), get(), get(), get(), get()) }
     single { RouteRepository(get(), get()) }
     single { DayPlanner(get(), get()) }
+    single { SearchRepository(get()) }
+    single { FeedRepository(get(), get(), get()) }
 
     viewModelOf(::SessionViewModel)
     viewModelOf(::OnboardingViewModel)
@@ -98,6 +106,8 @@ val appModule = module {
     viewModelOf(::ShareViewModel)
     viewModelOf(::TripsViewModel)
     viewModelOf(::SyncRefreshViewModel)
+    viewModelOf(::SearchViewModel)
+    viewModelOf(::FeedViewModel)
 
     // These three are scoped to one row, so the id comes from the screen that opened them.
     viewModel { (countryId: String) -> CountryViewModel(countryId, get(), get(), get()) }

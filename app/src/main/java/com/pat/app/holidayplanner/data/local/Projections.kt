@@ -74,3 +74,27 @@ data class RouteStopRow(
     val lng: Double?,
     val googlePlaceId: String,
 )
+
+/**
+ * One search result, whatever kind of thing matched.
+ *
+ * [navId] is what tapping it opens, which is not always [id]: a link opens the spot it sits on.
+ */
+data class SearchHit(
+    val type: String,
+    val id: String,
+    val navId: String,
+    val title: String,
+    val subtitle: String,
+)
+
+/** Something the other person added recently. [navId] is what tapping it opens. */
+data class FeedRow(
+    val type: String,
+    val id: String,
+    val navId: String,
+    val title: String,
+    val place: String,
+    val createdAt: Long,
+    val authorName: String,
+)

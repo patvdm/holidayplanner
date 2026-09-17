@@ -7,10 +7,12 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.pat.app.holidayplanner.data.local.dao.CascadeDao
 import com.pat.app.holidayplanner.data.local.dao.CountryDao
+import com.pat.app.holidayplanner.data.local.dao.FeedDao
 import com.pat.app.holidayplanner.data.local.dao.HeartDao
 import com.pat.app.holidayplanner.data.local.dao.LinkDao
 import com.pat.app.holidayplanner.data.local.dao.CityDao
 import com.pat.app.holidayplanner.data.local.dao.RouteStopDao
+import com.pat.app.holidayplanner.data.local.dao.SearchDao
 import com.pat.app.holidayplanner.data.local.dao.SpotDao
 import com.pat.app.holidayplanner.data.local.dao.SyncStateDao
 import com.pat.app.holidayplanner.data.local.dao.TripDao
@@ -47,6 +49,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun tripDao(): TripDao
     abstract fun tripItemDao(): TripItemDao
     abstract fun routeStopDao(): RouteStopDao
+    abstract fun searchDao(): SearchDao
+    abstract fun feedDao(): FeedDao
     abstract fun cascadeDao(): CascadeDao
     abstract fun syncStateDao(): SyncStateDao
 

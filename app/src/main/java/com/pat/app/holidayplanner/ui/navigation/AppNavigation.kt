@@ -19,6 +19,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.pat.app.holidayplanner.ui.explore.CountriesScreen
+import com.pat.app.holidayplanner.ui.feed.FeedScreen
 import com.pat.app.holidayplanner.ui.explore.CountryScreen
 import com.pat.app.holidayplanner.ui.explore.CityScreen
 import com.pat.app.holidayplanner.ui.explore.SpotDetailScreen
@@ -77,6 +78,7 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         onSearch = { nav.push(SearchKey) },
                         onSettings = { nav.push(SettingsKey) },
                         onOpenCountry = { nav.push(CountryKey(it)) },
+                        onOpenFeed = { nav.push(FeedKey) },
                     )
                 }
                 entry<CountryKey> { key ->
@@ -133,7 +135,25 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                 entry<RouteKey> { key ->
                     RouteBuilderScreen(itemId = key.itemId, onBack = nav::back)
                 }
-                entry<SearchKey> { SearchScreen(onBack = nav::back) }
+                entry<FeedKey> {
+                    FeedScreen(
+                        onBack = nav::back,
+                        onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
+                        onOpenTrip = { nav.openIn(AppTab.TRIPS, TripKey(it)) },
+                        onOpenInbox = { nav.openTabRoot(AppTab.INBOX) },
+                    )
+                }
+                entry<SearchKey> {
+                    SearchScreen(
+                        onBack = nav::back,
+                        onOpenCountry = { nav.openIn(AppTab.EXPLORE, CountryKey(it)) },
+                        onOpenCity = { nav.openIn(AppTab.EXPLORE, CityKey(it)) },
+                        onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
+                        onOpenTrip = { nav.openIn(AppTab.TRIPS, TripKey(it)) },
+                        onOpenTripItem = { nav.openIn(AppTab.TRIPS, TripItemKey(it)) },
+                        onOpenInbox = { nav.openTabRoot(AppTab.INBOX) },
+                    )
+                }
                 entry<SettingsKey> { SettingsScreen(onBack = nav::back) }
             },
         )

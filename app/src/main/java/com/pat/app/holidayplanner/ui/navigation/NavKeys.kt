@@ -37,6 +37,9 @@ data class TripItemKey(val itemId: String) : NavKey
 data class RouteKey(val itemId: String) : NavKey
 
 @Serializable
+data object FeedKey : FullScreenKey
+
+@Serializable
 data object SearchKey : FullScreenKey
 
 @Serializable
