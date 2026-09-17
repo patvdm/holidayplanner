@@ -22,11 +22,18 @@ import com.pat.app.holidayplanner.domain.SortScope
 @Composable
 fun SortMenu(scope: SortScope, selected: SortMode, onSelect: (SortMode) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
+    val putKeyboardAway = rememberKeyboardDismiss()
 
     IconButton(onClick = { expanded = true }) {
         Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = stringResource(R.string.action_sort))
     }
-    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = {
+            expanded = false
+            putKeyboardAway()
+        },
+    ) {
         scope.options.forEach { mode ->
             DropdownMenuItem(
                 text = { Text(stringResource(mode.label())) },

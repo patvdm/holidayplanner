@@ -50,6 +50,7 @@ import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.SortMenu
+import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.TypeBadge
 import com.pat.app.holidayplanner.ui.components.label
@@ -73,6 +74,7 @@ fun CityScreen(
     var renamingPlace by remember { mutableStateOf(false) }
     var planningDay by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    val putKeyboardAway = rememberKeyboardDismiss()
     val dayTitle = stringResource(R.string.plan_day_route_name, state.place?.name.orEmpty())
 
     Scaffold(
@@ -100,7 +102,13 @@ fun CityScreen(
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
                     }
-                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = {
+                            menuOpen = false
+                            putKeyboardAway()
+                        },
+                    ) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.plan_day)) },
                             onClick = {
