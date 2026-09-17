@@ -1,0 +1,243 @@
+<resources>
+    <string name="app_name">Holiday Planner</string>
+
+    <string name="tab_explore">Explore</string>
+    <string name="tab_inbox">Inbox</string>
+    <string name="tab_trips">Trips</string>
+
+    <string name="action_search">Search</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_back">Back</string>
+    <string name="action_sort">Sort</string>
+    <string name="action_more">More</string>
+    <string name="action_reorder">Reorder</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_add">Add</string>
+
+    <string name="label_name">Name</string>
+    <string name="label_url">Link</string>
+    <string name="label_note">Note</string>
+
+    <string name="priority_must">Must</string>
+    <string name="priority_like">Like</string>
+    <string name="priority_maybe">Maybe</string>
+
+    <string name="status_unvisited">Not visited</string>
+    <string name="status_visited">Visited</string>
+
+    <string name="type_none">Any type</string>
+    <string name="type_poi">Place of interest</string>
+    <string name="type_accommodation">Accommodation</string>
+    <string name="type_restaurant">Restaurant</string>
+    <string name="spot_type">Type</string>
+    <string name="type_clear">No type</string>
+
+    <string name="sort_manual">My order</string>
+    <string name="sort_priority">Priority</string>
+    <string name="sort_hearts">Most hearts</string>
+    <string name="sort_recent">Recently added</string>
+    <string name="sort_alphabetical">A to Z</string>
+
+    <string name="menu_set_priority">Priority: %1$s</string>
+    <string name="menu_set_status">Status: %1$s</string>
+    <string name="filter_clear">Clear filters</string>
+
+    <string name="countries_add">Add a country</string>
+    <string name="countries_search">Search countries</string>
+    <string name="countries_rename">Rename country</string>
+    <string name="countries_empty">No countries yet. Add the first one with the button below.</string>
+    <string name="countries_counts">%1$d cities · %2$d spots</string>
+
+    <string name="country_add_city">Add a city</string>
+    <string name="country_rename_city">Rename city</string>
+    <string name="country_empty">No cities yet. Add one with the button below.</string>
+    <string name="country_spot_count">%1$d spots</string>
+
+    <string name="city_add_spot">Add a spot</string>
+    <string name="city_empty">No spots yet. Add something to see with the button below.</string>
+    <string name="city_no_matches">No spots match these filters.</string>
+    <string name="city_link_count">%1$d links</string>
+
+    <string name="place_search_label">Search Google</string>
+    <string name="place_search_no_key">No Places key is set up yet, so type the name instead.</string>
+    <string name="place_search_failed">Search is unavailable right now, so type the name instead.</string>
+    <string name="place_search_use_typed">Use the name I typed</string>
+    <string name="place_search_filed_under">Filed under %1$s</string>
+    <string name="place_search_change_place">City or region</string>
+    <string name="place_search_choose_country">Choose a country</string>
+    <string name="place_search_city">City or region</string>
+    <string name="place_search_city_hint">Leave blank if you are not sure yet.</string>
+
+    <string name="hearts_description">%1$d hearts</string>
+    <string name="hearts_everyone_description">%1$d hearts, everyone</string>
+
+    <string name="spot_breadcrumb">%1$s › %2$s</string>
+    <string name="spot_location">Location</string>
+    <string name="spot_location_add">Add a Maps link</string>
+    <string name="spot_location_clear">Remove Maps link</string>
+    <string name="spot_open_in_maps">Open in Maps</string>
+    <string name="spot_heart">Heart this spot</string>
+    <string name="spot_hearts_none">Nobody has hearted this yet.</string>
+    <string name="spot_hearts_by">Hearted by %1$s</string>
+    <string name="spot_priority">Priority</string>
+    <string name="spot_status">Status</string>
+    <string name="spot_notes">Notes</string>
+    <string name="spot_tags">Tags, separated by commas</string>
+    <string name="spot_links">Links</string>
+    <string name="spot_links_none">No links yet. Share a reel to the app, or add one here.</string>
+    <string name="spot_add_link">Add link</string>
+    <string name="spot_link_to_inbox">Move to inbox</string>
+    <string name="spot_add_to_trip">Add to a trip</string>
+    <string name="spot_no_trips">Start a trip first to add this to one</string>
+    <string name="spot_move">Move to another city</string>
+
+    <string name="delete_title">Delete %1$s?</string>
+    <string name="delete_country_message">This also deletes %1$d cities and %2$d spots under it.</string>
+    <string name="delete_place_message">This also deletes %1$d spots under it.</string>
+    <string name="delete_spot_message">This also deletes %1$d links and %2$d hearts.</string>
+
+    <string name="onboarding_title">Who is planning?</string>
+    <string name="onboarding_subtitle">Pick your name so everything you add is attributed to you.</string>
+    <string name="onboarding_syncing">Loading from the shared sheet…</string>
+    <string name="onboarding_offline">Could not reach the sheet: %1$s\nYou can still continue, and it will sync later.</string>
+    <string name="onboarding_retry">Try again</string>
+    <string name="onboarding_existing">Existing people</string>
+    <string name="onboarding_new">I\'m new</string>
+    <string name="onboarding_name_label">Your name</string>
+    <string name="onboarding_continue">Continue</string>
+
+    <string name="inbox_empty">Nothing here yet. Share a reel or a link to Holiday Planner and it lands in this inbox.</string>
+    <string name="inbox_added_by">%1$s · %2$s</string>
+    <string name="inbox_assign_title">Attach to a spot</string>
+    <string name="inbox_selected">%1$d selected</string>
+    <string name="inbox_assign_selected">Attach these</string>
+    <string name="inbox_delete">Delete link</string>
+    <string name="inbox_open_hint">Tap to open, then come back to file it.</string>
+
+    <string name="share_title">Save this link?</string>
+    <string name="share_note_label">What is this?</string>
+    <string name="share_save">Save</string>
+    <string name="share_open">Open it</string>
+    <string name="share_duplicate_title">Already saved</string>
+    <string name="share_duplicate_in_inbox">This link is already in your inbox.</string>
+    <string name="share_duplicate_on_spot">This link is already on %1$s.</string>
+    <string name="share_maps_fallback">Could not read a place from this Maps link, so it saves as a link.</string>
+    <string name="share_resolving_title">Looking up the place</string>
+    <string name="share_resolving_message">Following the Maps link…</string>
+    <string name="share_no_link_title">No link found</string>
+    <string name="share_no_link_message">That share did not contain a web address.</string>
+
+    <string name="spot_picker_search">Search your spots</string>
+    <string name="spot_picker_new">New spot</string>
+    <string name="spot_picker_empty">No spots match. Add one first, or create a new spot.</string>
+
+    <string name="action_clear">Clear</string>
+    <string name="action_close">Close</string>
+    <string name="trips_add">New trip</string>
+    <string name="trips_empty">No trips yet. Start one with the button below.</string>
+    <string name="trips_no_dates">No dates yet</string>
+    <string name="trips_past_show">Show %1$d past trips</string>
+    <string name="trips_past_hide">Hide past trips</string>
+
+    <string name="trip_edit">Edit trip</string>
+    <string name="trip_delete">Delete this trip</string>
+    <string name="trip_add_item">Add to trip</string>
+    <string name="trip_empty">Nothing planned yet. Add a flight, a stay or something to do.</string>
+    <string name="trip_undated">No date yet</string>
+    <string name="trip_totals">Totals</string>
+    <string name="trip_check_out">Check out</string>
+    <string name="trip_dates">Dates</string>
+    <string name="trip_start_date">Start date</string>
+    <string name="trip_end_date">End date</string>
+    <string name="trip_countries">Countries</string>
+    <string name="trip_no_countries">Add a country under Explore first.</string>
+    <string name="trip_pick_date">Pick a date</string>
+    <string name="trip_pick_time">Pick a time</string>
+    <string name="trip_pick_zone">Time zone</string>
+    <string name="trip_search_zone">Search time zones</string>
+    <string name="delete_trip_message">Everything planned on it goes too.</string>
+
+    <string name="item_flight">Flight</string>
+    <string name="item_stay">Stay</string>
+    <string name="item_transport">Transport</string>
+    <string name="item_activity">Activity</string>
+    <string name="item_day_route">Day route</string>
+    <string name="item_flight_number">Flight number</string>
+    <string name="item_origin">From</string>
+    <string name="item_destination">To</string>
+    <string name="item_address">Address</string>
+    <string name="item_departs">Departs</string>
+    <string name="item_arrives">Arrives</string>
+    <string name="item_check_in">Check in</string>
+    <string name="item_check_out">Check out</string>
+    <string name="item_date">Date</string>
+    <string name="item_booking_ref">Booking reference</string>
+    <string name="item_cost">Cost</string>
+    <string name="item_currency">Currency</string>
+    <string name="item_doc_url">Document link</string>
+    <string name="item_travel_mode">Getting around</string>
+    <string name="item_pick_spot">Link a spot</string>
+    <string name="item_change_spot">Change the linked spot</string>
+
+    <string name="mode_walking">Walking</string>
+    <string name="mode_transit">Transit</string>
+    <string name="mode_bicycling">Cycling</string>
+    <string name="mode_driving">Driving</string>
+
+    <string name="search_title">Search</string>
+    <string name="search_placeholder">Global search arrives in milestone 7.</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_user">User</string>
+    <string name="settings_section_sync">Sync</string>
+    <string name="settings_section_advanced">Advanced</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_current_user">Signed in as %1$s</string>
+    <string name="settings_switch_user">Switch user</string>
+    <string name="settings_sync_never">Never synced</string>
+    <string name="settings_sync_last">Last sync: %1$s</string>
+    <string name="settings_sync_pending">Waiting to send: %1$d changes</string>
+    <string name="settings_sync_error">Last error: %1$s</string>
+    <string name="settings_sync_now">Sync now</string>
+    <string name="settings_sync_running">Syncing…</string>
+    <string name="settings_backend_effective_url">Backend URL: %1$s</string>
+    <string name="settings_backend_not_configured">Not configured. Add SHEETS_URL to local.properties or set an override below.</string>
+    <string name="settings_backend_source_build">Using values from local.properties.</string>
+    <string name="settings_backend_source_override">Using the override below.</string>
+    <string name="settings_backend_url_label">Backend URL override</string>
+    <string name="settings_backend_secret_label">Secret override</string>
+    <string name="settings_backend_save">Save</string>
+    <string name="settings_backend_clear">Clear</string>
+    <string name="settings_backend_ping">Ping backend</string>
+    <string name="settings_backend_pinging">Pinging…</string>
+    <string name="settings_backend_ping_ok">OK. Server time %1$s</string>
+    <string name="settings_backend_ping_failed">Failed: %1$s</string>
+    <string name="settings_version">Version %1$s (%2$d)</string>
+
+    <!-- Day routes -->
+    <string name="route_title">Day route</string>
+    <string name="route_add_stop">Add stop</string>
+    <string name="route_sort_proximity">Sort by proximity</string>
+    <string name="route_open_in_maps">Open in Maps</string>
+    <string name="route_open_part">Open part %1$d of %2$d</string>
+    <string name="route_split_warning">Google Maps takes %1$d stops at a time, so this day opens as %2$d routes. Each one starts where the last one ended.</string>
+    <string name="route_empty">No stops yet. Add the spots you want to walk between.</string>
+    <string name="route_needs_two">A route needs at least two stops.</string>
+    <string name="route_remove_stop">Remove stop</string>
+    <string name="route_stop_count">%1$d stops</string>
+    <string name="route_no_maps_app">Nothing on this device can open Maps.</string>
+    <string name="item_route_stops">Stops</string>
+    <plurals name="route_without_location">
+        <item quantity="one">%d stop has no coordinates, so Maps will search for it by name.</item>
+        <item quantity="other">%d stops have no coordinates, so Maps will search for them by name.</item>
+    </plurals>
+
+    <!-- Plan a day -->
+    <string name="plan_day">Plan a day</string>
+    <string name="plan_day_pick_trip">Which trip is this day part of?</string>
+    <string name="plan_day_no_trips">Make a trip first, then plan a day inside it.</string>
+    <string name="plan_day_route_name">%1$s day</string>
+</resources>

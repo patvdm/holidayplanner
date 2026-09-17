@@ -1,0 +1,43 @@
+package com.pat.app.holidayplanner.ui.navigation
+
+import androidx.navigation3.runtime.NavKey
+import kotlinx.serialization.Serializable
+
+/** Destinations that take over the whole screen: no bottom tab bar while they are on top. */
+sealed interface FullScreenKey : NavKey
+
+@Serializable
+data object ExploreRootKey : NavKey
+
+@Serializable
+data object InboxRootKey : NavKey
+
+@Serializable
+data object TripsRootKey : NavKey
+
+@Serializable
+data class CountryKey(val countryId: String) : NavKey
+
+@Serializable
+data class CityKey(val cityId: String) : NavKey
+
+@Serializable
+data class SpotKey(val spotId: String) : NavKey
+
+@Serializable
+data class TripKey(val tripId: String) : NavKey
+
+@Serializable
+data class TripEditorKey(val tripId: String) : NavKey
+
+@Serializable
+data class TripItemKey(val itemId: String) : NavKey
+
+@Serializable
+data class RouteKey(val itemId: String) : NavKey
+
+@Serializable
+data object SearchKey : FullScreenKey
+
+@Serializable
+data object SettingsKey : FullScreenKey

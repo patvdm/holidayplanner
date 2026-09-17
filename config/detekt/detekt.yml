@@ -1,0 +1,44 @@
+# Project overrides on top of the detekt default config (buildUponDefaultConfig = true).
+build:
+  maxIssues: 0
+
+complexity:
+  LongMethod:
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    ignoreAnnotated: ['Composable', 'Entity', 'Serializable']
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    thresholdInFiles: 25
+    thresholdInClasses: 25
+    thresholdInInterfaces: 30
+    thresholdInObjects: 25
+
+exceptions:
+  SwallowedException:
+    # A share can carry any text, so an address that will not parse is expected input for a parser
+    # rather than a failure, in the same way a bad number is for NumberFormatException.
+    ignoredExceptionTypes:
+      - 'DateTimeException'
+      - 'DateTimeParseException'
+      - 'InterruptedException'
+      - 'MalformedURLException'
+      - 'NumberFormatException'
+      - 'ParseException'
+      - 'URISyntaxException'
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+
+style:
+  MagicNumber:
+    ignoreAnnotated: ['Composable', 'Preview']
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+  MaxLineLength:
+    maxLineLength: 120
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']
+  ReturnCount:
+    max: 3
