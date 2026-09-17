@@ -25,7 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,9 +81,6 @@ fun PlaceSearchSheet(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val putKeyboardAway = rememberKeyboardDismiss()
-    // Picking or saving closes the sheet without the dismiss gesture, so catch every exit.
-    DisposableEffect(Unit) { onDispose(putKeyboardAway) }
     val focusRequester = remember { FocusRequester() }
     // The sheet animates in, so the field is only ready to take focus a moment later.
     LaunchedEffect(Unit) {
@@ -93,12 +89,10 @@ fun PlaceSearchSheet(
     }
 
     ModalBottomSheet(
-        onDismissRequest = {
-            putKeyboardAway()
-            onDismiss()
-        },
+        onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
+        DropFocusWhileSheetCloses(sheetState)
         Column(
             modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),

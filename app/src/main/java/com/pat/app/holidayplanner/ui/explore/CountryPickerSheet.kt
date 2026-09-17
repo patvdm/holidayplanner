@@ -15,7 +15,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +27,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
+import com.pat.app.holidayplanner.ui.components.DropFocusWhileSheetCloses
 import com.pat.app.holidayplanner.domain.CountryOption
 import kotlinx.coroutines.delay
 
@@ -45,9 +44,6 @@ fun CountryPickerSheet(
 ) {
     var query by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val putKeyboardAway = rememberKeyboardDismiss()
-    // Picking or saving closes the sheet without the dismiss gesture, so catch every exit.
-    DisposableEffect(Unit) { onDispose(putKeyboardAway) }
     val focusRequester = remember { FocusRequester() }
     // The sheet animates in, so the field is only ready to take focus a moment later.
     LaunchedEffect(Unit) {
@@ -59,12 +55,10 @@ fun CountryPickerSheet(
     }
 
     ModalBottomSheet(
-        onDismissRequest = {
-            putKeyboardAway()
-            onDismiss()
-        },
+        onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
+        DropFocusWhileSheetCloses(sheetState)
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
