@@ -93,10 +93,10 @@ fun CityScreen(
                     }
                 },
                 actions = {
-                    SortMenu(SortScope.SPOTS, state.sortMode, viewModel::setSortMode)
                     IconButton(onClick = onOpenMap) {
                         Icon(Icons.Filled.Map, contentDescription = stringResource(R.string.map_show))
                     }
+                    SortMenu(SortScope.SPOTS, state.sortMode, viewModel::setSortMode)
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
                     }
