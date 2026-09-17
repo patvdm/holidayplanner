@@ -125,6 +125,7 @@ class TripTimelineTest {
         lat = null,
         lng = null,
         spotId = "",
+        cityId = "",
         travelMode = null,
         bookingRef = "",
         costMinor = null,

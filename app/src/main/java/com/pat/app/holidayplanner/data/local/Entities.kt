@@ -125,6 +125,8 @@ data class TripItemEntity(
     val lat: Double?,
     val lng: Double?,
     val spotId: String,
+    /** Only a DAY_ROUTE uses this: the one city its walk stays inside. */
+    val cityId: String,
     val travelMode: TravelMode?,
     val bookingRef: String,
     /** Integer minor units, paired with [currency]. Never a float. */

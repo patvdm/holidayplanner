@@ -123,6 +123,7 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         tripId = key.tripId,
                         onBack = nav::back,
                         onOpenItem = { nav.push(TripItemKey(it)) },
+                        onOpenRoute = { nav.push(RouteKey(it)) },
                         onEditTrip = { nav.push(TripEditorKey(key.tripId)) },
                     )
                 }
@@ -135,14 +136,10 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                     )
                 }
                 entry<TripItemKey> { key ->
-                    TripItemEditorScreen(
-                        itemId = key.itemId,
-                        onBack = nav::back,
-                        onOpenRoute = { nav.push(RouteKey(key.itemId)) },
-                    )
+                    TripItemEditorScreen(itemId = key.itemId, onBack = nav::back)
                 }
                 entry<RouteKey> { key ->
-                    RouteBuilderScreen(itemId = key.itemId, onBack = nav::back)
+                    RouteBuilderScreen(itemId = key.itemId, onBack = nav::back, onDeleted = nav::back)
                 }
                 entry<MapKey> { key ->
                     MapScreen(

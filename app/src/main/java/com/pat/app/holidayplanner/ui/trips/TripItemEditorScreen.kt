@@ -50,7 +50,6 @@ import org.koin.core.parameter.parametersOf
 fun TripItemEditorScreen(
     itemId: String,
     onBack: () -> Unit,
-    onOpenRoute: () -> Unit,
     viewModel: TripItemViewModel = koinViewModel { parametersOf(itemId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -134,21 +133,10 @@ fun TripItemEditorScreen(
                 onChange = viewModel::setEnd,
             )
 
-            if (item.type == TripItemType.DAY_ROUTE) {
-                // Saved on the way out, so edits made here are not lost to the builder.
-                OutlinedButton(
-                    onClick = { viewModel.save(onOpenRoute) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.item_route_stops))
-                }
-            }
 
             HorizontalDivider()
-            if (item.type != TripItemType.DAY_ROUTE) {
-                TextField(stringResource(R.string.item_booking_ref), item.bookingRef) { text ->
-                    viewModel.edit { it.copy(bookingRef = text) }
-                }
+            TextField(stringResource(R.string.item_booking_ref), item.bookingRef) { text ->
+                viewModel.edit { it.copy(bookingRef = text) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -223,7 +211,6 @@ private fun titleLabelFor(type: TripItemType): Int = when (type) {
 
 private fun startLabelFor(type: TripItemType): Int = when (type) {
     TripItemType.STAY -> R.string.item_check_in
-    TripItemType.DAY_ROUTE -> R.string.item_date
     else -> R.string.item_departs
 }
 

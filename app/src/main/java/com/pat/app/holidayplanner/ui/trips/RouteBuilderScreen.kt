@@ -8,18 +8,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -35,39 +38,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.data.local.RouteStopRow
+import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.ui.components.BackTopBar
+import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
-import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
 import com.pat.app.holidayplanner.ui.components.openExternalUrl
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * The stops of one day, in the order they will be walked.
+ * A day route: a name, a date, and which of the city's spots are on the walk.
  *
- * Everything written here takes effect at once, so there is no Save button: the list is the plan.
+ * Every spot in the city is listed and ticking one puts it on the walk, so choosing a day is a
+ * matter of looking at what is nearby rather than searching for things one at a time. Everything
+ * written here takes effect at once, so there is no Save button: the list is the plan.
  */
 @Composable
 fun RouteBuilderScreen(
     itemId: String,
     onBack: () -> Unit,
+    onDeleted: () -> Unit,
     viewModel: RouteViewModel = koinViewModel { parametersOf(itemId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbars = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var addingStop by remember { mutableStateOf(false) }
+    var pickingDate by remember { mutableStateOf(false) }
+    var confirmingDelete by remember { mutableStateOf(false) }
 
     val noMapsApp = stringResource(R.string.route_no_maps_app)
-    val openInMaps: (List<RouteStopRow>) -> Unit = { part ->
+    val openInMaps: (List<RouteCandidate>) -> Unit = { part ->
         val url = viewModel.mapsUrl(part)
         if (url == null || !context.openExternalUrl(url)) {
             scope.launch { snackbars.showSnackbar(noMapsApp) }
@@ -77,8 +85,13 @@ fun RouteBuilderScreen(
     Scaffold(
         topBar = {
             BackTopBar(
-                title = state.item?.title?.takeIf { it.isNotBlank() } ?: stringResource(R.string.route_title),
+                title = stringResource(R.string.route_title),
                 onBack = onBack,
+                actions = {
+                    IconButton(onClick = { confirmingDelete = true }) {
+                        Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
+                    }
+                },
             )
         },
         snackbarHost = { SnackbarHost(snackbars) },
@@ -88,71 +101,79 @@ fun RouteBuilderScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            RouteControls(
+            RouteHeader(
                 state = state,
-                onAddStop = { addingStop = true },
+                onRename = viewModel::rename,
+                onPickDate = { pickingDate = true },
                 onSortByProximity = viewModel::sortByProximity,
             )
             HorizontalDivider()
 
-            if (state.stops.isEmpty()) {
-                EmptyListMessage(stringResource(R.string.route_empty))
+            if (state.candidates.isEmpty()) {
+                EmptyListMessage(stringResource(R.string.route_city_empty))
             } else {
-                ReorderableColumn(
-                    items = state.stops,
-                    idOf = { it.stopId },
-                    sortKeyOf = { it.sortKey },
-                    reorderable = true,
-                    onMoved = viewModel::move,
-                    modifier = Modifier.weight(1f),
-                ) { stop, handle ->
-                    StopRow(
-                        stop = stop,
-                        position = state.stops.indexOfFirst { it.stopId == stop.stopId } + 1,
-                        handle = handle,
-                        onRemove = { viewModel.removeStop(stop.stopId) },
-                    )
-                }
+                StopList(state = state, viewModel = viewModel, modifier = Modifier.weight(1f))
                 HorizontalDivider()
                 RouteFooter(state = state, onOpen = openInMaps)
             }
         }
     }
 
-    if (addingStop) {
-        val alreadyOn = state.stops.map { it.spotId }.toSet()
-        val city = state.cityId
-        SpotPickerSheet(
+    if (pickingDate) {
+        DatePickerSheet(
+            initial = state.date,
             onPick = {
-                addingStop = false
-                viewModel.addStop(it.spotId)
+                pickingDate = false
+                viewModel.setDate(it)
             },
-            onDismiss = { addingStop = false },
-            // A walk stays in one city, so once the first stop is on, only its neighbours are offered.
-            filter = { it.spotId !in alreadyOn && (city.isEmpty() || it.cityId == city) },
+            onDismiss = { pickingDate = false },
+        )
+    }
+
+    if (confirmingDelete) {
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.delete_title, state.title),
+            message = stringResource(R.string.route_delete_message),
+            onConfirm = {
+                confirmingDelete = false
+                viewModel.delete(onDeleted)
+            },
+            onDismiss = { confirmingDelete = false },
         )
     }
 }
 
 @Composable
-private fun RouteControls(
+private fun RouteHeader(
     state: RouteUiState,
-    onAddStop: () -> Unit,
+    onRename: (String) -> Unit,
+    onPickDate: () -> Unit,
     onSortByProximity: (fromHere: Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        var name by remember(state.item?.meta?.id) { mutableStateOf(state.title) }
+        OutlinedTextField(
+            value = name,
+            onValueChange = {
+                name = it
+                onRename(it)
+            },
+            label = { Text(stringResource(R.string.label_name)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            AssistChip(
-                onClick = onAddStop,
-                leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                label = { Text(stringResource(R.string.route_add_stop)) },
-            )
+            OutlinedButton(onClick = onPickDate) {
+                Text(state.date?.let(LocalTimes::formatDay) ?: stringResource(R.string.trip_pick_date))
+            }
             if (state.stops.size > 1) {
                 AssistChip(
                     enabled = !state.sorting,
@@ -166,42 +187,59 @@ private fun RouteControls(
                 )
             }
         }
-        if (state.cityName.isNotBlank()) {
-            Text(
-                text = stringResource(R.string.route_city_locked, state.cityName),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
 @Composable
-private fun StopRow(
-    stop: RouteStopRow,
-    position: Int,
+private fun StopList(state: RouteUiState, viewModel: RouteViewModel, modifier: Modifier = Modifier) {
+    ReorderableColumn(
+        items = state.candidates,
+        idOf = { it.spotId },
+        sortKeyOf = { it.sortKey },
+        // Only the walk has an order; the rest are just spots that happen to be in this city.
+        reorderable = true,
+        onMoved = { id, previous, next ->
+            state.candidates.firstOrNull { it.spotId == id }?.stopId?.let { viewModel.move(it, previous, next) }
+        },
+        modifier = modifier,
+    ) { candidate, handle ->
+        CandidateRow(
+            candidate = candidate,
+            position = if (candidate.selected) state.stops.indexOf(candidate) + 1 else null,
+            handle = handle.takeIf { candidate.selected },
+            onToggle = { viewModel.setOnRoute(candidate, it) },
+        )
+    }
+}
+
+@Composable
+private fun CandidateRow(
+    candidate: RouteCandidate,
+    position: Int?,
     handle: (@Composable () -> Unit)?,
-    onRemove: () -> Unit,
+    onToggle: (Boolean) -> Unit,
 ) {
     ListItem(
-        leadingContent = { Text(position.toString(), style = MaterialTheme.typography.titleMedium) },
-        headlineContent = { Text(stop.name) },
-        supportingContent = {
-            Text(stop.address.ifBlank { stop.cityName }, style = MaterialTheme.typography.bodySmall)
-        },
-        trailingContent = {
+        leadingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onRemove) {
-                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.route_remove_stop))
+                Checkbox(checked = candidate.selected, onCheckedChange = onToggle)
+                if (position != null) {
+                    Text(position.toString(), style = MaterialTheme.typography.titleMedium)
                 }
-                handle?.invoke()
             }
         },
+        headlineContent = { Text(candidate.name) },
+        supportingContent = {
+            if (candidate.address.isNotBlank()) {
+                Text(candidate.address, style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        trailingContent = handle,
     )
 }
 
 @Composable
-private fun RouteFooter(state: RouteUiState, onOpen: (List<RouteStopRow>) -> Unit) {
+private fun RouteFooter(state: RouteUiState, onOpen: (List<RouteCandidate>) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()

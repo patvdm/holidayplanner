@@ -55,6 +55,7 @@ import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
+import com.pat.app.holidayplanner.ui.components.PickFromListDialog
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import com.pat.app.holidayplanner.ui.components.label
 import com.pat.app.holidayplanner.ui.components.openExternalUrl
@@ -487,27 +488,3 @@ private fun AddLinkDialog(onConfirm: (String, String) -> Unit, onDismiss: () -> 
     )
 }
 
-/** A plain list to choose one thing from, used for both moving a spot and putting it on a trip. */
-@Composable
-private fun PickFromListDialog(
-    title: String,
-    options: List<Pair<String, String>>,
-    onPick: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                options.forEach { (id, label) ->
-                    TextButton(onClick = { onPick(id) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(label)
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
-}

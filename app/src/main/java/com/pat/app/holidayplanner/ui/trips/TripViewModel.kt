@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.CountryEntity
 import com.pat.app.holidayplanner.data.local.TripEntity
 import com.pat.app.holidayplanner.data.local.TripItemEntity
+import com.pat.app.holidayplanner.data.local.CityOption
+import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.CountryRepository
 import com.pat.app.holidayplanner.data.repo.TripRepository
 import com.pat.app.holidayplanner.domain.Cost
@@ -34,7 +36,11 @@ class TripViewModel(
     private val tripId: String,
     private val repository: TripRepository,
     countryRepository: CountryRepository,
+    cityRepository: CityRepository,
 ) : ViewModel() {
+
+    /** Offered when adding a day route, which cannot exist without a city to walk. */
+    val cityOptions = cityRepository.observeOptions()
 
     val uiState: StateFlow<TripUiState> = combine(
         repository.observeTrip(tripId),
@@ -52,6 +58,13 @@ class TripViewModel(
 
     fun addItem(type: TripItemType, onCreated: (String) -> Unit) {
         viewModelScope.launch { onCreated(repository.addItem(tripId = tripId, type = type)) }
+    }
+
+    /** A day route is a walk through one city, so it is created with that city already set. */
+    fun addDayRoute(city: CityOption, onCreated: (String) -> Unit) {
+        viewModelScope.launch {
+            onCreated(repository.addDayRoute(tripId, city.cityName, city.cityId, date = null))
+        }
     }
 
     fun deleteItem(itemId: String) {

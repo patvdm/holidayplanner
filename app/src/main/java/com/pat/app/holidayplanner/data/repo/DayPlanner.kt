@@ -19,8 +19,14 @@ class DayPlanner(
     fun observeTrips(): Flow<List<TripEntity>> = trips.observeTrips()
 
     /** Creates the route and puts [spotIds] on it in order, returning the new trip item. */
-    suspend fun planDay(tripId: String, title: String, date: LocalDate, spotIds: List<String>): String {
-        val itemId = trips.addDayRoute(tripId, title, date)
+    suspend fun planDay(
+        tripId: String,
+        title: String,
+        cityId: String,
+        date: LocalDate?,
+        spotIds: List<String>,
+    ): String {
+        val itemId = trips.addDayRoute(tripId, title, cityId, date)
         routes.addStops(itemId, spotIds)
         return itemId
     }

@@ -35,6 +35,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.ui.components.PickFromListDialog
+import com.pat.app.holidayplanner.data.local.TripItemEntity
 import com.pat.app.holidayplanner.domain.Costs
 import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.domain.TripItemType
@@ -47,11 +49,13 @@ fun TripScreen(
     tripId: String,
     onBack: () -> Unit,
     onOpenItem: (String) -> Unit,
+    onOpenRoute: (String) -> Unit,
     onEditTrip: () -> Unit,
     viewModel: TripViewModel = koinViewModel { parametersOf(tripId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var addingItem by remember { mutableStateOf(false) }
+    var pickingRouteCity by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -104,7 +108,7 @@ fun TripScreen(
                     )
                 }
                 items(day.entries, key = { "${day.date}-${it.item.meta.id}-${it.role}" }) { entry ->
-                    ItemCard(entry = entry, onClick = { onOpenItem(entry.item.meta.id) })
+                    ItemCard(entry = entry, onClick = { open(entry.item, onOpenItem, onOpenRoute) })
                 }
             }
 
@@ -118,7 +122,10 @@ fun TripScreen(
                     )
                 }
                 items(state.timeline.undated, key = { "undated-${it.meta.id}" }) { item ->
-                    ItemCard(entry = TimelineEntry(item, ItemRole.START), onClick = { onOpenItem(item.meta.id) })
+                    ItemCard(
+                        entry = TimelineEntry(item, ItemRole.START),
+                        onClick = { open(item, onOpenItem, onOpenRoute) },
+                    )
                 }
             }
 
@@ -128,11 +135,25 @@ fun TripScreen(
         }
     }
 
+    if (pickingRouteCity) {
+        val cities by viewModel.cityOptions.collectAsStateWithLifecycle(initialValue = emptyList())
+        PickFromListDialog(
+            title = stringResource(R.string.route_pick_city),
+            options = cities.map { it.cityId to "${it.countryName} › ${it.cityName}" },
+            onPick = { cityId ->
+                pickingRouteCity = false
+                cities.firstOrNull { it.cityId == cityId }?.let { viewModel.addDayRoute(it, onOpenRoute) }
+            },
+            onDismiss = { pickingRouteCity = false },
+        )
+    }
+
     if (addingItem) {
         ItemTypeDialog(
             onPick = { type ->
                 addingItem = false
-                viewModel.addItem(type, onOpenItem)
+                // A day route needs a city before it exists, so it asks rather than being created blank.
+                if (type == TripItemType.DAY_ROUTE) pickingRouteCity = true else viewModel.addItem(type, onOpenItem)
             },
             onDismiss = { addingItem = false },
         )
@@ -257,4 +278,13 @@ fun TripItemType.label(): Int = when (this) {
     TripItemType.TRANSPORT -> R.string.item_transport
     TripItemType.ACTIVITY -> R.string.item_activity
     TripItemType.DAY_ROUTE -> R.string.item_day_route
+}
+
+/** A day route has a screen of its own; every other item type shares the generic editor. */
+private fun open(
+    item: TripItemEntity,
+    onOpenItem: (String) -> Unit,
+    onOpenRoute: (String) -> Unit,
+) {
+    if (item.type == TripItemType.DAY_ROUTE) onOpenRoute(item.meta.id) else onOpenItem(item.meta.id)
 }

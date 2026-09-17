@@ -170,7 +170,7 @@ class CityViewModel(
                 if (lat != null && lng != null) GeoPoint(lat, lng) else null
             }
             .map { it.spot.meta.id }
-        viewModelScope.launch { onCreated(dayPlanner.planDay(tripId, title, date, unvisited)) }
+        viewModelScope.launch { onCreated(dayPlanner.planDay(tripId, title, cityId, date, unvisited)) }
     }
 
     fun confirmDelete() {

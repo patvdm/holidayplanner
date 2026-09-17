@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.components
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
@@ -30,10 +31,14 @@ fun TabTopBar(title: String, onSearch: () -> Unit, onSettings: () -> Unit) {
     )
 }
 
-/** Top bar of pushed screens: back arrow plus title. */
+/** Top bar of pushed screens: back arrow, title, and whatever the screen puts on the right. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BackTopBar(title: String, onBack: () -> Unit) {
+fun BackTopBar(
+    title: String,
+    onBack: () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {},
+) {
     TopAppBar(
         title = { Text(title) },
         navigationIcon = {
@@ -41,5 +46,6 @@ fun BackTopBar(title: String, onBack: () -> Unit) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
             }
         },
+        actions = actions,
     )
 }

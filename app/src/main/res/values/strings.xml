@@ -214,18 +214,16 @@
 
     <!-- Day routes -->
     <string name="route_title">Day route</string>
-    <string name="route_add_stop">Add stop</string>
+    <string name="route_pick_city">Which city is this walk in?</string>
     <string name="route_sort_proximity">Shortest walk</string>
     <string name="route_sort_from_here">Start from here</string>
-    <string name="route_city_locked">Stops come from %1$s, because a day route is one walk.</string>
     <string name="route_open_in_maps">Open in Maps</string>
     <string name="route_open_part">Open part %1$d of %2$d</string>
     <string name="route_split_warning">Google Maps takes %1$d stops at a time, so this day opens as %2$d routes. Each one starts where the last one ended.</string>
-    <string name="route_empty">No stops yet. Add the spots you want to walk between.</string>
+    <string name="route_city_empty">No spots saved in this city yet. Add some and they appear here to tick.</string>
+    <string name="route_delete_message">The route is removed from the trip. The spots themselves are untouched.</string>
     <string name="route_needs_two">A route needs at least two stops.</string>
-    <string name="route_remove_stop">Remove stop</string>
     <string name="route_no_maps_app">Nothing on this device can open Maps.</string>
-    <string name="item_route_stops">Stops</string>
     <plurals name="route_without_location">
         <item quantity="one">%d stop has no coordinates, so Maps will search for it by name.</item>
         <item quantity="other">%d stops have no coordinates, so Maps will search for them by name.</item>

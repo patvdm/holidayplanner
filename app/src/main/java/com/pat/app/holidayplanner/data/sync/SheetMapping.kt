@@ -224,6 +224,7 @@ fun tripItemToRow(entity: TripItemEntity): Map<String, String> = buildRow(entity
     put("lat", entity.lat.orBlank())
     put("lng", entity.lng.orBlank())
     put("spotId", entity.spotId)
+    put("cityId", entity.cityId)
     put("travelMode", entity.travelMode?.name.orEmpty())
     put("bookingRef", entity.bookingRef)
     put("costMinor", entity.costMinor.orBlank())
@@ -250,6 +251,7 @@ fun tripItemFromRow(row: SheetRow): TripItemEntity? {
         lat = row.doubleOrNull("lat"),
         lng = row.doubleOrNull("lng"),
         spotId = row.str("spotId").trim(),
+        cityId = row.str("cityId").trim(),
         travelMode = TravelMode.fromSheetOrNull(row.str("travelMode")),
         bookingRef = row.str("bookingRef").trim(),
         costMinor = row.longOrNull("costMinor"),

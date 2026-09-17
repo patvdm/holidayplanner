@@ -64,6 +64,7 @@ class TripRepository(
         type: TripItemType,
         title: String = "",
         spotId: String = "",
+        cityId: String = "",
         address: String = "",
         lat: Double? = null,
         lng: Double? = null,
@@ -86,6 +87,7 @@ class TripRepository(
             lat = lat,
             lng = lng,
             spotId = spotId,
+            cityId = cityId,
             travelMode = null,
             bookingRef = "",
             costMinor = null,
@@ -102,13 +104,13 @@ class TripRepository(
      * A day route dated and ready for stops, as "Plan a day" creates it. Written as two updates to
      * the same row rather than a wider [addItem], so the row still syncs once.
      */
-    suspend fun addDayRoute(tripId: String, title: String, date: LocalDate): String {
-        val id = addItem(tripId = tripId, type = TripItemType.DAY_ROUTE, title = title)
+    suspend fun addDayRoute(tripId: String, title: String, cityId: String, date: LocalDate?): String {
+        val id = addItem(tripId = tripId, type = TripItemType.DAY_ROUTE, title = title, cityId = cityId)
         val item = itemDao.find(id) ?: return id
         val zone = suggestedTimeZone(tripId).ifBlank { LocalTimes.deviceZone() }
         updateItem(
             item.copy(
-                startLocal = LocalTimes.write(date.atTime(DAY_ROUTE_START_HOUR, 0)),
+                startLocal = date?.let { LocalTimes.write(it.atTime(DAY_ROUTE_START_HOUR, 0)) }.orEmpty(),
                 startTimeZone = zone,
                 endTimeZone = zone,
                 travelMode = TravelMode.WALKING,
