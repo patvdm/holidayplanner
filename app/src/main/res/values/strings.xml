@@ -111,6 +111,7 @@
 
     <string name="inbox_filed_under">%1$s · %2$s</string>
     <string name="inbox_unfiled">No spot yet. Tap to file it.</string>
+    <string name="inbox_open_link">Open the link</string>
     <string name="inbox_empty">Nothing here yet. Share a reel or a link to Holiday Planner and it lands in this inbox.</string>
     <string name="inbox_added_by">%1$s · %2$s</string>
     <string name="inbox_assign_title">Attach to a spot</string>

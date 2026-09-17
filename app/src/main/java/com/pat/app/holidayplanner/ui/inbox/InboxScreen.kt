@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Checkbox
@@ -62,6 +63,7 @@ fun InboxScreen(
     onSearch: () -> Unit,
     onSettings: () -> Unit,
     onOpenFeed: () -> Unit,
+    onOpenSpot: (String) -> Unit,
     viewModel: InboxViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -114,8 +116,16 @@ fun InboxScreen(
                                 row = row,
                                 selected = row.link.meta.id in state.selected,
                                 selectionMode = state.selectionMode,
-                                onOpen = {
-                                    // Only an unfiled link needs the picker waiting on the way back.
+                                onClickRow = {
+                                    // A filed link lives on its spot; an unfiled one needs one first.
+                                    if (row.filed) {
+                                        onOpenSpot(row.link.spotId)
+                                    } else {
+                                        viewModel.startAssign(row.link.meta.id)
+                                    }
+                                },
+                                onOpenLink = {
+                                    // Coming back from the other app, an unfiled link still needs a spot.
                                     if (!row.filed) viewModel.rememberPendingAssign(row.link.meta.id)
                                     context.openExternalUrl(row.link.url)
                                 },
@@ -156,7 +166,8 @@ private fun InboxItem(
     row: InboxRow,
     selected: Boolean,
     selectionMode: Boolean,
-    onOpen: () -> Unit,
+    onClickRow: () -> Unit,
+    onOpenLink: () -> Unit,
     onToggleSelect: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -187,7 +198,7 @@ private fun InboxItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .combinedClickable(
-                        onClick = { if (selectionMode) onToggleSelect() else onOpen() },
+                        onClick = { if (selectionMode) onToggleSelect() else onClickRow() },
                         onLongClick = onToggleSelect,
                     )
                     .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -231,6 +242,14 @@ private fun InboxItem(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
+                }
+                if (!selectionMode) {
+                    IconButton(onClick = onOpenLink) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = stringResource(R.string.inbox_open_link),
+                        )
+                    }
                 }
             }
             HorizontalDivider()

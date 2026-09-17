@@ -64,6 +64,11 @@ class InboxViewModel(
         }
     }
 
+    /** Opens the spot picker for one link, without handing it to another app first. */
+    fun startAssign(linkId: String) {
+        assigning.value = setOf(linkId)
+    }
+
     fun assignTo(spotId: String) {
         val links = assigning.value
         if (links.isEmpty()) return

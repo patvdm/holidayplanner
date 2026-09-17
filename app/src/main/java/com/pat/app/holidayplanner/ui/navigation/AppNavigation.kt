@@ -116,6 +116,7 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         onSearch = { nav.push(SearchKey) },
                         onSettings = { nav.push(SettingsKey) },
                         onOpenFeed = { nav.push(FeedKey) },
+                        onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
                     )
                 }
                 entry<TripsRootKey> {
