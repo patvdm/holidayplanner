@@ -7,18 +7,15 @@ import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.CityOption
 import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.local.SpotEntity
-import com.pat.app.holidayplanner.data.local.TripEntity
 import com.pat.app.holidayplanner.data.repo.LinkRepository
 import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
-import com.pat.app.holidayplanner.data.repo.TripRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
 import com.pat.app.holidayplanner.domain.LinkSource
 import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.domain.ShareParser
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
-import com.pat.app.holidayplanner.domain.TripItemType
 import com.pat.app.holidayplanner.domain.SpotType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,7 +32,6 @@ data class SpotDetailUiState(
     val hearts: List<HeartRow> = emptyList(),
     val links: List<LinkEntity> = emptyList(),
     val cities: List<CityOption> = emptyList(),
-    val trips: List<TripEntity> = emptyList(),
     val currentUserId: String = "",
 ) {
     val heartedByMe: Boolean get() = hearts.any { it.userId == currentUserId }
@@ -66,7 +62,6 @@ private data class SpotBundle(
     val hearts: List<HeartRow>,
     val links: List<LinkEntity>,
     val cities: List<CityOption>,
-    val trips: List<TripEntity>,
 )
 
 class SpotDetailViewModel(
@@ -75,14 +70,12 @@ class SpotDetailViewModel(
     private val linkRepository: LinkRepository,
     cityRepository: CityRepository,
     userRepository: UserRepository,
-    private val tripRepository: TripRepository,
 ) : ViewModel() {
 
     private val bundle: Flow<SpotBundle> = combine(
         spotRepository.observeHeartNames(spotId),
         linkRepository.observeLinks(spotId),
         cityRepository.observeOptions(),
-        tripRepository.observeTrips(),
         ::SpotBundle,
     )
 
@@ -98,7 +91,6 @@ class SpotDetailViewModel(
             hearts = parts.hearts,
             links = parts.links,
             cities = parts.cities,
-            trips = parts.trips,
             currentUserId = userId.orEmpty(),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SpotDetailUiState())
@@ -173,24 +165,6 @@ class SpotDetailViewModel(
         viewModelScope.launch { linkRepository.delete(linkId) }
     }
 
-    /**
-     * Puts this spot on a trip as something to do, carrying over what the spot already knows so the
-     * item does not start empty.
-     */
-    fun addToTrip(tripId: String) {
-        val spot = uiState.value.spot ?: return
-        viewModelScope.launch {
-            tripRepository.addItem(
-                tripId = tripId,
-                type = TripItemType.ACTIVITY,
-                title = spot.name,
-                spotId = spot.meta.id,
-                address = spot.address,
-                lat = spot.lat,
-                lng = spot.lng,
-            )
-        }
-    }
 
     fun delete() {
         viewModelScope.launch { spotRepository.delete(spotId) }

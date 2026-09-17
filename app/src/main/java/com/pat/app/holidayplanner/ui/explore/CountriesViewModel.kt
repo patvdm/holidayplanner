@@ -3,14 +3,11 @@ package com.pat.app.holidayplanner.ui.explore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.CountryRow
-import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.repo.CountryRepository
 import com.pat.app.holidayplanner.data.repo.DeleteImpact
 import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.CountryOption
 import com.pat.app.holidayplanner.domain.Priority
-import com.pat.app.holidayplanner.domain.SortMode
-import com.pat.app.holidayplanner.domain.SortScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,25 +22,21 @@ data class PendingDelete(val id: String, val name: String, val impact: DeleteImp
 
 data class CountriesUiState(
     val rows: List<CountryRow> = emptyList(),
-    val sortMode: SortMode = SortMode.MANUAL,
     val pendingDelete: PendingDelete? = null,
-) {
-    val canReorder: Boolean get() = sortMode == SortMode.MANUAL
-}
+)
 
+/** The country list is always in the order you dragged it into, so there is nothing to sort by. */
 class CountriesViewModel(
     private val repository: CountryRepository,
-    private val prefs: AppPreferences,
 ) : ViewModel() {
 
     private val pendingDelete = MutableStateFlow<PendingDelete?>(null)
 
     val uiState: StateFlow<CountriesUiState> = combine(
         repository.observeRows(),
-        prefs.sortMode(SortScope.COUNTRIES),
         pendingDelete,
-    ) { rows, mode, pending ->
-        CountriesUiState(rows = rows.sortedCountries(mode), sortMode = mode, pendingDelete = pending)
+    ) { rows, pending ->
+        CountriesUiState(rows = rows, pendingDelete = pending)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CountriesUiState())
 
     /** The countries not added yet, which are the only ones worth offering. */
@@ -54,10 +47,6 @@ class CountriesViewModel(
 
     fun addCountry(option: CountryOption) {
         viewModelScope.launch { repository.add(name = option.name, isoCode = option.isoCode) }
-    }
-
-    fun setSortMode(mode: SortMode) {
-        viewModelScope.launch { prefs.setSortMode(SortScope.COUNTRIES, mode) }
     }
 
     fun setPriority(id: String, priority: Priority) {

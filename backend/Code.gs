@@ -23,7 +23,7 @@ var SCHEMA = {
   ]),
   Links: COMMON_COLUMNS.concat(['spotId', 'url', 'source', 'note']),
   Hearts: COMMON_COLUMNS.concat(['spotId', 'userId']),
-  Trips: COMMON_COLUMNS.concat(['name', 'startDate', 'endDate', 'countryIds', 'notes']),
+  Trips: COMMON_COLUMNS.concat(['name', 'cityId', 'startDate', 'endDate', 'countryIds', 'notes']),
   TripItems: COMMON_COLUMNS.concat([
     'tripId', 'type', 'title', 'origin', 'destination', 'startLocal', 'startTimeZone', 'endLocal', 'endTimeZone',
     'address', 'googlePlaceId', 'lat', 'lng', 'spotId', 'cityId', 'travelMode', 'bookingRef', 'costMinor',

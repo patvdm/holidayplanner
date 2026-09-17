@@ -189,6 +189,7 @@ fun heartFromRow(row: SheetRow): HeartEntity? {
 
 fun tripToRow(entity: TripEntity): Map<String, String> = buildRow(entity.meta) {
     put("name", entity.name)
+    put("cityId", entity.cityId)
     put("startDate", entity.startDate)
     put("endDate", entity.endDate)
     put("countryIds", entity.countryIds.joinToString(","))
@@ -200,6 +201,7 @@ fun tripFromRow(row: SheetRow): TripEntity? {
     return TripEntity(
         meta = meta,
         name = row.str("name"),
+        cityId = row.str("cityId").trim(),
         startDate = row.str("startDate").trim(),
         endDate = row.str("endDate").trim(),
         countryIds = row.list("countryIds"),

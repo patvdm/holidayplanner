@@ -121,8 +121,8 @@ val appModule = module {
     // These three are scoped to one row, so the id comes from the screen that opened them.
     viewModel { (countryId: String) -> CountryViewModel(countryId, get(), get(), get()) }
     viewModel { (cityId: String) -> CityViewModel(cityId, get(), get(), get(), get(), get()) }
-    viewModel { (spotId: String) -> SpotDetailViewModel(spotId, get(), get(), get(), get(), get()) }
-    viewModel { (tripId: String) -> TripViewModel(tripId, get(), get(), get()) }
+    viewModel { (spotId: String) -> SpotDetailViewModel(spotId, get(), get(), get(), get()) }
+    viewModel { (tripId: String) -> TripViewModel(tripId, get(), get()) }
     viewModel { (itemId: String) -> TripItemViewModel(itemId, get()) }
     viewModel { (itemId: String) -> RouteViewModel(itemId, get(), get(), get(), get()) }
     viewModel { (scope: MapScope) -> MapViewModel(scope, get()) }

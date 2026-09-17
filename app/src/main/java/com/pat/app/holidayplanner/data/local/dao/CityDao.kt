@@ -30,10 +30,10 @@ interface CityDao : SyncDao<CityEntity> {
     )
     fun observeRows(countryId: String): Flow<List<CityRow>>
 
-    /** Every place, labelled with its country, for moving a spot somewhere else. */
+    /** Every city, labelled with its country: for moving a spot, and for choosing a trip's city. */
     @Query(
         """
-        SELECT p.id AS cityId, p.name AS cityName, c.name AS countryName
+        SELECT p.id AS cityId, p.name AS cityName, c.id AS countryId, c.name AS countryName
         FROM cities p JOIN countries c ON c.id = p.countryId
         WHERE p.deleted = 0 AND c.deleted = 0
         ORDER BY c.name COLLATE NOCASE, p.name COLLATE NOCASE

@@ -40,7 +40,6 @@ import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.CountryRow
 import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.Priority
-import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
@@ -51,7 +50,6 @@ import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
 import com.pat.app.holidayplanner.ui.components.SyncStatusBanner
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
-import com.pat.app.holidayplanner.ui.components.SortMenu
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -75,7 +73,6 @@ fun CountriesScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.tab_explore)) },
                 actions = {
-                    SortMenu(SortScope.COUNTRIES, state.sortMode, viewModel::setSortMode)
                     IconButton(onClick = onOpenMap) {
                         Icon(Icons.Filled.Map, contentDescription = stringResource(R.string.map_show))
                     }
@@ -112,7 +109,7 @@ fun CountriesScreen(
                         items = state.rows,
                         idOf = { it.country.meta.id },
                         sortKeyOf = { it.country.sortKey },
-                        reorderable = state.canReorder,
+                        reorderable = true,
                         onMoved = viewModel::move,
                         modifier = Modifier.weight(1f),
                         footer = { AddCountryButton { showPicker = true } },

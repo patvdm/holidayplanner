@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -29,10 +28,10 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
+import com.pat.app.holidayplanner.ui.components.PickFromListDialog
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -48,6 +47,7 @@ fun TripEditorScreen(
     var pickingStart by remember { mutableStateOf(false) }
     var pickingEnd by remember { mutableStateOf(false) }
     var confirmingDelete by remember { mutableStateOf(false) }
+    var changingCity by remember { mutableStateOf(false) }
     val trip = state.trip
 
     Scaffold(
@@ -85,20 +85,9 @@ fun TripEditorScreen(
             }
 
             HorizontalDivider()
-            Text(stringResource(R.string.trip_countries), style = MaterialTheme.typography.labelLarge)
-            if (state.countries.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.trip_no_countries),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            state.countries.forEach { country ->
-                FilterChip(
-                    selected = country.meta.id in trip?.countryIds.orEmpty(),
-                    onClick = { viewModel.toggleCountry(country.meta.id) },
-                    label = { Text("${CountryCatalog.flag(country.isoCode)} ${country.name}") },
-                )
+            Text(stringResource(R.string.trips_city), style = MaterialTheme.typography.labelLarge)
+            OutlinedButton(onClick = { changingCity = true }) {
+                Text(state.city?.let { "${it.countryName} › ${it.cityName}" } ?: stringResource(R.string.trips_city))
             }
 
             HorizontalDivider()
@@ -144,6 +133,18 @@ fun TripEditorScreen(
                 viewModel.setDates(trip?.startDate.orEmpty(), LocalTimes.writeDate(it))
             },
             onDismiss = { pickingEnd = false },
+        )
+    }
+
+    if (changingCity) {
+        PickFromListDialog(
+            title = stringResource(R.string.trips_city),
+            options = state.cities.map { it.cityId to "${it.countryName} › ${it.cityName}" },
+            onPick = { cityId ->
+                changingCity = false
+                state.cities.firstOrNull { it.cityId == cityId }?.let(viewModel::setCity)
+            },
+            onDismiss = { changingCity = false },
         )
     }
 

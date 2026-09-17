@@ -1,6 +1,5 @@
 package com.pat.app.holidayplanner.ui.explore
 
-import com.pat.app.holidayplanner.data.local.CountryRow
 import com.pat.app.holidayplanner.data.local.CityRow
 import com.pat.app.holidayplanner.data.local.SpotRow
 import com.pat.app.holidayplanner.data.local.SyncMeta
@@ -13,15 +12,6 @@ import com.pat.app.holidayplanner.domain.SortMode
  * the manual order so equal items keep a stable, meaningful sequence.
  */
 
-fun List<CountryRow>.sortedCountries(mode: SortMode): List<CountryRow> = when (mode) {
-    SortMode.MANUAL -> sortedWith(manualOrder({ it.country.sortKey }, { it.country.meta }))
-    SortMode.PRIORITY -> sortedWith(
-        priorityOrder({ it.country.priority }, { it.country.sortKey }, { it.country.meta }),
-    )
-    SortMode.RECENT -> sortedByDescending { it.country.meta.createdAt }
-    SortMode.ALPHABETICAL -> sortedWith(alphabeticalOrder { it.country.name })
-    SortMode.HEARTS -> sortedWith(manualOrder({ it.country.sortKey }, { it.country.meta }))
-}
 
 fun List<CityRow>.sortedPlaces(mode: SortMode): List<CityRow> = when (mode) {
     SortMode.MANUAL -> sortedWith(manualOrder({ it.place.sortKey }, { it.place.meta }))

@@ -102,6 +102,7 @@ class SheetMappingTest {
         val entity = TripEntity(
             meta = meta,
             name = "Lisbon",
+            cityId = "city-1",
             startDate = "2026-04-01",
             endDate = "2026-04-08",
             countryIds = listOf("c1", "c2"),

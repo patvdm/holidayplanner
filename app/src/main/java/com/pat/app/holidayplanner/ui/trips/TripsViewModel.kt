@@ -2,11 +2,11 @@ package com.pat.app.holidayplanner.ui.trips
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pat.app.holidayplanner.data.local.CityOption
 import com.pat.app.holidayplanner.data.local.TripEntity
-import com.pat.app.holidayplanner.data.repo.HierarchyResolver
+import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.TripRepository
 import com.pat.app.holidayplanner.domain.AppClock
-import com.pat.app.holidayplanner.domain.CountryOption
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -27,9 +27,12 @@ data class TripsUiState(
 
 class TripsViewModel(
     private val repository: TripRepository,
-    private val resolver: HierarchyResolver,
+    cityRepository: CityRepository,
     private val clock: AppClock,
 ) : ViewModel() {
+
+    /** A trip is to a city you have already saved, so these are the only choices. */
+    val cityOptions = cityRepository.observeOptions()
 
     val uiState: StateFlow<TripsUiState> = repository.observeTrips()
         .map { trips ->
@@ -39,16 +42,17 @@ class TripsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TripsUiState())
 
     /**
-     * A trip starts life as a name and a country; the dates come later.
+     * A trip starts life as a name and the city it is to; the dates come later.
      *
-     * The country is found or created, so planning a trip somewhere new puts that country on the
-     * explore list too rather than leaving the trip pointing at nothing.
+     * Tying it to a city rather than a country is what lets everything after this be a choice from
+     * that city's spots instead of a search.
      */
-    fun addTrip(name: String, country: CountryOption, onCreated: (String) -> Unit) {
+    fun addTrip(name: String, city: CityOption, onCreated: (String) -> Unit) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            val countryId = resolver.resolveCountry(country.isoCode, country.name)
-            onCreated(repository.add(name = name, startDate = "", endDate = "", countryIds = listOf(countryId)))
+            onCreated(
+                repository.add(name = name, cityId = city.cityId, countryIds = listOf(city.countryId)),
+            )
         }
     }
 

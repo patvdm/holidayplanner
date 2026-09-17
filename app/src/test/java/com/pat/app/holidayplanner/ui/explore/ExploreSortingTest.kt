@@ -1,7 +1,6 @@
 package com.pat.app.holidayplanner.ui.explore
 
 import com.pat.app.holidayplanner.data.local.CountryEntity
-import com.pat.app.holidayplanner.data.local.CountryRow
 import com.pat.app.holidayplanner.data.local.SpotEntity
 import com.pat.app.holidayplanner.data.local.SpotRow
 import com.pat.app.holidayplanner.data.local.SyncMeta
@@ -12,52 +11,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ExploreSortingTest {
-
-    private val netherlands =
-        country(id = "c1", name = "Netherlands", sortKey = "G", priority = Priority.MUST, created = 3)
-    private val portugal =
-        country(id = "c2", name = "Portugal", sortKey = "V", priority = Priority.MAYBE, created = 1)
-    private val austria =
-        country(id = "c3", name = "Austria", sortKey = "k", priority = Priority.LIKE, created = 2)
-    private val countries = listOf(portugal, austria, netherlands)
-
-    @Test
-    fun `manual order follows the sort keys`() {
-        val names = countries.sortedCountries(SortMode.MANUAL).map { it.country.name }
-
-        assertEquals(listOf("Netherlands", "Portugal", "Austria"), names)
-    }
-
-    @Test
-    fun `priority order puts must first and keeps manual order inside a level`() {
-        val names = countries.sortedCountries(SortMode.PRIORITY).map { it.country.name }
-
-        assertEquals(listOf("Netherlands", "Austria", "Portugal"), names)
-    }
-
-    @Test
-    fun `recently added shows the newest first`() {
-        val names = countries.sortedCountries(SortMode.RECENT).map { it.country.name }
-
-        assertEquals(listOf("Netherlands", "Austria", "Portugal"), names)
-    }
-
-    @Test
-    fun `a to z ignores case`() {
-        val names = countries.sortedCountries(SortMode.ALPHABETICAL).map { it.country.name }
-
-        assertEquals(listOf("Austria", "Netherlands", "Portugal"), names)
-    }
-
-    @Test
-    fun `rows with the same sort key fall back to the id`() {
-        val first = country(id = "a", name = "First", sortKey = "V", priority = Priority.MAYBE, created = 1)
-        val second = country(id = "b", name = "Second", sortKey = "V", priority = Priority.MAYBE, created = 1)
-
-        val names = listOf(second, first).sortedCountries(SortMode.MANUAL).map { it.country.name }
-
-        assertEquals(listOf("First", "Second"), names)
-    }
 
     @Test
     fun `spots by hearts put the most loved first`() {
@@ -71,18 +24,6 @@ class ExploreSortingTest {
 
         assertEquals(listOf("Two", "Three", "One"), names)
     }
-
-    private fun country(id: String, name: String, sortKey: String, priority: Priority, created: Long) = CountryRow(
-        country = CountryEntity(
-            meta = meta(id, created),
-            name = name,
-            isoCode = "XX",
-            sortKey = sortKey,
-            priority = priority,
-        ),
-        cityCount = 0,
-        spotCount = 0,
-    )
 
     private fun spot(id: String, name: String, sortKey: String, hearts: Int) = SpotRow(
         spot = SpotEntity(

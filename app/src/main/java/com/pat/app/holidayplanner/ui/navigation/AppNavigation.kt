@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.navigation
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -43,6 +44,9 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
     val inboxCount by linkRepository.observeInboxCount().collectAsStateWithLifecycle(initialValue = 0)
 
     Scaffold(
+        // Each screen has its own Scaffold and top bar, which already pad for the status bar. Without
+        // this the two stack up and every title sits too low.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showTabs) {
                 NavigationBar {

@@ -43,6 +43,7 @@ data class SpotContext(
 data class CityOption(
     val cityId: String,
     val cityName: String,
+    val countryId: String,
     val countryName: String,
 )
 

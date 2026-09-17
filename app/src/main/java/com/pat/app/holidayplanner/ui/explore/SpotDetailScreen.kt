@@ -217,17 +217,6 @@ fun SpotDetailScreen(
             )
 
             HorizontalDivider()
-            OutlinedButton(
-                onClick = { dialogs.addingToTrip = true },
-                enabled = state.trips.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    stringResource(
-                        if (state.trips.isEmpty()) R.string.spot_no_trips else R.string.spot_add_to_trip,
-                    ),
-                )
-            }
             OutlinedButton(onClick = { dialogs.movingSpot = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.spot_move))
             }
@@ -243,7 +232,6 @@ private class SpotDialogs {
     var addingLink by mutableStateOf(false)
     var addingMapsLink by mutableStateOf(false)
     var movingSpot by mutableStateOf(false)
-    var addingToTrip by mutableStateOf(false)
     var confirmingDelete by mutableStateOf(false)
 }
 
@@ -286,18 +274,6 @@ private fun SpotDialogs(
                 dialogs.addingLink = false
             },
             onDismiss = { dialogs.addingLink = false },
-        )
-    }
-
-    if (dialogs.addingToTrip) {
-        PickFromListDialog(
-            title = stringResource(R.string.spot_add_to_trip),
-            options = state.trips.map { it.meta.id to it.name },
-            onPick = {
-                dialogs.addingToTrip = false
-                viewModel.addToTrip(it)
-            },
-            onDismiss = { dialogs.addingToTrip = false },
         )
     }
 

@@ -31,12 +31,19 @@ class TripRepository(
 
     fun observeItems(tripId: String): Flow<List<TripItemEntity>> = itemDao.observeByTrip(tripId)
 
-    suspend fun add(name: String, startDate: String, endDate: String, countryIds: List<String>): String {
+    suspend fun add(
+        name: String,
+        cityId: String,
+        countryIds: List<String>,
+        startDate: String = "",
+        endDate: String = "",
+    ): String {
         val stamp = writer.stamp()
         val id = newId()
         val trip = TripEntity(
             meta = SyncMeta.created(id, stamp.now, stamp.userId),
             name = name.trim(),
+            cityId = cityId,
             startDate = startDate,
             endDate = endDate,
             countryIds = countryIds,

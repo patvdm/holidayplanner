@@ -95,6 +95,8 @@ data class HeartEntity(
 data class TripEntity(
     @Embedded override val meta: SyncMeta,
     val name: String,
+    /** The city this trip is to. Everything on the trip is picked from its spots. */
+    val cityId: String,
     /** yyyy-MM-dd. */
     val startDate: String,
     /** yyyy-MM-dd. */

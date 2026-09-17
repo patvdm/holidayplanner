@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddLocationAlt
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -35,7 +36,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.ui.components.PickFromListDialog
+import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
+import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.data.local.TripItemEntity
 import com.pat.app.holidayplanner.domain.Costs
 import com.pat.app.holidayplanner.domain.LocalTimes
@@ -55,7 +57,7 @@ fun TripScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var addingItem by remember { mutableStateOf(false) }
-    var pickingRouteCity by remember { mutableStateOf(false) }
+    var addingSpot by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -70,6 +72,13 @@ fun TripScreen(
                     }
                 },
                 actions = {
+                    // Spots are what a day route is built from, so adding one belongs here too.
+                    IconButton(onClick = { addingSpot = true }, enabled = state.trip != null) {
+                        Icon(
+                            Icons.Filled.AddLocationAlt,
+                            contentDescription = stringResource(R.string.trip_add_spot, state.cityName),
+                        )
+                    }
                     IconButton(onClick = onEditTrip) {
                         Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.trip_edit))
                     }
@@ -135,16 +144,12 @@ fun TripScreen(
         }
     }
 
-    if (pickingRouteCity) {
-        val cities by viewModel.cityOptions.collectAsStateWithLifecycle(initialValue = emptyList())
-        PickFromListDialog(
-            title = stringResource(R.string.route_pick_city),
-            options = cities.map { it.cityId to "${it.countryName} › ${it.cityName}" },
-            onPick = { cityId ->
-                pickingRouteCity = false
-                cities.firstOrNull { it.cityId == cityId }?.let { viewModel.addDayRoute(it, onOpenRoute) }
-            },
-            onDismiss = { pickingRouteCity = false },
+    if (addingSpot) {
+        PlaceSearchSheet(
+            mode = PlaceSearchMode.SPOT,
+            cityId = state.trip?.cityId.orEmpty(),
+            onDismiss = { addingSpot = false },
+            onSaved = { addingSpot = false },
         )
     }
 
@@ -152,8 +157,12 @@ fun TripScreen(
         ItemTypeDialog(
             onPick = { type ->
                 addingItem = false
-                // A day route needs a city before it exists, so it asks rather than being created blank.
-                if (type == TripItemType.DAY_ROUTE) pickingRouteCity = true else viewModel.addItem(type, onOpenItem)
+                // The trip's own city is the route's city, so there is nothing to ask.
+                if (type == TripItemType.DAY_ROUTE) {
+                    viewModel.addDayRoute(onOpenRoute)
+                } else {
+                    viewModel.addItem(type, onOpenItem)
+                }
             },
             onDismiss = { addingItem = false },
         )
@@ -246,6 +255,15 @@ private fun TotalsSection(state: TripUiState) {
     }
 }
 
+/**
+ * What can be added to a trip, day route first because it is the reason for the screen.
+ *
+ * Activities and transport are deliberately absent: an activity is a spot, which belongs on a day
+ * route, and transport within a trip was never used. The enum keeps both so trips created before
+ * this still read correctly.
+ */
+private val OFFERED_ITEM_TYPES = listOf(TripItemType.DAY_ROUTE, TripItemType.STAY, TripItemType.FLIGHT)
+
 @Composable
 private fun ItemTypeDialog(onPick: (TripItemType) -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
@@ -253,7 +271,7 @@ private fun ItemTypeDialog(onPick: (TripItemType) -> Unit, onDismiss: () -> Unit
         title = { Text(stringResource(R.string.trip_add_item)) },
         text = {
             Column {
-                TripItemType.entries.forEach { type ->
+                OFFERED_ITEM_TYPES.forEach { type ->
                     Text(
                         text = stringResource(type.label()),
                         style = MaterialTheme.typography.bodyLarge,
