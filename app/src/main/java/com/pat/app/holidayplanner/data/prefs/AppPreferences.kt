@@ -56,23 +56,6 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
         store.edit { it[sortModeKey(scope)] = mode.name }
     }
 
-    /**
-     * The inbox link whose app was just opened. Stored here rather than in memory because the
-     * system can kill this process while Instagram is in the foreground, and the assign sheet still
-     * has to appear when the person comes back.
-     */
-    val pendingAssignLinkId: Flow<String?> = store.data.map { prefs ->
-        prefs[KEY_PENDING_ASSIGN]?.takeIf(String::isNotBlank)
-    }
-
-    suspend fun setPendingAssignLinkId(linkId: String) {
-        store.edit { it[KEY_PENDING_ASSIGN] = linkId }
-    }
-
-    suspend fun clearPendingAssignLinkId() {
-        store.edit { it.remove(KEY_PENDING_ASSIGN) }
-    }
-
     suspend fun setCurrentUserId(userId: String) {
         store.edit { it[KEY_CURRENT_USER_ID] = userId }
     }
@@ -103,7 +86,6 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
         fun sortModeKey(scope: SortScope) = stringPreferencesKey("sort_mode_${scope.prefKey}")
 
         val KEY_CURRENT_USER_ID = stringPreferencesKey("current_user_id")
-        val KEY_PENDING_ASSIGN = stringPreferencesKey("pending_assign_link_id")
         val KEY_BACKEND_URL = stringPreferencesKey("backend_url")
         val KEY_BACKEND_SECRET = stringPreferencesKey("backend_secret")
         val KEY_LAST_SYNC_AT = longPreferencesKey("last_sync_at")

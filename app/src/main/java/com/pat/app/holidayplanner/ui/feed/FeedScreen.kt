@@ -34,7 +34,6 @@ fun FeedScreen(
     onBack: () -> Unit,
     onOpenSpot: (String) -> Unit,
     onOpenTrip: (String) -> Unit,
-    onOpenInbox: () -> Unit,
     viewModel: FeedViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -51,7 +50,7 @@ fun FeedScreen(
                     .padding(padding),
             ) {
                 items(state.rows, key = { "${it.type}-${it.id}" }) { row ->
-                    FeedRowItem(row) { open(row, onOpenSpot, onOpenTrip, onOpenInbox) }
+                    FeedRowItem(row) { open(row, onOpenSpot, onOpenTrip) }
                 }
             }
         }
@@ -77,13 +76,10 @@ private fun open(
     row: FeedRow,
     onOpenSpot: (String) -> Unit,
     onOpenTrip: (String) -> Unit,
-    onOpenInbox: () -> Unit,
 ) {
     when (FeedEntryType.fromRow(row.type)) {
         FeedEntryType.TRIP -> onOpenTrip(row.navId)
-        // A link with no spot is still sitting in the inbox, which is where it can be dealt with.
-        FeedEntryType.LINK -> if (row.navId.isBlank()) onOpenInbox() else onOpenSpot(row.navId)
-        FeedEntryType.SPOT, FeedEntryType.HEART -> onOpenSpot(row.navId)
+        FeedEntryType.LINK, FeedEntryType.SPOT, FeedEntryType.HEART -> onOpenSpot(row.navId)
         null -> Unit
     }
 }

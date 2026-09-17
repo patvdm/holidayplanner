@@ -211,7 +211,6 @@ fun SpotDetailScreen(
             LinksSection(
                 links = state.links,
                 onOpen = { context.openExternalUrl(it) },
-                onMoveToInbox = viewModel::moveLinkToInbox,
                 onDelete = viewModel::deleteLink,
                 onAdd = { dialogs.addingLink = true },
             )
@@ -368,7 +367,6 @@ private const val SAVE_DELAY_MS = 800L
 private fun LinksSection(
     links: List<LinkEntity>,
     onOpen: (String) -> Unit,
-    onMoveToInbox: (String) -> Unit,
     onDelete: (String) -> Unit,
     onAdd: () -> Unit,
 ) {
@@ -412,13 +410,6 @@ private fun LinksSection(
                 )
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.spot_link_to_inbox)) },
-                    onClick = {
-                        expanded = false
-                        onMoveToInbox(link.meta.id)
-                    },
-                )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.action_delete)) },
                     onClick = {

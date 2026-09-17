@@ -1,6 +1,5 @@
 package com.pat.app.holidayplanner.data.repo
 
-import com.pat.app.holidayplanner.data.local.InboxRow
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.SyncMeta
 import com.pat.app.holidayplanner.data.local.dao.LinkDao
@@ -14,19 +13,12 @@ class LinkRepository(
 ) {
 
     /** Links that have not been attached to a spot yet. */
-    fun observeInbox(): Flow<List<LinkEntity>> = dao.observeInbox()
-
-    /** Inbox links with who shared them. */
-    fun observeInboxRows(): Flow<List<InboxRow>> = dao.observeInboxRows()
-
-    fun observeInboxCount(): Flow<Int> = dao.observeInboxCount()
-
     fun observeLinks(spotId: String): Flow<List<LinkEntity>> = dao.observeBySpot(spotId)
 
     suspend fun findByUrl(url: String): LinkEntity? = dao.findByUrl(url)
 
-    /** An empty [spotId] leaves the link in the inbox. */
-    suspend fun add(url: String, source: LinkSource, note: String = "", spotId: String = ""): String {
+    /** Every link belongs to a spot: one with nowhere to live is not worth keeping. */
+    suspend fun add(url: String, source: LinkSource, spotId: String, note: String = ""): String {
         val stamp = writer.stamp()
         val id = newId()
         val link = LinkEntity(
@@ -40,15 +32,6 @@ class LinkRepository(
         writer.requestSync()
         return id
     }
-
-    suspend fun assign(linkId: String, spotId: String) = edit(linkId) { it.copy(spotId = spotId) }
-
-    /** Assigns several inbox links to one spot in a single pass. */
-    suspend fun assignAll(linkIds: Collection<String>, spotId: String) {
-        linkIds.forEach { assign(it, spotId) }
-    }
-
-    suspend fun moveToInbox(linkId: String) = edit(linkId) { it.copy(spotId = "") }
 
     suspend fun setNote(linkId: String, note: String) = edit(linkId) { it.copy(note = note.trim()) }
 

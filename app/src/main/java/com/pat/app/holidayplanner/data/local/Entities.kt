@@ -77,7 +77,7 @@ data class SpotEntity(
 @Entity(tableName = "links", primaryKeys = ["id"], indices = [Index("spotId")])
 data class LinkEntity(
     @Embedded override val meta: SyncMeta,
-    /** Empty means the link is still in the inbox. */
+    /** The spot this link is about. A link never exists without one. */
     val spotId: String,
     val url: String,
     val source: LinkSource,

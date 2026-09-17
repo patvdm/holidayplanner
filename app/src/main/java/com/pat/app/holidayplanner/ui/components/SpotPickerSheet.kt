@@ -12,6 +12,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -39,8 +43,9 @@ private const val SHEET_SETTLE_MS = 250L
 /**
  * Picks one of the spots that already exist, grouped by where it is.
  *
- * Used wherever something has to be attached to a spot: assigning an inbox link, and later adding a
- * spot to a trip or a day route. When [allowCreate] is set, the sheet also offers to make a new one.
+ * Used wherever something has to be attached to a spot: filing a shared link, and adding a stop to
+ * a day route. When [allowCreate] is set, the sheet also offers to search Google for a place that
+ * is not saved yet, which files it under the right city and country as it goes.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,8 +91,17 @@ fun SpotPickerSheet(
             )
 
             if (allowCreate) {
-                TextButton(onClick = onCreateNew, modifier = Modifier.padding(top = 8.dp)) {
-                    Text(stringResource(R.string.spot_picker_new))
+                FilledTonalButton(
+                    onClick = onCreateNew,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                ) {
+                    Icon(Icons.Filled.Search, contentDescription = null)
+                    Text(
+                        text = stringResource(R.string.spot_picker_new),
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
                 }
             }
 

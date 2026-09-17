@@ -3,7 +3,6 @@ package com.pat.app.holidayplanner.ui.navigation
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Explore
-import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Luggage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -19,10 +18,10 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.domain.SearchHitType
 
 enum class AppTab(val rootKey: NavKey, @param:StringRes val label: Int, val icon: ImageVector) {
     EXPLORE(ExploreRootKey, R.string.tab_explore, Icons.Outlined.Explore),
-    INBOX(InboxRootKey, R.string.tab_inbox, Icons.Outlined.Inbox),
     TRIPS(TripsRootKey, R.string.tab_trips, Icons.Outlined.Luggage),
 }
 
@@ -71,6 +70,17 @@ class TabNavState(
         push(key)
     }
 
+    /** Opens a search result, which knows what kind of thing it is but not where that kind lives. */
+    fun openSearchHit(type: SearchHitType, navId: String) {
+        when (type) {
+            SearchHitType.COUNTRY -> openIn(AppTab.EXPLORE, CountryKey(navId))
+            SearchHitType.CITY -> openIn(AppTab.EXPLORE, CityKey(navId))
+            SearchHitType.SPOT, SearchHitType.LINK -> openIn(AppTab.EXPLORE, SpotKey(navId))
+            SearchHitType.TRIP -> openIn(AppTab.TRIPS, TripKey(navId))
+            SearchHitType.TRIP_ITEM -> openIn(AppTab.TRIPS, TripItemKey(navId))
+        }
+    }
+
     /** Closes the current screen and shows [tab] at its root. */
     fun openTabRoot(tab: AppTab) {
         back()
@@ -98,12 +108,11 @@ class TabNavState(
 @Composable
 fun rememberTabNavState(): TabNavState {
     val explore = rememberNavBackStack(ExploreRootKey)
-    val inbox = rememberNavBackStack(InboxRootKey)
     val trips = rememberNavBackStack(TripsRootKey)
     val tabOrder = rememberSaveable(saver = TabOrderSaver) { mutableStateListOf(AppTab.EXPLORE) }
-    return remember(explore, inbox, trips, tabOrder) {
+    return remember(explore, trips, tabOrder) {
         TabNavState(
-            stacks = mapOf(AppTab.EXPLORE to explore, AppTab.INBOX to inbox, AppTab.TRIPS to trips),
+            stacks = mapOf(AppTab.EXPLORE to explore, AppTab.TRIPS to trips),
             tabOrder = tabOrder,
         )
     }

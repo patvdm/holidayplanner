@@ -28,7 +28,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /**
  * The dialog that pops over the sharing app: a preview of the link, a note, and one Save, which
  * files it straight away. The spot picker opens over the same dialog, so filing a reel never takes
- * you out of Instagram. Backing out of the picker leaves the link in the inbox.
+ * you out of Instagram. Backing out of the picker saves nothing: a link with no spot is not kept.
  */
 @Composable
 fun ShareDialog(
@@ -79,7 +79,7 @@ fun ShareDialog(
                 Text(
                     current.existing.where
                         ?.let { stringResource(R.string.share_duplicate_on_spot, it) }
-                        ?: stringResource(R.string.share_duplicate_in_inbox),
+                        ?: stringResource(R.string.share_duplicate_unknown),
                 )
             },
             confirmButton = {

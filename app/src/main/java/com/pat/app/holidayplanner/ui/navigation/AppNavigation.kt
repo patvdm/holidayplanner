@@ -2,18 +2,14 @@ package com.pat.app.holidayplanner.ui.navigation
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -24,7 +20,6 @@ import com.pat.app.holidayplanner.ui.feed.FeedScreen
 import com.pat.app.holidayplanner.ui.explore.CountryScreen
 import com.pat.app.holidayplanner.ui.explore.CityScreen
 import com.pat.app.holidayplanner.ui.explore.SpotDetailScreen
-import com.pat.app.holidayplanner.ui.inbox.InboxScreen
 import com.pat.app.holidayplanner.ui.map.MapScope
 import com.pat.app.holidayplanner.ui.map.MapScreen
 import com.pat.app.holidayplanner.ui.search.SearchScreen
@@ -34,14 +29,11 @@ import com.pat.app.holidayplanner.ui.trips.TripEditorScreen
 import com.pat.app.holidayplanner.ui.trips.TripItemEditorScreen
 import com.pat.app.holidayplanner.ui.trips.TripScreen
 import com.pat.app.holidayplanner.ui.trips.TripsScreen
-import com.pat.app.holidayplanner.data.repo.LinkRepository
-import org.koin.compose.koinInject
 
 @Composable
-fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
+fun AppNavigation() {
     val nav = rememberTabNavState()
     val showTabs = nav.currentKey !is FullScreenKey
-    val inboxCount by linkRepository.observeInboxCount().collectAsStateWithLifecycle(initialValue = 0)
 
     Scaffold(
         // Each screen has its own Scaffold and top bar, which already pad for the status bar. Without
@@ -54,15 +46,7 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         NavigationBarItem(
                             selected = tab == nav.currentTab,
                             onClick = { nav.selectTab(tab) },
-                            icon = {
-                                if (tab == AppTab.INBOX && inboxCount > 0) {
-                                    BadgedBox(badge = { Badge { Text(inboxCount.toString()) } }) {
-                                        Icon(tab.icon, contentDescription = null)
-                                    }
-                                } else {
-                                    Icon(tab.icon, contentDescription = null)
-                                }
-                            },
+                            icon = { Icon(tab.icon, contentDescription = null) },
                             label = { Text(stringResource(tab.label)) },
                         )
                     }
@@ -85,6 +69,7 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         onSettings = { nav.push(SettingsKey) },
                         onOpenCountry = { nav.push(CountryKey(it)) },
                         onOpenMap = { nav.push(MapKey()) },
+                        onOpenFeed = { nav.push(FeedKey) },
                     )
                 }
                 entry<CountryKey> { key ->
@@ -109,14 +94,6 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         spotId = key.spotId,
                         onBack = nav::back,
                         onOpenMap = { nav.push(MapKey(spotId = key.spotId)) },
-                    )
-                }
-                entry<InboxRootKey> {
-                    InboxScreen(
-                        onSearch = { nav.push(SearchKey) },
-                        onSettings = { nav.push(SettingsKey) },
-                        onOpenFeed = { nav.push(FeedKey) },
-                        onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
                     )
                 }
                 entry<TripsRootKey> {
@@ -161,19 +138,10 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         onBack = nav::back,
                         onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
                         onOpenTrip = { nav.openIn(AppTab.TRIPS, TripKey(it)) },
-                        onOpenInbox = { nav.openTabRoot(AppTab.INBOX) },
                     )
                 }
                 entry<SearchKey> {
-                    SearchScreen(
-                        onBack = nav::back,
-                        onOpenCountry = { nav.openIn(AppTab.EXPLORE, CountryKey(it)) },
-                        onOpenCity = { nav.openIn(AppTab.EXPLORE, CityKey(it)) },
-                        onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
-                        onOpenTrip = { nav.openIn(AppTab.TRIPS, TripKey(it)) },
-                        onOpenTripItem = { nav.openIn(AppTab.TRIPS, TripItemKey(it)) },
-                        onOpenInbox = { nav.openTabRoot(AppTab.INBOX) },
-                    )
+                    SearchScreen(onBack = nav::back, onOpen = nav::openSearchHit)
                 }
                 entry<SettingsKey> { SettingsScreen(onBack = nav::back) }
             },

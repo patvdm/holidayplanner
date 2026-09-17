@@ -157,10 +157,6 @@ class SpotDetailViewModel(
         viewModelScope.launch { spotRepository.setAddress(spotId, address) }
     }
 
-    fun moveLinkToInbox(linkId: String) {
-        viewModelScope.launch { linkRepository.moveToInbox(linkId) }
-    }
-
     fun deleteLink(linkId: String) {
         viewModelScope.launch { linkRepository.delete(linkId) }
     }

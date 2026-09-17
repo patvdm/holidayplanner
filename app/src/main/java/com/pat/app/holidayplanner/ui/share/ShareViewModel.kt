@@ -65,8 +65,13 @@ sealed interface ShareState {
     /** A Maps link becomes a spot, named after the place, holding the link and the address. */
     data class CreatingSpot(val spot: SharedSpot) : ShareState
 
-    /** Saved to the inbox and now offering to attach it to a spot, without leaving the other app. */
-    data class Filing(val linkId: String) : ShareState
+    /**
+     * Asking which spot the link belongs to, without leaving the other app.
+     *
+     * Nothing is written yet: a link with nowhere to live is not worth keeping, so backing out here
+     * saves nothing rather than leaving something to tidy up later.
+     */
+    data class Filing(val link: SharedLink, val note: String) : ShareState
 
     data object Saved : ShareState
 }
@@ -171,29 +176,27 @@ class ShareViewModel(
         state.update { current -> if (current is ShareState.Ready) current.copy(note = value) else current }
     }
 
-    /**
-     * Saves the link, then asks which spot it belongs to. It is written before the question on
-     * purpose: whatever happens next, including backing out, it is already safe.
-     */
+    /** Moves on to the only question that matters: which spot is this link about. */
     fun save() {
         val ready = state.value as? ShareState.Ready ?: return
-        viewModelScope.launch {
-            val id = linkRepository.add(url = ready.link.url, source = ready.link.source, note = ready.note)
-            state.value = ShareState.Filing(id)
-        }
+        state.value = ShareState.Filing(ready.link, ready.note)
     }
 
-    /** Attaches the saved link to a spot and finishes. */
+    /** Writes the link against the spot it belongs to, which is the only way it gets written. */
     fun fileUnder(spotId: String) {
         val filing = state.value as? ShareState.Filing ?: return
         state.value = ShareState.Saved
-        viewModelScope.launch { linkRepository.assign(filing.linkId, spotId) }
+        viewModelScope.launch {
+            linkRepository.add(
+                url = filing.link.url,
+                source = filing.link.source,
+                note = filing.note,
+                spotId = spotId,
+            )
+        }
     }
 
-    /**
-     * Backing out of the spot question. The link is already saved and shows in the inbox marked as
-     * having no spot, so nothing is lost and it can be filed in one tap later.
-     */
+    /** Backing out before a spot was chosen. Nothing was written, so nothing is left behind. */
     fun cancelFiling() {
         state.value = ShareState.Saved
     }

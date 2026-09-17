@@ -10,9 +10,6 @@ sealed interface FullScreenKey : NavKey
 data object ExploreRootKey : NavKey
 
 @Serializable
-data object InboxRootKey : NavKey
-
-@Serializable
 data object TripsRootKey : NavKey
 
 @Serializable

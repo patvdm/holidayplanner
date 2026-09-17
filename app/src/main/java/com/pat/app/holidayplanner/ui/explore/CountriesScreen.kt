@@ -47,6 +47,7 @@ import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
 import com.pat.app.holidayplanner.ui.components.SyncStatusIcon
+import com.pat.app.holidayplanner.ui.feed.ThisWeekStrip
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
@@ -58,6 +59,7 @@ fun CountriesScreen(
     onSearch: () -> Unit,
     onSettings: () -> Unit,
     onOpenCountry: (String) -> Unit,
+    onOpenFeed: () -> Unit,
     onOpenMap: () -> Unit,
     viewModel: CountriesViewModel = koinViewModel(),
 ) {
@@ -95,29 +97,32 @@ fun CountriesScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            if (state.rows.isEmpty()) {
-                PullableEmptyState {
-                    EmptyListMessage(stringResource(R.string.countries_empty))
-                    AddCountryButton { showPicker = true }
-                }
-            } else {
-                ReorderableColumn(
-                    items = state.rows,
-                    idOf = { it.country.meta.id },
-                    sortKeyOf = { it.country.sortKey },
-                    reorderable = true,
-                    onMoved = viewModel::move,
-                    modifier = Modifier.fillMaxSize(),
-                    footer = { AddCountryButton { showPicker = true } },
-                ) { row, handle ->
-                    CountryRowItem(
-                        row = row,
-                        handle = handle,
-                        onClick = { onOpenCountry(row.country.meta.id) },
-                        onPriority = { viewModel.setPriority(row.country.meta.id, it) },
-                        onRename = { renaming = row },
-                        onDelete = { viewModel.requestDelete(row.country.meta.id, row.country.name) },
-                    )
+            Column(modifier = Modifier.fillMaxSize()) {
+                ThisWeekStrip(onOpenFeed = onOpenFeed)
+                if (state.rows.isEmpty()) {
+                    PullableEmptyState(modifier = Modifier.weight(1f)) {
+                        EmptyListMessage(stringResource(R.string.countries_empty))
+                        AddCountryButton { showPicker = true }
+                    }
+                } else {
+                    ReorderableColumn(
+                        items = state.rows,
+                        idOf = { it.country.meta.id },
+                        sortKeyOf = { it.country.sortKey },
+                        reorderable = true,
+                        onMoved = viewModel::move,
+                        modifier = Modifier.weight(1f),
+                        footer = { AddCountryButton { showPicker = true } },
+                    ) { row, handle ->
+                        CountryRowItem(
+                            row = row,
+                            handle = handle,
+                            onClick = { onOpenCountry(row.country.meta.id) },
+                            onPriority = { viewModel.setPriority(row.country.meta.id, it) },
+                            onRename = { renaming = row },
+                            onDelete = { viewModel.requestDelete(row.country.meta.id, row.country.name) },
+                        )
+                    }
                 }
             }
         }

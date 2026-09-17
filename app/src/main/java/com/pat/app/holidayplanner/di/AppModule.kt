@@ -41,7 +41,6 @@ import com.pat.app.holidayplanner.ui.explore.CityViewModel
 import com.pat.app.holidayplanner.ui.components.PlaceSearchTarget
 import com.pat.app.holidayplanner.ui.components.PlaceSearchViewModel
 import com.pat.app.holidayplanner.ui.explore.SpotDetailViewModel
-import com.pat.app.holidayplanner.ui.inbox.InboxViewModel
 import com.pat.app.holidayplanner.ui.share.ShareViewModel
 import com.pat.app.holidayplanner.ui.sync.SyncRefreshViewModel
 import com.pat.app.holidayplanner.ui.trips.RouteViewModel
@@ -111,7 +110,6 @@ val appModule = module {
     viewModelOf(::OnboardingViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::CountriesViewModel)
-    viewModelOf(::InboxViewModel)
     viewModelOf(::ShareViewModel)
     viewModelOf(::TripsViewModel)
     viewModelOf(::SyncRefreshViewModel)

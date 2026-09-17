@@ -44,18 +44,13 @@ private const val FOCUS_DELAY_MS = 250L
 /**
  * Search across everything, offline.
  *
- * Tapping a result opens the thing itself. A link opens the spot holding it, or the inbox when it
- * has not been filed yet, since a link has no screen of its own.
+ * Tapping a result hands its kind and id to the caller, which knows where each kind lives. A link
+ * reports its spot, since a link has no screen of its own and never exists without one.
  */
 @Composable
 fun SearchScreen(
     onBack: () -> Unit,
-    onOpenCountry: (String) -> Unit,
-    onOpenCity: (String) -> Unit,
-    onOpenSpot: (String) -> Unit,
-    onOpenTrip: (String) -> Unit,
-    onOpenTripItem: (String) -> Unit,
-    onOpenInbox: () -> Unit,
+    onOpen: (SearchHitType, navId: String) -> Unit,
     viewModel: SearchViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -108,18 +103,7 @@ fun SearchScreen(
                             SectionHeader(stringResource(section.type.label()))
                         }
                         items(section.hits, key = { "${section.type}-${it.id}" }) { hit ->
-                            HitRow(hit) {
-                                open(
-                                    hit = hit,
-                                    type = section.type,
-                                    onOpenCountry = onOpenCountry,
-                                    onOpenCity = onOpenCity,
-                                    onOpenSpot = onOpenSpot,
-                                    onOpenTrip = onOpenTrip,
-                                    onOpenTripItem = onOpenTripItem,
-                                    onOpenInbox = onOpenInbox,
-                                )
-                            }
+                            HitRow(hit) { onOpen(section.type, hit.navId) }
                         }
                     }
                 }
@@ -154,27 +138,6 @@ private fun HitRow(hit: SearchHit, onClick: () -> Unit) {
     )
 }
 
-@Suppress("LongParameterList")
-private fun open(
-    hit: SearchHit,
-    type: SearchHitType,
-    onOpenCountry: (String) -> Unit,
-    onOpenCity: (String) -> Unit,
-    onOpenSpot: (String) -> Unit,
-    onOpenTrip: (String) -> Unit,
-    onOpenTripItem: (String) -> Unit,
-    onOpenInbox: () -> Unit,
-) {
-    when (type) {
-        SearchHitType.COUNTRY -> onOpenCountry(hit.navId)
-        SearchHitType.CITY -> onOpenCity(hit.navId)
-        SearchHitType.SPOT -> onOpenSpot(hit.navId)
-        SearchHitType.TRIP -> onOpenTrip(hit.navId)
-        SearchHitType.TRIP_ITEM -> onOpenTripItem(hit.navId)
-        // An unfiled link has no spot to open, so the inbox is where it actually is.
-        SearchHitType.LINK -> if (hit.navId.isBlank()) onOpenInbox() else onOpenSpot(hit.navId)
-    }
-}
 
 private fun SearchHitType.label(): Int = when (this) {
     SearchHitType.COUNTRY -> R.string.search_group_country
