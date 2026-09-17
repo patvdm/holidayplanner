@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -47,6 +48,9 @@ fun TripsScreen(
     var showPast by remember { mutableStateOf(false) }
 
     Scaffold(
+        // The tab bar below is already accounted for by the navigation Scaffold, so adding the
+        // navigation inset again here would float the button a bar's height too high.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = { TabTopBar(stringResource(R.string.tab_trips), onSearch = onSearch, onSettings = onSettings) },
         floatingActionButton = {
             FloatingActionButton(onClick = { adding = true }) {

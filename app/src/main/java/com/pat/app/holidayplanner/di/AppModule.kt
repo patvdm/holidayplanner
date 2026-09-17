@@ -21,7 +21,6 @@ import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.CoordinateBackfill
 import com.pat.app.holidayplanner.data.repo.DayPlanner
 import com.pat.app.holidayplanner.data.repo.RouteRepository
-import com.pat.app.holidayplanner.data.repo.FeedRepository
 import com.pat.app.holidayplanner.data.repo.SearchRepository
 import com.pat.app.holidayplanner.data.repo.SpotPinRepository
 import com.pat.app.holidayplanner.data.repo.TripRepository
@@ -48,7 +47,6 @@ import com.pat.app.holidayplanner.ui.trips.TripItemViewModel
 import com.pat.app.holidayplanner.ui.trips.TripViewModel
 import com.pat.app.holidayplanner.ui.trips.TripsViewModel
 import com.pat.app.holidayplanner.ui.onboarding.OnboardingViewModel
-import com.pat.app.holidayplanner.ui.feed.FeedViewModel
 import com.pat.app.holidayplanner.ui.map.MapScope
 import com.pat.app.holidayplanner.ui.map.MapViewModel
 import com.pat.app.holidayplanner.ui.search.SearchViewModel
@@ -77,7 +75,6 @@ val appModule = module {
     single { get<AppDatabase>().tripItemDao() }
     single { get<AppDatabase>().routeStopDao() }
     single { get<AppDatabase>().searchDao() }
-    single { get<AppDatabase>().feedDao() }
     single { get<AppDatabase>().cascadeDao() }
     single { get<AppDatabase>().syncStateDao() }
 
@@ -104,7 +101,6 @@ val appModule = module {
     single { SearchRepository(get()) }
     single { SpotPinRepository(get()) }
     single { CoordinateBackfill(get(), get(), get()) }
-    single { FeedRepository(get(), get()) }
 
     viewModelOf(::SessionViewModel)
     viewModelOf(::OnboardingViewModel)
@@ -114,7 +110,6 @@ val appModule = module {
     viewModelOf(::TripsViewModel)
     viewModelOf(::SyncRefreshViewModel)
     viewModelOf(::SearchViewModel)
-    viewModelOf(::FeedViewModel)
 
     // These three are scoped to one row, so the id comes from the screen that opened them.
     viewModel { (countryId: String) -> CountryViewModel(countryId, get(), get(), get()) }

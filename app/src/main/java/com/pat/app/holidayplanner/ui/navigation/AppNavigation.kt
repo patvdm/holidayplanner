@@ -16,7 +16,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.pat.app.holidayplanner.ui.explore.CountriesScreen
-import com.pat.app.holidayplanner.ui.feed.FeedScreen
 import com.pat.app.holidayplanner.ui.explore.CountryScreen
 import com.pat.app.holidayplanner.ui.explore.CityScreen
 import com.pat.app.holidayplanner.ui.explore.SpotDetailScreen
@@ -69,7 +68,6 @@ fun AppNavigation() {
                         onSettings = { nav.push(SettingsKey) },
                         onOpenCountry = { nav.push(CountryKey(it)) },
                         onOpenMap = { nav.push(MapKey()) },
-                        onOpenFeed = { nav.push(FeedKey) },
                     )
                 }
                 entry<CountryKey> { key ->
@@ -131,13 +129,6 @@ fun AppNavigation() {
                         scope = MapScope(key.countryId, key.cityId, key.spotId),
                         onBack = nav::back,
                         onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
-                    )
-                }
-                entry<FeedKey> {
-                    FeedScreen(
-                        onBack = nav::back,
-                        onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
-                        onOpenTrip = { nav.openIn(AppTab.TRIPS, TripKey(it)) },
                     )
                 }
                 entry<SearchKey> {

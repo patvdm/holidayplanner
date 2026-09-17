@@ -27,7 +27,7 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.HolidayPlanner"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize|stateUnchanged">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

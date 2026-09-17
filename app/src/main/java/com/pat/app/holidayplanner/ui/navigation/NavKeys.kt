@@ -42,9 +42,6 @@ data class MapKey(
 ) : FullScreenKey
 
 @Serializable
-data object FeedKey : FullScreenKey
-
-@Serializable
 data object SearchKey : FullScreenKey
 
 @Serializable

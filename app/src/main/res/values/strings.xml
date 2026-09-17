@@ -236,31 +236,6 @@
     <string name="search_group_trip">Trips</string>
     <string name="search_group_trip_item">Trip items</string>
 
-    <!-- This week feed -->
-    <string name="feed_title">This week</string>
-    <string name="feed_see_all">See everything</string>
-    <string name="feed_empty">Nothing new from anyone else this week.</string>
-    <string name="feed_by">%1$s, %2$s</string>
-    <plurals name="feed_spots_in">
-        <item quantity="one">%1$d new spot in %2$s</item>
-        <item quantity="other">%1$d new spots in %2$s</item>
-    </plurals>
-    <plurals name="feed_links_in">
-        <item quantity="one">%1$d new link in %2$s</item>
-        <item quantity="other">%1$d new links in %2$s</item>
-    </plurals>
-    <plurals name="feed_links_loose">
-        <item quantity="one">%1$d new link</item>
-        <item quantity="other">%1$d new links</item>
-    </plurals>
-    <plurals name="feed_hearts_in">
-        <item quantity="one">%1$d spot hearted in %2$s</item>
-        <item quantity="other">%1$d spots hearted in %2$s</item>
-    </plurals>
-    <plurals name="feed_trips">
-        <item quantity="one">%1$d new trip</item>
-        <item quantity="other">%1$d new trips</item>
-    </plurals>
 
     <!-- Home screen add affordances -->
     <string name="countries_add_place">Add a spot</string>

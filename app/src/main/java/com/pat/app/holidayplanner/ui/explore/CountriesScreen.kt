@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -47,7 +48,6 @@ import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
 import com.pat.app.holidayplanner.ui.components.SyncStatusIcon
-import com.pat.app.holidayplanner.ui.feed.ThisWeekStrip
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
@@ -59,7 +59,6 @@ fun CountriesScreen(
     onSearch: () -> Unit,
     onSettings: () -> Unit,
     onOpenCountry: (String) -> Unit,
-    onOpenFeed: () -> Unit,
     onOpenMap: () -> Unit,
     viewModel: CountriesViewModel = koinViewModel(),
 ) {
@@ -69,6 +68,9 @@ fun CountriesScreen(
     var renaming by remember { mutableStateOf<CountryRow?>(null) }
 
     Scaffold(
+        // The tab bar below is already accounted for by the navigation Scaffold, so adding the
+        // navigation inset again here would float the button a bar's height too high.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.tab_explore)) },
@@ -98,7 +100,6 @@ fun CountriesScreen(
                 .padding(padding),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                ThisWeekStrip(onOpenFeed = onOpenFeed)
                 if (state.rows.isEmpty()) {
                     PullableEmptyState(modifier = Modifier.weight(1f)) {
                         EmptyListMessage(stringResource(R.string.countries_empty))
