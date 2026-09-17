@@ -67,6 +67,7 @@ import org.koin.core.parameter.parametersOf
 fun SpotDetailScreen(
     spotId: String,
     onBack: () -> Unit,
+    onOpenMap: () -> Unit,
     viewModel: SpotDetailViewModel = koinViewModel { parametersOf(spotId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -86,6 +87,9 @@ fun SpotDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenMap) {
+                        Icon(Icons.Filled.Map, contentDescription = stringResource(R.string.map_show))
+                    }
                     IconButton(onClick = viewModel::toggleHeart) {
                         Icon(
                             imageVector = if (state.heartedByMe) {

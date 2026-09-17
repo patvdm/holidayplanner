@@ -18,6 +18,7 @@ import com.pat.app.holidayplanner.data.repo.LinkRepository
 import com.pat.app.holidayplanner.data.repo.LocalWriter
 import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
+import com.pat.app.holidayplanner.data.repo.CoordinateBackfill
 import com.pat.app.holidayplanner.data.repo.DayPlanner
 import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.FeedRepository
@@ -51,7 +52,6 @@ import com.pat.app.holidayplanner.ui.onboarding.OnboardingViewModel
 import com.pat.app.holidayplanner.ui.feed.FeedViewModel
 import com.pat.app.holidayplanner.ui.map.MapScope
 import com.pat.app.holidayplanner.ui.map.MapViewModel
-import com.pat.app.holidayplanner.ui.nearme.NearMeViewModel
 import com.pat.app.holidayplanner.ui.search.SearchViewModel
 import com.pat.app.holidayplanner.ui.settings.SettingsViewModel
 import org.koin.android.ext.koin.androidContext
@@ -104,6 +104,7 @@ val appModule = module {
     single { DayPlanner(get(), get()) }
     single { SearchRepository(get()) }
     single { SpotPinRepository(get()) }
+    single { CoordinateBackfill(get(), get(), get()) }
     single { FeedRepository(get(), get(), get()) }
 
     viewModelOf(::SessionViewModel)
@@ -116,7 +117,6 @@ val appModule = module {
     viewModelOf(::SyncRefreshViewModel)
     viewModelOf(::SearchViewModel)
     viewModelOf(::FeedViewModel)
-    viewModelOf(::NearMeViewModel)
 
     // These three are scoped to one row, so the id comes from the screen that opened them.
     viewModel { (countryId: String) -> CountryViewModel(countryId, get(), get(), get()) }
@@ -124,7 +124,7 @@ val appModule = module {
     viewModel { (spotId: String) -> SpotDetailViewModel(spotId, get(), get(), get(), get(), get()) }
     viewModel { (tripId: String) -> TripViewModel(tripId, get(), get()) }
     viewModel { (itemId: String) -> TripItemViewModel(itemId, get()) }
-    viewModel { (itemId: String) -> RouteViewModel(itemId, get(), get()) }
+    viewModel { (itemId: String) -> RouteViewModel(itemId, get(), get(), get()) }
     viewModel { (scope: MapScope) -> MapViewModel(scope, get()) }
     viewModel { (target: PlaceSearchTarget) ->
         PlaceSearchViewModel(target, get(), get(), get(), get(), get())

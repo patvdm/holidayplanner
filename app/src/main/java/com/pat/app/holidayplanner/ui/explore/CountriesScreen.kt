@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
@@ -62,7 +62,7 @@ fun CountriesScreen(
     onSettings: () -> Unit,
     onOpenCountry: (String) -> Unit,
     onOpenFeed: () -> Unit,
-    onNearMe: () -> Unit,
+    onOpenMap: () -> Unit,
     viewModel: CountriesViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -76,8 +76,8 @@ fun CountriesScreen(
                 title = { Text(stringResource(R.string.tab_explore)) },
                 actions = {
                     SortMenu(SortScope.COUNTRIES, state.sortMode, viewModel::setSortMode)
-                    IconButton(onClick = onNearMe) {
-                        Icon(Icons.Filled.NearMe, contentDescription = stringResource(R.string.near_me))
+                    IconButton(onClick = onOpenMap) {
+                        Icon(Icons.Filled.Map, contentDescription = stringResource(R.string.map_show))
                     }
                     IconButton(onClick = onSearch) {
                         Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.action_search))

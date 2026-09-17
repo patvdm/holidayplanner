@@ -41,7 +41,7 @@ interface SpotDao : SyncDao<SpotEntity> {
     /** Every spot with the hierarchy above it, for searching and grouping in the picker. */
     @Query(
         """
-        SELECT s.id AS spotId, s.name AS spotName, p.name AS cityName,
+        SELECT s.id AS spotId, s.name AS spotName, p.id AS cityId, p.name AS cityName,
             c.name AS countryName, c.isoCode AS isoCode
         FROM spots s
         JOIN cities p ON p.id = s.parentCityId
@@ -64,11 +64,20 @@ interface SpotDao : SyncDao<SpotEntity> {
     )
     fun observeContext(spotId: String): Flow<SpotContext?>
 
-    /** Every spot we know the position of, for the map and for Near me. */
+    /** Spots that carry a Maps link but no coordinates, which the map cannot plot. */
+    @Query(
+        """
+        SELECT * FROM spots
+        WHERE deleted = 0 AND mapsUrl != '' AND (lat IS NULL OR lng IS NULL)
+        """,
+    )
+    suspend fun withLinkButNoCoordinates(): List<SpotEntity>
+
+    /** Every spot we know the position of. The map shows them all and only chooses where to look. */
     @Query(
         """
         SELECT s.id AS spotId, s.name AS name, s.lat AS lat, s.lng AS lng, s.status AS status,
-            ci.name AS cityName, co.name AS countryName
+            ci.id AS cityId, ci.name AS cityName, co.id AS countryId, co.name AS countryName
         FROM spots s
         JOIN cities ci ON ci.id = s.parentCityId
         JOIN countries co ON co.id = ci.countryId
@@ -77,34 +86,6 @@ interface SpotDao : SyncDao<SpotEntity> {
         """,
     )
     fun observePins(): Flow<List<SpotPin>>
-
-    /** The same, narrowed to one city, which is what the map on the city screen shows. */
-    @Query(
-        """
-        SELECT s.id AS spotId, s.name AS name, s.lat AS lat, s.lng AS lng, s.status AS status,
-            ci.name AS cityName, co.name AS countryName
-        FROM spots s
-        JOIN cities ci ON ci.id = s.parentCityId
-        JOIN countries co ON co.id = ci.countryId
-        WHERE s.deleted = 0 AND s.parentCityId = :cityId
-            AND s.lat IS NOT NULL AND s.lng IS NOT NULL
-        """,
-    )
-    fun observePinsInCity(cityId: String): Flow<List<SpotPin>>
-
-    /** The same, for every city under one country. */
-    @Query(
-        """
-        SELECT s.id AS spotId, s.name AS name, s.lat AS lat, s.lng AS lng, s.status AS status,
-            ci.name AS cityName, co.name AS countryName
-        FROM spots s
-        JOIN cities ci ON ci.id = s.parentCityId
-        JOIN countries co ON co.id = ci.countryId
-        WHERE s.deleted = 0 AND ci.countryId = :countryId AND ci.deleted = 0
-            AND s.lat IS NOT NULL AND s.lng IS NOT NULL
-        """,
-    )
-    fun observePinsInCountry(countryId: String): Flow<List<SpotPin>>
 
     @Query(
         """

@@ -50,6 +50,7 @@ data class CityOption(
 data class SpotPickerRow(
     val spotId: String,
     val spotName: String,
+    val cityId: String,
     val cityName: String,
     val countryName: String,
     val isoCode: String,
@@ -69,6 +70,7 @@ data class RouteStopRow(
     val sortKey: String,
     val spotId: String,
     val name: String,
+    val cityId: String,
     val cityName: String,
     val address: String,
     val lat: Double?,
@@ -107,6 +109,8 @@ data class SpotPin(
     val lat: Double,
     val lng: Double,
     val status: SpotStatus,
+    val cityId: String,
     val cityName: String,
+    val countryId: String,
     val countryName: String,
 )

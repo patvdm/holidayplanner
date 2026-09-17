@@ -11,7 +11,9 @@ import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.DayPlanner
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
+import com.pat.app.holidayplanner.domain.GeoPoint
 import com.pat.app.holidayplanner.domain.Priority
+import com.pat.app.holidayplanner.domain.Proximity
 import com.pat.app.holidayplanner.domain.SortMode
 import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.domain.SpotStatus
@@ -160,8 +162,13 @@ class CityViewModel(
      * yet. They arrive in the order the list is already in, which is the order Pat arranged them in.
      */
     fun planDay(tripId: String, date: LocalDate, title: String, onCreated: (String) -> Unit) {
-        val unvisited = uiState.value.rows
-            .filter { it.spot.status == SpotStatus.UNVISITED }
+        // Ordered before it is handed over, so the route opens as a sensible walk with no extra tap.
+        val unvisited = Proximity
+            .orderByProximity(uiState.value.rows.filter { it.spot.status == SpotStatus.UNVISITED }) { row ->
+                val lat = row.spot.lat
+                val lng = row.spot.lng
+                if (lat != null && lng != null) GeoPoint(lat, lng) else null
+            }
             .map { it.spot.meta.id }
         viewModelScope.launch { onCreated(dayPlanner.planDay(tripId, title, date, unvisited)) }
     }

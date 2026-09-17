@@ -24,7 +24,8 @@ import com.pat.app.holidayplanner.ui.explore.CountryScreen
 import com.pat.app.holidayplanner.ui.explore.CityScreen
 import com.pat.app.holidayplanner.ui.explore.SpotDetailScreen
 import com.pat.app.holidayplanner.ui.inbox.InboxScreen
-import com.pat.app.holidayplanner.ui.nearme.NearMeScreen
+import com.pat.app.holidayplanner.ui.map.MapScope
+import com.pat.app.holidayplanner.ui.map.MapScreen
 import com.pat.app.holidayplanner.ui.search.SearchScreen
 import com.pat.app.holidayplanner.ui.settings.SettingsScreen
 import com.pat.app.holidayplanner.ui.trips.RouteBuilderScreen
@@ -80,7 +81,7 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         onSettings = { nav.push(SettingsKey) },
                         onOpenCountry = { nav.push(CountryKey(it)) },
                         onOpenFeed = { nav.push(FeedKey) },
-                        onNearMe = { nav.push(NearMeKey) },
+                        onOpenMap = { nav.push(MapKey()) },
                     )
                 }
                 entry<CountryKey> { key ->
@@ -88,7 +89,7 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         countryId = key.countryId,
                         onBack = nav::back,
                         onOpenPlace = { nav.push(CityKey(it)) },
-                        onOpenSpot = { nav.push(SpotKey(it)) },
+                        onOpenMap = { nav.push(MapKey(countryId = key.countryId)) },
                     )
                 }
                 entry<CityKey> { key ->
@@ -97,11 +98,15 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         onBack = nav::back,
                         onOpenSpot = { nav.push(SpotKey(it)) },
                         onOpenRoute = { nav.push(RouteKey(it)) },
-                        onNearMe = { nav.push(NearMeKey) },
+                        onOpenMap = { nav.push(MapKey(cityId = key.cityId)) },
                     )
                 }
                 entry<SpotKey> { key ->
-                    SpotDetailScreen(spotId = key.spotId, onBack = nav::back)
+                    SpotDetailScreen(
+                        spotId = key.spotId,
+                        onBack = nav::back,
+                        onOpenMap = { nav.push(MapKey(spotId = key.spotId)) },
+                    )
                 }
                 entry<InboxRootKey> {
                     InboxScreen(onSearch = { nav.push(SearchKey) }, onSettings = { nav.push(SettingsKey) })
@@ -139,8 +144,9 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                 entry<RouteKey> { key ->
                     RouteBuilderScreen(itemId = key.itemId, onBack = nav::back)
                 }
-                entry<NearMeKey> {
-                    NearMeScreen(
+                entry<MapKey> { key ->
+                    MapScreen(
+                        scope = MapScope(key.countryId, key.cityId, key.spotId),
                         onBack = nav::back,
                         onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
                     )

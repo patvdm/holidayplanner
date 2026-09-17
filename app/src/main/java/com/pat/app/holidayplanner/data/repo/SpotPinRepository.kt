@@ -14,8 +14,4 @@ class SpotPinRepository(private val dao: SpotDao) {
 
     /** Everything we know the position of, wherever it is. */
     fun observeAll(): Flow<List<SpotPin>> = dao.observePins()
-
-    fun observeInCity(cityId: String): Flow<List<SpotPin>> = dao.observePinsInCity(cityId)
-
-    fun observeInCountry(countryId: String): Flow<List<SpotPin>> = dao.observePinsInCountry(countryId)
 }

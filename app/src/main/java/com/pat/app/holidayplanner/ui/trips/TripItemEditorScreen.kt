@@ -36,7 +36,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.domain.TravelMode
 import com.pat.app.holidayplanner.domain.TripItemType
 import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
 import org.koin.compose.viewmodel.koinViewModel
@@ -136,16 +135,6 @@ fun TripItemEditorScreen(
             )
 
             if (item.type == TripItemType.DAY_ROUTE) {
-                Text(stringResource(R.string.item_travel_mode), style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TravelMode.entries.forEach { mode ->
-                        FilterChip(
-                            selected = item.travelMode == mode,
-                            onClick = { viewModel.setTravelMode(mode) },
-                            label = { Text(stringResource(mode.label())) },
-                        )
-                    }
-                }
                 // Saved on the way out, so edits made here are not lost to the builder.
                 OutlinedButton(
                     onClick = { viewModel.save(onOpenRoute) },
@@ -243,9 +232,3 @@ private fun endLabelFor(type: TripItemType): Int = when (type) {
     else -> R.string.item_arrives
 }
 
-fun TravelMode.label(): Int = when (this) {
-    TravelMode.WALKING -> R.string.mode_walking
-    TravelMode.TRANSIT -> R.string.mode_transit
-    TravelMode.BICYCLING -> R.string.mode_bicycling
-    TravelMode.DRIVING -> R.string.mode_driving
-}

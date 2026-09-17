@@ -6,7 +6,6 @@ import com.pat.app.holidayplanner.data.local.SpotPickerRow
 import com.pat.app.holidayplanner.data.local.TripItemEntity
 import com.pat.app.holidayplanner.data.repo.TripRepository
 import com.pat.app.holidayplanner.domain.LocalTimes
-import com.pat.app.holidayplanner.domain.TravelMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -61,8 +60,6 @@ class TripItemViewModel(
     fun setStart(local: String, zone: String) = edit { it.copy(startLocal = local, startTimeZone = zone) }
 
     fun setEnd(local: String, zone: String) = edit { it.copy(endLocal = local, endTimeZone = zone) }
-
-    fun setTravelMode(mode: TravelMode?) = edit { it.copy(travelMode = mode) }
 
     fun setSpot(spot: SpotPickerRow) = edit {
         it.copy(spotId = spot.spotId, title = it.title.ifBlank { spot.spotName })

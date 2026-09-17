@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,7 +40,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.RouteStopRow
 import com.pat.app.holidayplanner.domain.MapsUrls
-import com.pat.app.holidayplanner.domain.TravelMode
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
@@ -94,7 +92,6 @@ fun RouteBuilderScreen(
                 state = state,
                 onAddStop = { addingStop = true },
                 onSortByProximity = viewModel::sortByProximity,
-                onTravelMode = viewModel::setTravelMode,
             )
             HorizontalDivider()
 
@@ -124,13 +121,15 @@ fun RouteBuilderScreen(
 
     if (addingStop) {
         val alreadyOn = state.stops.map { it.spotId }.toSet()
+        val city = state.cityId
         SpotPickerSheet(
             onPick = {
                 addingStop = false
                 viewModel.addStop(it.spotId)
             },
             onDismiss = { addingStop = false },
-            filter = { it.spotId !in alreadyOn },
+            // A walk stays in one city, so once the first stop is on, only its neighbours are offered.
+            filter = { it.spotId !in alreadyOn && (city.isEmpty() || it.cityId == city) },
         )
     }
 }
@@ -139,8 +138,7 @@ fun RouteBuilderScreen(
 private fun RouteControls(
     state: RouteUiState,
     onAddStop: () -> Unit,
-    onSortByProximity: () -> Unit,
-    onTravelMode: (TravelMode) -> Unit,
+    onSortByProximity: (fromHere: Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -150,15 +148,6 @@ private fun RouteControls(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TravelMode.entries.forEach { mode ->
-                FilterChip(
-                    selected = state.travelMode == mode,
-                    onClick = { onTravelMode(mode) },
-                    label = { Text(stringResource(mode.label())) },
-                )
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AssistChip(
                 onClick = onAddStop,
                 leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
@@ -166,10 +155,23 @@ private fun RouteControls(
             )
             if (state.stops.size > 1) {
                 AssistChip(
-                    onClick = onSortByProximity,
+                    enabled = !state.sorting,
+                    onClick = { onSortByProximity(false) },
                     label = { Text(stringResource(R.string.route_sort_proximity)) },
                 )
+                AssistChip(
+                    enabled = !state.sorting,
+                    onClick = { onSortByProximity(true) },
+                    label = { Text(stringResource(R.string.route_sort_from_here)) },
+                )
             }
+        }
+        if (state.cityName.isNotBlank()) {
+            Text(
+                text = stringResource(R.string.route_city_locked, state.cityName),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

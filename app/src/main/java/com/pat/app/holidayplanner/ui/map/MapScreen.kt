@@ -1,5 +1,9 @@
 package com.pat.app.holidayplanner.ui.map
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,61 +24,93 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.SpotPin
 import com.pat.app.holidayplanner.domain.SpotStatus
+import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-/** Close enough to read street names, which is the scale a day of walking happens at. */
-private const val CITY_ZOOM = 12f
-private const val WIDE_ZOOM = 5f
-
-/** Above this span the pins are spread across a country rather than a city. */
-private const val WIDE_SPAN_DEGREES = 1.0
-
 /**
- * Spots as pins, coloured by whether they have been visited.
+ * Every spot on one map, red for unvisited and green for visited.
  *
- * Tapping a pin raises a card over the map rather than opening the spot, so you can look at two or
- * three before committing to one.
+ * It always shows everything and only differs in where it opens, so a spot just over a city border
+ * is visible rather than mysteriously missing. Your own position is drawn when location is allowed,
+ * which is how you see what is near you.
  */
 @Composable
-fun SpotMap(
+fun MapScreen(
     scope: MapScope,
+    onBack: () -> Unit,
     onOpenSpot: (String) -> Unit,
-    modifier: Modifier = Modifier,
     viewModel: MapViewModel = koinViewModel { parametersOf(scope) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var selected by remember { mutableStateOf<SpotPin?>(null) }
+    val context = LocalContext.current
+    var locationAllowed by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED,
+        )
+    }
+    val permission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> locationAllowed = granted }
 
-    if (state.pins.isEmpty()) {
-        EmptyListMessage(stringResource(R.string.map_no_pins), modifier)
-        return
+    // Asked once on arrival. Refused is fine: the map works, it just has no blue dot.
+    LaunchedEffect(Unit) {
+        if (!locationAllowed) permission.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
     }
 
+    Scaffold(
+        topBar = { BackTopBar(stringResource(R.string.map_title), onBack = onBack) },
+    ) { padding ->
+        if (state.pins.isEmpty()) {
+            EmptyListMessage(stringResource(R.string.map_no_pins), Modifier.padding(padding))
+            return@Scaffold
+        }
+        SpotMap(
+            pins = state.pins,
+            focus = state.focus,
+            showMyLocation = locationAllowed,
+            onOpenSpot = onOpenSpot,
+            modifier = Modifier.padding(padding),
+        )
+    }
+}
+
+@Composable
+private fun SpotMap(
+    pins: List<SpotPin>,
+    focus: MapFocus?,
+    showMyLocation: Boolean,
+    onOpenSpot: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var selected by remember { mutableStateOf<SpotPin?>(null) }
     val camera = rememberCameraPositionState()
 
     // The pins arrive after the first composition, so the camera follows once they are known.
-    LaunchedEffect(state.centre, state.spanDegrees) {
-        val centre = state.centre ?: return@LaunchedEffect
-        val zoom = if (state.spanDegrees > WIDE_SPAN_DEGREES) WIDE_ZOOM else CITY_ZOOM
+    LaunchedEffect(focus) {
+        val target = focus ?: return@LaunchedEffect
         camera.move(
             CameraUpdateFactory.newCameraPosition(
-                CameraPosition.fromLatLngZoom(LatLng(centre.lat, centre.lng), zoom),
+                CameraPosition.fromLatLngZoom(LatLng(target.centre.lat, target.centre.lng), target.zoom),
             ),
         )
     }
@@ -82,9 +119,10 @@ fun SpotMap(
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = camera,
+            properties = MapProperties(isMyLocationEnabled = showMyLocation),
             onMapClick = { selected = null },
         ) {
-            state.pins.forEach { pin ->
+            pins.forEach { pin ->
                 Marker(
                     state = rememberUpdatedMarkerState(position = LatLng(pin.lat, pin.lng)),
                     title = pin.name,
