@@ -284,4 +284,23 @@
     <string name="countries_add_country">Add a country on its own</string>
     <string name="trips_country">Which country?</string>
     <string name="trips_pick_country">Choose a country</string>
+
+    <!-- Near me -->
+    <string name="near_me">Near me</string>
+    <string name="near_me_rationale">Near me needs your approximate location to work out which saved spots are close by. It is only used while this screen is open.</string>
+    <string name="near_me_allow">Allow location</string>
+    <string name="near_me_denied">Location is off, so nothing can be sorted by distance. You can turn it on for this app in Android settings.</string>
+    <string name="near_me_locating">Finding you…</string>
+    <string name="near_me_no_fix">Could not get a location. Try again outdoors or with location turned on.</string>
+    <string name="near_me_retry">Try again</string>
+    <string name="near_me_nothing">No unvisited spots within %1$s.</string>
+    <string name="near_me_metres">%1$d m</string>
+    <string name="near_me_km">%1$s km</string>
+    <string name="near_me_where">%1$s, %2$s</string>
+
+    <!-- Map -->
+    <string name="map_show">Show map</string>
+    <string name="map_show_list">Show list</string>
+    <string name="map_no_pins">Nothing here has a position yet, so there is nothing to map.</string>
+    <string name="map_open_spot">Open</string>
 </resources>

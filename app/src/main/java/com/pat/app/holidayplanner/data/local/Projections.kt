@@ -1,6 +1,7 @@
 package com.pat.app.holidayplanner.data.local
 
 import androidx.room.Embedded
+import com.pat.app.holidayplanner.domain.SpotStatus
 
 /** A country with the counts shown on its row. */
 data class CountryRow(
@@ -97,4 +98,15 @@ data class FeedRow(
     val place: String,
     val createdAt: Long,
     val authorName: String,
+)
+
+/** A spot with a known position, as Near me and the map need it. */
+data class SpotPin(
+    val spotId: String,
+    val name: String,
+    val lat: Double,
+    val lng: Double,
+    val status: SpotStatus,
+    val cityName: String,
+    val countryName: String,
 )

@@ -2,6 +2,8 @@ package com.pat.app.holidayplanner.di
 
 import com.pat.app.holidayplanner.data.local.AppDatabase
 import com.pat.app.holidayplanner.data.location.AndroidReverseGeocoder
+import com.pat.app.holidayplanner.data.location.DeviceLocation
+import com.pat.app.holidayplanner.data.location.FusedDeviceLocation
 import com.pat.app.holidayplanner.data.location.ReverseGeocoder
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.remote.GooglePlacesSearch
@@ -20,6 +22,7 @@ import com.pat.app.holidayplanner.data.repo.DayPlanner
 import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.FeedRepository
 import com.pat.app.holidayplanner.data.repo.SearchRepository
+import com.pat.app.holidayplanner.data.repo.SpotPinRepository
 import com.pat.app.holidayplanner.data.repo.TripRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
 import com.pat.app.holidayplanner.data.sync.RoomTransactor
@@ -46,6 +49,9 @@ import com.pat.app.holidayplanner.ui.trips.TripViewModel
 import com.pat.app.holidayplanner.ui.trips.TripsViewModel
 import com.pat.app.holidayplanner.ui.onboarding.OnboardingViewModel
 import com.pat.app.holidayplanner.ui.feed.FeedViewModel
+import com.pat.app.holidayplanner.ui.map.MapScope
+import com.pat.app.holidayplanner.ui.map.MapViewModel
+import com.pat.app.holidayplanner.ui.nearme.NearMeViewModel
 import com.pat.app.holidayplanner.ui.search.SearchViewModel
 import com.pat.app.holidayplanner.ui.settings.SettingsViewModel
 import org.koin.android.ext.koin.androidContext
@@ -79,6 +85,7 @@ val appModule = module {
     single<PlacesSearch> { GooglePlacesSearch(androidContext()) }
     single<LinkResolver> { HttpLinkResolver() }
     single<ReverseGeocoder> { AndroidReverseGeocoder(androidContext()) }
+    single<DeviceLocation> { FusedDeviceLocation(androidContext()) }
     single { SheetsApi(get()) }
     single<SheetsBackend> { get<SheetsApi>() }
     single { syncTables(get()) }
@@ -96,6 +103,7 @@ val appModule = module {
     single { RouteRepository(get(), get()) }
     single { DayPlanner(get(), get()) }
     single { SearchRepository(get()) }
+    single { SpotPinRepository(get()) }
     single { FeedRepository(get(), get(), get()) }
 
     viewModelOf(::SessionViewModel)
@@ -108,6 +116,7 @@ val appModule = module {
     viewModelOf(::SyncRefreshViewModel)
     viewModelOf(::SearchViewModel)
     viewModelOf(::FeedViewModel)
+    viewModelOf(::NearMeViewModel)
 
     // These three are scoped to one row, so the id comes from the screen that opened them.
     viewModel { (countryId: String) -> CountryViewModel(countryId, get(), get(), get()) }
@@ -116,6 +125,7 @@ val appModule = module {
     viewModel { (tripId: String) -> TripViewModel(tripId, get(), get()) }
     viewModel { (itemId: String) -> TripItemViewModel(itemId, get()) }
     viewModel { (itemId: String) -> RouteViewModel(itemId, get(), get()) }
+    viewModel { (scope: MapScope) -> MapViewModel(scope, get()) }
     viewModel { (target: PlaceSearchTarget) ->
         PlaceSearchViewModel(target, get(), get(), get(), get(), get())
     }

@@ -24,6 +24,7 @@ import com.pat.app.holidayplanner.ui.explore.CountryScreen
 import com.pat.app.holidayplanner.ui.explore.CityScreen
 import com.pat.app.holidayplanner.ui.explore.SpotDetailScreen
 import com.pat.app.holidayplanner.ui.inbox.InboxScreen
+import com.pat.app.holidayplanner.ui.nearme.NearMeScreen
 import com.pat.app.holidayplanner.ui.search.SearchScreen
 import com.pat.app.holidayplanner.ui.settings.SettingsScreen
 import com.pat.app.holidayplanner.ui.trips.RouteBuilderScreen
@@ -79,6 +80,7 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         onSettings = { nav.push(SettingsKey) },
                         onOpenCountry = { nav.push(CountryKey(it)) },
                         onOpenFeed = { nav.push(FeedKey) },
+                        onNearMe = { nav.push(NearMeKey) },
                     )
                 }
                 entry<CountryKey> { key ->
@@ -86,6 +88,7 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         countryId = key.countryId,
                         onBack = nav::back,
                         onOpenPlace = { nav.push(CityKey(it)) },
+                        onOpenSpot = { nav.push(SpotKey(it)) },
                     )
                 }
                 entry<CityKey> { key ->
@@ -94,6 +97,7 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         onBack = nav::back,
                         onOpenSpot = { nav.push(SpotKey(it)) },
                         onOpenRoute = { nav.push(RouteKey(it)) },
+                        onNearMe = { nav.push(NearMeKey) },
                     )
                 }
                 entry<SpotKey> { key ->
@@ -134,6 +138,12 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                 }
                 entry<RouteKey> { key ->
                     RouteBuilderScreen(itemId = key.itemId, onBack = nav::back)
+                }
+                entry<NearMeKey> {
+                    NearMeScreen(
+                        onBack = nav::back,
+                        onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
+                    )
                 }
                 entry<FeedKey> {
                     FeedScreen(

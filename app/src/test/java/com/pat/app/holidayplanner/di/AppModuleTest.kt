@@ -3,6 +3,8 @@ package com.pat.app.holidayplanner.di
 import android.content.Context
 import com.pat.app.holidayplanner.ui.components.PlaceSearchTarget
 import com.pat.app.holidayplanner.ui.components.PlaceSearchViewModel
+import com.pat.app.holidayplanner.ui.map.MapScope
+import com.pat.app.holidayplanner.ui.map.MapViewModel
 import org.junit.Test
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.test.verify.definition
@@ -27,6 +29,7 @@ class AppModuleTest {
             // Handed in by the screen that opens the sheet rather than resolved from the graph.
             injections = injectedParameters(
                 definition<PlaceSearchViewModel>(PlaceSearchTarget::class),
+                definition<MapViewModel>(MapScope::class),
             ),
         )
     }

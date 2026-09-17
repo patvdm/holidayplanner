@@ -10,9 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,6 +51,8 @@ import com.pat.app.holidayplanner.ui.components.HeartCount
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
+import com.pat.app.holidayplanner.ui.map.MapScope
+import com.pat.app.holidayplanner.ui.map.SpotMap
 import com.pat.app.holidayplanner.ui.components.SortMenu
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.TypeBadge
@@ -64,12 +69,14 @@ fun CityScreen(
     onBack: () -> Unit,
     onOpenSpot: (String) -> Unit,
     onOpenRoute: (String) -> Unit,
+    onNearMe: () -> Unit,
     viewModel: CityViewModel = koinViewModel { parametersOf(cityId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var adding by remember { mutableStateOf(false) }
     var renamingPlace by remember { mutableStateOf(false) }
     var planningDay by remember { mutableStateOf(false) }
+    var showingMap by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     val dayTitle = stringResource(R.string.plan_day_route_name, state.place?.name.orEmpty())
 
@@ -92,6 +99,17 @@ fun CityScreen(
                 },
                 actions = {
                     SortMenu(SortScope.SPOTS, state.sortMode, viewModel::setSortMode)
+                    IconButton(onClick = { showingMap = !showingMap }) {
+                        Icon(
+                            imageVector = if (showingMap) Icons.AutoMirrored.Filled.List else Icons.Filled.Map,
+                            contentDescription = stringResource(
+                                if (showingMap) R.string.map_show_list else R.string.map_show,
+                            ),
+                        )
+                    }
+                    IconButton(onClick = onNearMe) {
+                        Icon(Icons.Filled.NearMe, contentDescription = stringResource(R.string.near_me))
+                    }
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
                     }
@@ -114,6 +132,10 @@ fun CityScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
+            if (showingMap) {
+                SpotMap(scope = MapScope(cityId = cityId), onOpenSpot = onOpenSpot)
+                return@Column
+            }
             FilterRow(state, viewModel)
             if (state.rows.isEmpty()) {
                 EmptyListMessage(

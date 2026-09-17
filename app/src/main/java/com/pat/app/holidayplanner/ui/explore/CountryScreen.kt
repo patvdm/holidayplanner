@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -40,6 +42,8 @@ import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
+import com.pat.app.holidayplanner.ui.map.MapScope
+import com.pat.app.holidayplanner.ui.map.SpotMap
 import com.pat.app.holidayplanner.ui.components.SortMenu
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import org.koin.compose.viewmodel.koinViewModel
@@ -51,10 +55,12 @@ fun CountryScreen(
     countryId: String,
     onBack: () -> Unit,
     onOpenPlace: (String) -> Unit,
+    onOpenSpot: (String) -> Unit,
     viewModel: CountryViewModel = koinViewModel { parametersOf(countryId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var adding by remember { mutableStateOf(false) }
+    var showingMap by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<CityRow?>(null) }
 
     Scaffold(
@@ -78,7 +84,17 @@ fun CountryScreen(
                         )
                     }
                 },
-                actions = { SortMenu(SortScope.CITIES, state.sortMode, viewModel::setSortMode) },
+                actions = {
+                    SortMenu(SortScope.CITIES, state.sortMode, viewModel::setSortMode)
+                    IconButton(onClick = { showingMap = !showingMap }) {
+                        Icon(
+                            imageVector = if (showingMap) Icons.AutoMirrored.Filled.List else Icons.Filled.Map,
+                            contentDescription = stringResource(
+                                if (showingMap) R.string.map_show_list else R.string.map_show,
+                            ),
+                        )
+                    }
+                },
             )
         },
         floatingActionButton = {
@@ -87,6 +103,14 @@ fun CountryScreen(
             }
         },
     ) { padding ->
+        if (showingMap) {
+            SpotMap(
+                scope = MapScope(countryId = countryId),
+                onOpenSpot = onOpenSpot,
+                modifier = Modifier.padding(padding),
+            )
+            return@Scaffold
+        }
         if (state.rows.isEmpty()) {
             EmptyListMessage(stringResource(R.string.country_empty), Modifier.padding(padding))
         } else {

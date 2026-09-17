@@ -6,6 +6,7 @@ import androidx.room.Upsert
 import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.local.SpotEntity
 import com.pat.app.holidayplanner.data.local.SpotPickerRow
+import com.pat.app.holidayplanner.data.local.SpotPin
 import com.pat.app.holidayplanner.data.local.SpotRow
 import com.pat.app.holidayplanner.data.local.SyncDao
 import kotlinx.coroutines.flow.Flow
@@ -62,6 +63,48 @@ interface SpotDao : SyncDao<SpotEntity> {
         """,
     )
     fun observeContext(spotId: String): Flow<SpotContext?>
+
+    /** Every spot we know the position of, for the map and for Near me. */
+    @Query(
+        """
+        SELECT s.id AS spotId, s.name AS name, s.lat AS lat, s.lng AS lng, s.status AS status,
+            ci.name AS cityName, co.name AS countryName
+        FROM spots s
+        JOIN cities ci ON ci.id = s.parentCityId
+        JOIN countries co ON co.id = ci.countryId
+        WHERE s.deleted = 0 AND ci.deleted = 0 AND co.deleted = 0
+            AND s.lat IS NOT NULL AND s.lng IS NOT NULL
+        """,
+    )
+    fun observePins(): Flow<List<SpotPin>>
+
+    /** The same, narrowed to one city, which is what the map on the city screen shows. */
+    @Query(
+        """
+        SELECT s.id AS spotId, s.name AS name, s.lat AS lat, s.lng AS lng, s.status AS status,
+            ci.name AS cityName, co.name AS countryName
+        FROM spots s
+        JOIN cities ci ON ci.id = s.parentCityId
+        JOIN countries co ON co.id = ci.countryId
+        WHERE s.deleted = 0 AND s.parentCityId = :cityId
+            AND s.lat IS NOT NULL AND s.lng IS NOT NULL
+        """,
+    )
+    fun observePinsInCity(cityId: String): Flow<List<SpotPin>>
+
+    /** The same, for every city under one country. */
+    @Query(
+        """
+        SELECT s.id AS spotId, s.name AS name, s.lat AS lat, s.lng AS lng, s.status AS status,
+            ci.name AS cityName, co.name AS countryName
+        FROM spots s
+        JOIN cities ci ON ci.id = s.parentCityId
+        JOIN countries co ON co.id = ci.countryId
+        WHERE s.deleted = 0 AND ci.countryId = :countryId AND ci.deleted = 0
+            AND s.lat IS NOT NULL AND s.lng IS NOT NULL
+        """,
+    )
+    fun observePinsInCountry(countryId: String): Flow<List<SpotPin>>
 
     @Query(
         """
