@@ -21,6 +21,7 @@ fun TabTopBar(title: String, onSearch: () -> Unit, onSettings: () -> Unit) {
     TopAppBar(
         title = { Text(title) },
         actions = {
+            SyncStatusIcon()
             IconButton(onClick = onSearch) {
                 Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.action_search))
             }

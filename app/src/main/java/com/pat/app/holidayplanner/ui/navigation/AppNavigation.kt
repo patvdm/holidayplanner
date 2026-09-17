@@ -84,7 +84,6 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                         onSearch = { nav.push(SearchKey) },
                         onSettings = { nav.push(SettingsKey) },
                         onOpenCountry = { nav.push(CountryKey(it)) },
-                        onOpenFeed = { nav.push(FeedKey) },
                         onOpenMap = { nav.push(MapKey()) },
                     )
                 }
@@ -113,7 +112,11 @@ fun AppNavigation(linkRepository: LinkRepository = koinInject()) {
                     )
                 }
                 entry<InboxRootKey> {
-                    InboxScreen(onSearch = { nav.push(SearchKey) }, onSettings = { nav.push(SettingsKey) })
+                    InboxScreen(
+                        onSearch = { nav.push(SearchKey) },
+                        onSettings = { nav.push(SettingsKey) },
+                        onOpenFeed = { nav.push(FeedKey) },
+                    )
                 }
                 entry<TripsRootKey> {
                     TripsScreen(

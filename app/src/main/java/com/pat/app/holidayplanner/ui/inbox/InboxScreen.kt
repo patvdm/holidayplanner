@@ -47,7 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
-import com.pat.app.holidayplanner.ui.components.SyncStatusBanner
+import com.pat.app.holidayplanner.ui.feed.ThisWeekStrip
 import com.pat.app.holidayplanner.data.local.InboxRow
 import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
@@ -61,6 +61,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun InboxScreen(
     onSearch: () -> Unit,
     onSettings: () -> Unit,
+    onOpenFeed: () -> Unit,
     viewModel: InboxViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -97,7 +98,7 @@ fun InboxScreen(
                 .padding(padding),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                SyncStatusBanner()
+                ThisWeekStrip(onOpenFeed = onOpenFeed)
                 if (state.rows.isEmpty()) {
                     PullableEmptyState(modifier = Modifier.weight(1f).padding(24.dp)) {
                         Text(
