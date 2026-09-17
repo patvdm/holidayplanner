@@ -14,17 +14,27 @@ interface LinkDao : SyncDao<LinkEntity> {
     @Query("SELECT * FROM links WHERE spotId = '' AND deleted = 0 ORDER BY createdAt DESC")
     fun observeInbox(): Flow<List<LinkEntity>>
 
-    /** Inbox links with the name of whoever shared them. */
+    /**
+     * Every shared link, newest first, with who shared it and where it went.
+     *
+     * Not just the unfiled ones: a share is now always attached to a spot, so this reads as a list
+     * of what has been shared lately rather than a pile of things still to deal with.
+     */
     @Query(
         """
-        SELECT l.*, COALESCE(u.name, '') AS authorName
-        FROM links l LEFT JOIN users u ON u.id = l.createdBy
-        WHERE l.spotId = '' AND l.deleted = 0
+        SELECT l.*, COALESCE(u.name, '') AS authorName,
+            COALESCE(s.name, '') AS spotName, COALESCE(c.name, '') AS cityName
+        FROM links l
+        LEFT JOIN users u ON u.id = l.createdBy
+        LEFT JOIN spots s ON s.id = l.spotId AND s.deleted = 0
+        LEFT JOIN cities c ON c.id = s.parentCityId
+        WHERE l.deleted = 0
         ORDER BY l.createdAt DESC
         """,
     )
     fun observeInboxRows(): Flow<List<InboxRow>>
 
+    /** The badge counts only links with nowhere to live, which are the ones needing a decision. */
     @Query("SELECT COUNT(*) FROM links WHERE spotId = '' AND deleted = 0")
     fun observeInboxCount(): Flow<Int>
 

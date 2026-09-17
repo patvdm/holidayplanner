@@ -114,7 +114,8 @@ fun InboxScreen(
                                 selected = row.link.meta.id in state.selected,
                                 selectionMode = state.selectionMode,
                                 onOpen = {
-                                    viewModel.rememberPendingAssign(row.link.meta.id)
+                                    // Only an unfiled link needs the picker waiting on the way back.
+                                    if (!row.filed) viewModel.rememberPendingAssign(row.link.meta.id)
                                     context.openExternalUrl(row.link.url)
                                 },
                                 onToggleSelect = { viewModel.toggleSelected(row.link.meta.id) },
@@ -205,6 +206,20 @@ private fun InboxItem(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
+                    )
+                    // Where it ended up, or a nudge when a share was backed out of before filing.
+                    Text(
+                        text = if (row.filed) {
+                            stringResource(R.string.inbox_filed_under, row.spotName, row.cityName)
+                        } else {
+                            stringResource(R.string.inbox_unfiled)
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (row.filed) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        },
                     )
                     Text(
                         text = stringResource(

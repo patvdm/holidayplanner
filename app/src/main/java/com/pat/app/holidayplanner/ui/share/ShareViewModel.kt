@@ -172,8 +172,8 @@ class ShareViewModel(
     }
 
     /**
-     * Saves into the inbox, then offers to file it. The link is written first on purpose: whatever
-     * happens next, including backing out, it is already safe in the inbox.
+     * Saves the link, then asks which spot it belongs to. It is written before the question on
+     * purpose: whatever happens next, including backing out, it is already safe.
      */
     fun save() {
         val ready = state.value as? ShareState.Ready ?: return
@@ -190,8 +190,11 @@ class ShareViewModel(
         viewModelScope.launch { linkRepository.assign(filing.linkId, spotId) }
     }
 
-    /** Leaves the link in the inbox to be filed later. */
-    fun leaveInInbox() {
+    /**
+     * Backing out of the spot question. The link is already saved and shows in the inbox marked as
+     * having no spot, so nothing is lost and it can be filed in one tap later.
+     */
+    fun cancelFiling() {
         state.value = ShareState.Saved
     }
 

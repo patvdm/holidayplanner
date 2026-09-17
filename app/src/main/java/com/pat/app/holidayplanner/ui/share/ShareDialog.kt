@@ -112,7 +112,7 @@ fun ShareDialog(
         } else {
             SpotPickerSheet(
                 onPick = { viewModel.fileUnder(it.spotId) },
-                onDismiss = viewModel::leaveInInbox,
+                onDismiss = viewModel::cancelFiling,
                 allowCreate = true,
                 onCreateNew = { creatingSpot = true },
             )

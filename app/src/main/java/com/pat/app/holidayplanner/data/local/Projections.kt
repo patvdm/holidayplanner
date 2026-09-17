@@ -63,7 +63,12 @@ data class SpotPickerRow(
 data class InboxRow(
     @Embedded val link: LinkEntity,
     val authorName: String,
-)
+    /** Empty while a link has not been filed under a spot yet. */
+    val spotName: String,
+    val cityName: String,
+) {
+    val filed: Boolean get() = link.spotId.isNotBlank()
+}
 
 /** A stop on a day route, with the spot it points at: what the row shows and what Maps needs. */
 data class RouteStopRow(

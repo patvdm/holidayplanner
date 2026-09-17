@@ -105,7 +105,7 @@ val appModule = module {
     single { SearchRepository(get()) }
     single { SpotPinRepository(get()) }
     single { CoordinateBackfill(get(), get(), get()) }
-    single { FeedRepository(get(), get(), get()) }
+    single { FeedRepository(get(), get()) }
 
     viewModelOf(::SessionViewModel)
     viewModelOf(::OnboardingViewModel)
