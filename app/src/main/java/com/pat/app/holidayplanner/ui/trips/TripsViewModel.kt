@@ -42,16 +42,22 @@ class TripsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TripsUiState())
 
     /**
-     * A trip starts life as a name and the city it is to; the dates come later.
+     * A trip starts life as the city it is to; the name and dates come later.
+     *
+     * An unnamed trip takes the city's name, which is what most of them would have been called
+     * anyway, and can be renamed in the editor.
      *
      * Tying it to a city rather than a country is what lets everything after this be a choice from
      * that city's spots instead of a search.
      */
     fun addTrip(name: String, city: CityOption, onCreated: (String) -> Unit) {
-        if (name.isBlank()) return
         viewModelScope.launch {
             onCreated(
-                repository.add(name = name, cityId = city.cityId, countryIds = listOf(city.countryId)),
+                repository.add(
+                    name = name.trim().ifBlank { city.cityName },
+                    cityId = city.cityId,
+                    countryIds = listOf(city.countryId),
+                ),
             )
         }
     }

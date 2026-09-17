@@ -279,6 +279,7 @@
     <!-- Home screen add affordances -->
     <string name="countries_add_place">Add a spot</string>
     <string name="countries_add_country">Add a country</string>
+    <string name="trips_name_optional">Trip name (optional)</string>
     <string name="trips_city">Which city?</string>
     <string name="trips_no_cities">Save a city first. A trip is planned out of the spots in one place.</string>
     <string name="trip_add_spot">Add a spot to %1$s</string>

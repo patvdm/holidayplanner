@@ -54,7 +54,7 @@ fun NewTripDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text(stringResource(R.string.label_name)) },
+                        label = { Text(stringResource(R.string.trips_name_optional)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                         modifier = Modifier.fillMaxWidth(),
@@ -82,7 +82,7 @@ fun NewTripDialog(
         confirmButton = {
             TextButton(
                 onClick = { if (chosen != null) onConfirm(name, chosen) },
-                enabled = name.isNotBlank() && chosen != null,
+                enabled = chosen != null,
             ) {
                 Text(stringResource(R.string.action_add))
             }
