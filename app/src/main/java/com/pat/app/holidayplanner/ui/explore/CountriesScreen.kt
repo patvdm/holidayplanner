@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
@@ -44,6 +45,7 @@ import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
+import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
@@ -228,11 +230,25 @@ fun RowMenu(
     onDelete: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val putKeyboardAway = rememberKeyboardDismiss()
 
-    IconButton(onClick = { expanded = true }) {
+    IconButton(
+        onClick = {
+            // Dropped before the popup takes window focus, so there is nothing to hand back to.
+            putKeyboardAway()
+            expanded = true
+        },
+    ) {
         Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
     }
-    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = {
+            expanded = false
+            putKeyboardAway()
+        },
+        properties = PopupProperties(focusable = false),
+    ) {
         Priority.entries.forEach { priority ->
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_set_priority, stringResource(priority.label()))) },

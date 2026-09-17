@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
@@ -99,7 +100,12 @@ fun CityScreen(
                         Icon(Icons.Filled.Map, contentDescription = stringResource(R.string.map_show))
                     }
                     SortMenu(SortScope.SPOTS, state.sortMode, viewModel::setSortMode)
-                    IconButton(onClick = { menuOpen = true }) {
+                    IconButton(
+                        onClick = {
+                            putKeyboardAway()
+                            menuOpen = true
+                        },
+                    ) {
                         Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
                     }
                     DropdownMenu(
@@ -108,6 +114,7 @@ fun CityScreen(
                             menuOpen = false
                             putKeyboardAway()
                         },
+                        properties = PopupProperties(focusable = false),
                     ) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.plan_day)) },
@@ -310,11 +317,25 @@ private fun SpotRowMenu(
     onDelete: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val putKeyboardAway = rememberKeyboardDismiss()
 
-    IconButton(onClick = { expanded = true }) {
+    IconButton(
+        onClick = {
+            // Dropped before the popup takes window focus, so there is nothing to hand back to.
+            putKeyboardAway()
+            expanded = true
+        },
+    ) {
         Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
     }
-    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = {
+            expanded = false
+            putKeyboardAway()
+        },
+        properties = PopupProperties(focusable = false),
+    ) {
         Priority.entries.forEach { priority ->
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_set_priority, stringResource(priority.label()))) },

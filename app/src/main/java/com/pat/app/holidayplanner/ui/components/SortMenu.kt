@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.PopupProperties
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.domain.SortMode
 import com.pat.app.holidayplanner.domain.SortScope
@@ -24,7 +25,13 @@ fun SortMenu(scope: SortScope, selected: SortMode, onSelect: (SortMode) -> Unit)
     var expanded by remember { mutableStateOf(false) }
     val putKeyboardAway = rememberKeyboardDismiss()
 
-    IconButton(onClick = { expanded = true }) {
+    IconButton(
+        onClick = {
+            // Dropped before the popup takes window focus, so there is nothing to hand back to.
+            putKeyboardAway()
+            expanded = true
+        },
+    ) {
         Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = stringResource(R.string.action_sort))
     }
     DropdownMenu(
@@ -33,6 +40,7 @@ fun SortMenu(scope: SortScope, selected: SortMode, onSelect: (SortMode) -> Unit)
             expanded = false
             putKeyboardAway()
         },
+        properties = PopupProperties(focusable = false),
     ) {
         scope.options.forEach { mode ->
             DropdownMenuItem(
