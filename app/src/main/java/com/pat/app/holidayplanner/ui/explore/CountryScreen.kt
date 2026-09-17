@@ -81,10 +81,10 @@ fun CountryScreen(
                     }
                 },
                 actions = {
-                    SortMenu(SortScope.CITIES, state.sortMode, viewModel::setSortMode)
                     IconButton(onClick = onOpenMap) {
                         Icon(Icons.Filled.Map, contentDescription = stringResource(R.string.map_show))
                     }
+                    SortMenu(SortScope.CITIES, state.sortMode, viewModel::setSortMode)
                 },
             )
         },
