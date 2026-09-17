@@ -47,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
+import com.pat.app.holidayplanner.ui.components.SyncStatusBanner
 import com.pat.app.holidayplanner.data.local.InboxRow
 import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
@@ -95,28 +96,31 @@ fun InboxScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            if (state.rows.isEmpty()) {
-                PullableEmptyState(modifier = Modifier.padding(24.dp)) {
-                    Text(
-                        text = stringResource(R.string.inbox_empty),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(state.rows, key = { it.link.meta.id }) { row ->
-                        InboxItem(
-                            row = row,
-                            selected = row.link.meta.id in state.selected,
-                            selectionMode = state.selectionMode,
-                            onOpen = {
-                                viewModel.rememberPendingAssign(row.link.meta.id)
-                                context.openExternalUrl(row.link.url)
-                            },
-                            onToggleSelect = { viewModel.toggleSelected(row.link.meta.id) },
-                            onDelete = { viewModel.delete(row.link.meta.id) },
+            Column(modifier = Modifier.fillMaxSize()) {
+                SyncStatusBanner()
+                if (state.rows.isEmpty()) {
+                    PullableEmptyState(modifier = Modifier.weight(1f).padding(24.dp)) {
+                        Text(
+                            text = stringResource(R.string.inbox_empty),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.weight(1f)) {
+                        items(state.rows, key = { it.link.meta.id }) { row ->
+                            InboxItem(
+                                row = row,
+                                selected = row.link.meta.id in state.selected,
+                                selectionMode = state.selectionMode,
+                                onOpen = {
+                                    viewModel.rememberPendingAssign(row.link.meta.id)
+                                    context.openExternalUrl(row.link.url)
+                                },
+                                onToggleSelect = { viewModel.toggleSelected(row.link.meta.id) },
+                                onDelete = { viewModel.delete(row.link.meta.id) },
+                            )
+                        }
                     }
                 }
             }

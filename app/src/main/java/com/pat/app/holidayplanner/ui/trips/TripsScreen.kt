@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
+import com.pat.app.holidayplanner.ui.components.SyncStatusBanner
 import com.pat.app.holidayplanner.data.local.TripEntity
 import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.ui.components.TabTopBar
@@ -59,37 +60,40 @@ fun TripsScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            if (state.isEmpty) {
-                PullableEmptyState(modifier = Modifier.padding(24.dp)) {
-                    Text(
-                        text = stringResource(R.string.trips_empty),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(state.upcoming, key = { it.meta.id }) { trip ->
-                        TripRowItem(trip = trip, onClick = { onOpenTrip(trip.meta.id) })
+            Column(modifier = Modifier.fillMaxSize()) {
+                SyncStatusBanner()
+                if (state.isEmpty) {
+                    PullableEmptyState(modifier = Modifier.weight(1f).padding(24.dp)) {
+                        Text(
+                            text = stringResource(R.string.trips_empty),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                    if (state.past.isNotEmpty()) {
-                        item {
-                            Text(
-                                text = stringResource(
-                                    if (showPast) R.string.trips_past_hide else R.string.trips_past_show,
-                                    state.past.size,
-                                ),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { showPast = !showPast }
-                                    .padding(16.dp),
-                            )
+                } else {
+                    LazyColumn(modifier = Modifier.weight(1f)) {
+                        items(state.upcoming, key = { it.meta.id }) { trip ->
+                            TripRowItem(trip = trip, onClick = { onOpenTrip(trip.meta.id) })
                         }
-                        if (showPast) {
-                            items(state.past, key = { it.meta.id }) { trip ->
-                                TripRowItem(trip = trip, onClick = { onOpenTrip(trip.meta.id) })
+                        if (state.past.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = stringResource(
+                                        if (showPast) R.string.trips_past_hide else R.string.trips_past_show,
+                                        state.past.size,
+                                    ),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { showPast = !showPast }
+                                        .padding(16.dp),
+                                )
+                            }
+                            if (showPast) {
+                                items(state.past, key = { it.meta.id }) { trip ->
+                                    TripRowItem(trip = trip, onClick = { onOpenTrip(trip.meta.id) })
+                                }
                             }
                         }
                     }

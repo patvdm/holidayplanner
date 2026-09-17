@@ -3,14 +3,17 @@ package com.pat.app.holidayplanner.ui.sync
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.sync.SyncScheduler
+import com.pat.app.holidayplanner.data.sync.SyncStatus
 import com.pat.app.holidayplanner.data.sync.SyncStatusRepository
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -19,6 +22,8 @@ private val START_TIMEOUT = 2.seconds
 
 /** A sync takes a few seconds; this only stops the spinner turning forever if something hangs. */
 private val FINISH_TIMEOUT = 60.seconds
+
+private const val STATUS_TIMEOUT_MS = 5_000L
 
 /**
  * Drives the pull to refresh spinner.
@@ -35,6 +40,10 @@ class SyncRefreshViewModel(
     private val manual = MutableStateFlow(false)
 
     val refreshing: StateFlow<Boolean> = manual.asStateFlow()
+
+    /** Drives the banner: whether a sync is in flight, and how the last one ended. */
+    val status: StateFlow<SyncStatus> = statusRepository.status
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STATUS_TIMEOUT_MS), SyncStatus())
 
     fun refresh() {
         if (manual.value) return

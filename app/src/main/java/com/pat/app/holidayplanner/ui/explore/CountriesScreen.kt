@@ -48,6 +48,7 @@ import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.feed.ThisWeekStrip
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
+import com.pat.app.holidayplanner.ui.components.SyncStatusBanner
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.SortMenu
@@ -99,6 +100,7 @@ fun CountriesScreen(
                 .padding(padding),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                SyncStatusBanner()
                 ThisWeekStrip(onOpenFeed = onOpenFeed)
                 if (state.rows.isEmpty()) {
                     PullableEmptyState(modifier = Modifier.weight(1f)) {
@@ -131,7 +133,7 @@ fun CountriesScreen(
 
     if (addingPlace) {
         PlaceSearchSheet(
-            mode = PlaceSearchMode.CITY,
+            mode = PlaceSearchMode.SPOT,
             onDismiss = { addingPlace = false },
             onSaved = { addingPlace = false },
         )

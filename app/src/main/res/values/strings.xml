@@ -280,8 +280,8 @@
     </plurals>
 
     <!-- Home screen add affordances -->
-    <string name="countries_add_place">Add a place</string>
-    <string name="countries_add_country">Add a country on its own</string>
+    <string name="countries_add_place">Add a spot</string>
+    <string name="countries_add_country">Add a country</string>
     <string name="trips_country">Which country?</string>
     <string name="trips_pick_country">Choose a country</string>
 
@@ -303,4 +303,9 @@
     <string name="map_show_list">Show list</string>
     <string name="map_no_pins">Nothing here has a position yet, so there is nothing to map.</string>
     <string name="map_open_spot">Open</string>
+
+    <!-- Sync banner -->
+    <string name="sync_banner_running">Syncing…</string>
+    <string name="sync_banner_failed">Last sync failed. Changes are saved here and will go up when it works.</string>
+    <string name="sync_banner_retry">Retry</string>
 </resources>

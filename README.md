@@ -18,15 +18,90 @@ Backend is a Google Sheet behind an Apps Script web app (see `backend/README.md`
    fresh checkout still builds). The backend URL and secret can also be overridden at runtime in
    Settings → Advanced.
 3. Deploy the backend: `backend/README.md`.
+4. Set up Google Cloud for autocomplete and the map: see **Google Cloud** below.
+
+## Google Cloud
+
+Only needed for place autocomplete and the map. Without `MAPS_API_KEY` the app still works: the
+place sheet opens straight into typing a name, and the map toggle shows nothing to map.
+
+- Enable **Places API (New)**, not the legacy Places API. The code calls the new-API initialiser.
+- Enable **Maps SDK for Android**. Map loads on mobile are unlimited free.
+- Attach a billing account. A free trial never auto-charges and never auto-upgrades, so nothing can
+  be billed until Activate is clicked. The trial expires after 90 days and the project is deleted
+  30 days later, taking the key with it.
+- Restrict the key to Android apps (package `com.pat.app.holidayplanner` plus the debug and release
+  SHA-1 fingerprints) and to those two APIs. An Android-restricted key only works from an app
+  signed with that fingerprint, which is why shipping it inside the APK is acceptable.
+- Once the account is paid, cap `AutocompletePlacesRequest per day` and `GetPlaceRequest per day` at
+  300 each. The free allowance is 10,000 a month per API; the defaults are 175,000 and 125,000 a
+  **day**. Quotas cannot be changed while on the free trial.
+- Add a budget alert at a small amount as a canary. Alerts only email; quotas are what stop usage.
+
+Get the debug fingerprint with:
+
+```bash
+.\gradlew.bat :app:signingReport
+```
+
+## Releasing
+
+There is no CI and no git remote: releases are built here and handed to the phones.
+
+1. Create a keystore once, and keep it somewhere safe. Losing it means a new application identity
+   and a manual reinstall on both phones.
+
+   ```bash
+   keytool -genkeypair -v -keystore holidayplanner.jks -alias holidayplanner -keyalg RSA -keysize 4096 -validity 10000
+   ```
+
+2. Point `local.properties` at it:
+
+   ```properties
+   RELEASE_KEYSTORE=D:/path/to/holidayplanner.jks
+   RELEASE_STORE_PASSWORD=...
+   RELEASE_KEY_ALIAS=holidayplanner
+   RELEASE_KEY_PASSWORD=...
+   ```
+
+3. Add that keystore's SHA-1 to the API key restriction, or autocomplete and the map will fail in
+   release builds while working in debug. `.\gradlew.bat :app:signingReport` prints it.
+4. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
+5. Build and install:
+
+   ```bash
+   .\gradlew.bat :app:assembleRelease
+   ```
+
+   The APK lands in `app/build/outputs/apk/release/`. Install it by USB with
+   `adb install -r <apk>`, or send the file to the other phone and open it.
+
+Without a keystore the release build is unsigned and will not install; debug builds are unaffected.
+
+### Auto-updating
+
+The plan called for Firebase App Distribution so both phones update themselves. That needs a
+Firebase project and testers added by email, which is account setup rather than code. The Gradle
+plugin is not wired up, because wiring a distribution pipeline that nothing can run would be dead
+configuration. Add it when the manual APK hand-off becomes annoying.
 
 ## Build
 
 ```bash
 .\gradlew.bat :app:compileDebugKotlin
 .\gradlew.bat :app:testDebugUnitTest
+.\gradlew.bat :app:installDebug
 ```
 
-Detekt runs before every compile (`config/detekt/detekt.yml`).
+Detekt runs before every compile (`config/detekt/detekt.yml`) and the build fails on any finding.
+Fix them rather than suppressing; where a suppression is genuinely right, scope it to the narrowest
+declaration.
+
+`JAVA_HOME` must point at a JDK 21. In PowerShell:
+
+```bash
+$env:JAVA_HOME = "D:\Program Files\Android Studio\jbr"
+```
 
 ## Layout
 

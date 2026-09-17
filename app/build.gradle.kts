@@ -41,8 +41,23 @@ android {
         manifestPlaceholders["MAPS_API_KEY"] = secret("MAPS_API_KEY")
     }
 
+    // Release signing is configured only when a keystore is named in local.properties. Without one
+    // the release build is simply unsigned, so a fresh checkout still builds without secrets.
+    signingConfigs {
+        val keystore = secret("RELEASE_KEYSTORE")
+        if (keystore.isNotBlank()) {
+            create("release") {
+                storeFile = file(keystore)
+                storePassword = secret("RELEASE_STORE_PASSWORD")
+                keyAlias = secret("RELEASE_KEY_ALIAS")
+                keyPassword = secret("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             optimization {
                 enable = false
             }
