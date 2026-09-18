@@ -147,7 +147,6 @@ fun CountryScreen(
 
     if (changingPicture) {
         PictureDialog(
-            current = state.country?.imageUrl.orEmpty(),
             onSave = {
                 viewModel.setImageUrl(it)
                 changingPicture = false

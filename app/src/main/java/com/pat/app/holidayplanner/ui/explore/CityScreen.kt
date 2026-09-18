@@ -166,7 +166,6 @@ fun CityScreen(
 
     if (changingPicture) {
         PictureDialog(
-            current = state.place?.imageUrl.orEmpty(),
             onSave = {
                 viewModel.setImageUrl(it)
                 changingPicture = false

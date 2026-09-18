@@ -17,15 +17,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.domain.pictureUrlOrNull
 
 /**
  * Replaces a picture with one at a pasted address. Saving it blank clears the picture and lets the
  * automatic search have another go, which is the way back after a bad paste.
  */
 @Composable
-fun PictureDialog(current: String, onSave: (String) -> Unit, onDismiss: () -> Unit) {
-    var url by remember { mutableStateOf(current.pictureUrlOrNull().orEmpty()) }
+fun PictureDialog(onSave: (String) -> Unit, onDismiss: () -> Unit) {
+    // Starts empty: a new link is pasted far more often than the old one is edited, and clearing
+    // a long address by hand is the slow part. Saving it empty is what asks for a fresh search.
+    var url by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,

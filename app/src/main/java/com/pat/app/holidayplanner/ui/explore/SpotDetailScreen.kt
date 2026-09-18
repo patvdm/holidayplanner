@@ -248,7 +248,6 @@ private fun SpotDialogs(
 
     if (dialogs.changingPicture) {
         PictureDialog(
-            current = state.spot?.imageUrl.orEmpty(),
             onSave = {
                 viewModel.setImageUrl(it)
                 dialogs.changingPicture = false
