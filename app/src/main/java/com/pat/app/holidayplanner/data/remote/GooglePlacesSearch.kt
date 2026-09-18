@@ -33,7 +33,6 @@ private val PLACE_FIELDS = listOf(
 )
 
 /** Autocomplete collection that returns cities rather than businesses. */
-private const val CITIES_FILTER = "(cities)"
 
 private class GooglePlacesSession(val token: AutocompleteSessionToken) : PlacesSession
 
@@ -48,7 +47,6 @@ class GooglePlacesSearch(private val context: Context) : PlacesSearch {
 
     override suspend fun predictions(
         query: String,
-        mode: PlaceSearchMode,
         session: PlacesSession,
         biasLat: Double?,
         biasLng: Double?,
@@ -58,7 +56,6 @@ class GooglePlacesSearch(private val context: Context) : PlacesSearch {
             .setQuery(query)
             .setSessionToken((session as? GooglePlacesSession)?.token)
             .apply {
-                if (mode == PlaceSearchMode.CITY) setTypesFilter(listOf(CITIES_FILTER))
                 if (biasLat != null && biasLng != null) {
                     setLocationBias(CircularBounds.newInstance(LatLng(biasLat, biasLng), BIAS_RADIUS_M))
                 }

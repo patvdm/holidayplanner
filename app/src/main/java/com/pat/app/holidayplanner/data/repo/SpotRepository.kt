@@ -4,6 +4,7 @@ import com.pat.app.holidayplanner.data.local.HeartEntity
 import com.pat.app.holidayplanner.data.local.HeartRow
 import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.local.SpotEntity
+import com.pat.app.holidayplanner.data.local.SpotListRow
 import com.pat.app.holidayplanner.data.local.SpotPickerRow
 import com.pat.app.holidayplanner.data.local.SpotRow
 import com.pat.app.holidayplanner.data.local.SyncMeta
@@ -42,6 +43,9 @@ class SpotRepository(
     /** Spots with their heart and link counts, as the place screen shows them. */
     fun observeRows(cityId: String, userId: String): Flow<List<SpotRow>> = dao.observeRows(cityId, userId)
 
+    /** Every spot anywhere, for the Spots tab. */
+    fun observeAllRows(): Flow<List<SpotListRow>> = dao.observeAllRows()
+
     /** Every spot with its hierarchy, for the picker. */
     fun observePickerRows(): Flow<List<SpotPickerRow>> = dao.observePickerRows()
 
@@ -71,7 +75,6 @@ class SpotRepository(
             address = address,
             mapsUrl = mapsUrl,
             notes = "",
-            tags = emptyList(),
             status = SpotStatus.UNVISITED,
             sortKey = SortKey.after(dao.lastSortKey(cityId)),
             priority = Priority.NORMAL,
@@ -89,9 +92,6 @@ class SpotRepository(
     suspend fun setMapsUrl(id: String, mapsUrl: String) = edit(id) { it.copy(mapsUrl = mapsUrl.trim()) }
 
     suspend fun setAddress(id: String, address: String) = edit(id) { it.copy(address = address.trim()) }
-
-    suspend fun setTags(id: String, tags: List<String>) =
-        edit(id) { it.copy(tags = tags.map(String::trim).filter(String::isNotEmpty)) }
 
     suspend fun setStatus(id: String, status: SpotStatus) = edit(id) { it.copy(status = status) }
 

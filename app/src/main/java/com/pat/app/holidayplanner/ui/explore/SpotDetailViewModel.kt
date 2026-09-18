@@ -103,10 +103,6 @@ class SpotDetailViewModel(
         viewModelScope.launch { spotRepository.setNotes(spotId, notes) }
     }
 
-    fun setTags(tags: String) {
-        viewModelScope.launch { spotRepository.setTags(spotId, tags.split(',')) }
-    }
-
     fun setStatus(status: SpotStatus) {
         viewModelScope.launch { spotRepository.setStatus(spotId, status) }
     }

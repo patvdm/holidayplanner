@@ -13,7 +13,7 @@ enum class SortMode {
     ALPHABETICAL,
 }
 
-/** The three lists that remember their own sort mode. */
+/** The lists that remember their own sort mode. */
 enum class SortScope(val prefKey: String, val options: List<SortMode>) {
     COUNTRIES(
         prefKey = "countries",
@@ -33,8 +33,15 @@ enum class SortScope(val prefKey: String, val options: List<SortMode>) {
             SortMode.ALPHABETICAL,
         ),
     ),
+
+    /** Every spot across every city. No manual order, because no one order was chosen for it. */
+    ALL_SPOTS(
+        prefKey = "all_spots",
+        options = listOf(SortMode.ALPHABETICAL, SortMode.PRIORITY, SortMode.RECENT),
+    ),
     ;
 
+    /** An unknown or unset value falls back to the scope's first option, which is its natural order. */
     fun parse(value: String?): SortMode =
-        options.firstOrNull { it.name == value } ?: SortMode.MANUAL
+        options.firstOrNull { it.name == value } ?: options.first()
 }

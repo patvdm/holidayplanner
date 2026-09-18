@@ -123,7 +123,6 @@ fun spotToRow(entity: SpotEntity): Map<String, String> = buildRow(entity.meta) {
     put("address", entity.address)
     put("mapsUrl", entity.mapsUrl)
     put("notes", entity.notes)
-    put("tags", entity.tags.joinToString(","))
     put("status", entity.status.name)
     put("sortKey", entity.sortKey)
     put("priority", entity.priority.name)
@@ -142,7 +141,6 @@ fun spotFromRow(row: SheetRow): SpotEntity? {
         address = row.str("address"),
         mapsUrl = row.str("mapsUrl").trim(),
         notes = row.str("notes"),
-        tags = row.list("tags"),
         status = SpotStatus.fromSheet(row.str("status")),
         sortKey = row.str("sortKey").trim(),
         priority = Priority.fromSheet(row.str("priority")),

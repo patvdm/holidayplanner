@@ -13,6 +13,9 @@ data object ExploreRootKey : NavKey
 data object TripsRootKey : NavKey
 
 @Serializable
+data object SpotsRootKey : NavKey
+
+@Serializable
 data class CountryKey(val countryId: String) : NavKey
 
 @Serializable

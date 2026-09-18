@@ -50,6 +50,7 @@ import com.pat.app.holidayplanner.ui.map.MapScope
 import com.pat.app.holidayplanner.ui.map.MapViewModel
 import com.pat.app.holidayplanner.ui.search.SearchViewModel
 import com.pat.app.holidayplanner.ui.settings.SettingsViewModel
+import com.pat.app.holidayplanner.ui.spots.SpotsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -109,6 +110,7 @@ val appModule = module {
     viewModelOf(::TripsViewModel)
     viewModelOf(::SyncRefreshViewModel)
     viewModelOf(::SearchViewModel)
+    viewModelOf(::SpotsViewModel)
 
     // These three are scoped to one row, so the id comes from the screen that opened them.
     viewModel { (countryId: String) -> CountryViewModel(countryId, get(), get(), get()) }

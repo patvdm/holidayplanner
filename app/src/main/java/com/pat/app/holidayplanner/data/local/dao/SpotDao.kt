@@ -5,6 +5,7 @@ import androidx.room.Query
 import androidx.room.Upsert
 import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.local.SpotEntity
+import com.pat.app.holidayplanner.data.local.SpotListRow
 import com.pat.app.holidayplanner.data.local.SpotPickerRow
 import com.pat.app.holidayplanner.data.local.SpotPin
 import com.pat.app.holidayplanner.data.local.SpotRow
@@ -37,6 +38,18 @@ interface SpotDao : SyncDao<SpotEntity> {
         """,
     )
     fun observeRows(cityId: String, userId: String): Flow<List<SpotRow>>
+
+    /** Every spot anywhere, with where it is, for the Spots tab. */
+    @Query(
+        """
+        SELECT s.*, p.name AS cityName, c.id AS countryId, c.name AS countryName, c.isoCode AS isoCode
+        FROM spots s
+        JOIN cities p ON p.id = s.parentCityId
+        JOIN countries c ON c.id = p.countryId
+        WHERE s.deleted = 0 AND p.deleted = 0 AND c.deleted = 0
+        """,
+    )
+    fun observeAllRows(): Flow<List<SpotListRow>>
 
     /** Every spot with the hierarchy above it, for searching and grouping in the picker. */
     @Query(

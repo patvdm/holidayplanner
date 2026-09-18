@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Luggage
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
@@ -23,6 +24,7 @@ import com.pat.app.holidayplanner.domain.SearchHitType
 enum class AppTab(val rootKey: NavKey, @param:StringRes val label: Int, val icon: ImageVector) {
     EXPLORE(ExploreRootKey, R.string.tab_explore, Icons.Outlined.Explore),
     TRIPS(TripsRootKey, R.string.tab_trips, Icons.Outlined.Luggage),
+    SPOTS(SpotsRootKey, R.string.tab_spots, Icons.Outlined.Place),
 }
 
 /**
@@ -109,10 +111,11 @@ class TabNavState(
 fun rememberTabNavState(): TabNavState {
     val explore = rememberNavBackStack(ExploreRootKey)
     val trips = rememberNavBackStack(TripsRootKey)
+    val spots = rememberNavBackStack(SpotsRootKey)
     val tabOrder = rememberSaveable(saver = TabOrderSaver) { mutableStateListOf(AppTab.EXPLORE) }
-    return remember(explore, trips, tabOrder) {
+    return remember(explore, trips, spots, tabOrder) {
         TabNavState(
-            stacks = mapOf(AppTab.EXPLORE to explore, AppTab.TRIPS to trips),
+            stacks = mapOf(AppTab.EXPLORE to explore, AppTab.TRIPS to trips, AppTab.SPOTS to spots),
             tabOrder = tabOrder,
         )
     }

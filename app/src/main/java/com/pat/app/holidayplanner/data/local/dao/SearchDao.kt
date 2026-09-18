@@ -31,7 +31,7 @@ interface SearchDao {
         FROM spots s JOIN cities ci ON ci.id = s.parentCityId
         WHERE s.deleted = 0 AND ci.deleted = 0 AND (
             s.name LIKE :like ESCAPE '\' OR s.notes LIKE :like ESCAPE '\'
-            OR s.tags LIKE :like ESCAPE '\' OR s.address LIKE :like ESCAPE '\'
+            OR s.address LIKE :like ESCAPE '\'
         )
 
         UNION ALL

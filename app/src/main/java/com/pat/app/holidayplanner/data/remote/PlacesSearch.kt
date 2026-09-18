@@ -2,15 +2,6 @@ package com.pat.app.holidayplanner.data.remote
 
 import com.pat.app.holidayplanner.domain.AddressPart
 
-/** What a spot search offers: an exact business, a monument, an address. */
-enum class PlaceSearchMode {
-    /** Anything that can be a spot. */
-    SPOT,
-
-    /** Cities and regions only, for the level above a spot. */
-    CITY,
-}
-
 /** One suggestion while typing. [secondaryText] is the "Den Haag, Netherlands" line under the name. */
 data class PlacePrediction(
     val googlePlaceId: String,
@@ -54,7 +45,6 @@ interface PlacesSearch {
 
     suspend fun predictions(
         query: String,
-        mode: PlaceSearchMode,
         session: PlacesSession,
         biasLat: Double? = null,
         biasLng: Double? = null,

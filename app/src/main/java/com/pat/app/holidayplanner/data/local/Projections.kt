@@ -109,3 +109,12 @@ data class RouteRow(
     val countryId: String,
     val stopCount: Int,
 )
+
+/** A spot as the Spots tab lists it: the spot plus where it is. */
+data class SpotListRow(
+    @Embedded val spot: SpotEntity,
+    val cityName: String,
+    val countryId: String,
+    val countryName: String,
+    val isoCode: String,
+)

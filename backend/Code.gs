@@ -18,7 +18,7 @@ var SCHEMA = {
   Countries: COMMON_COLUMNS.concat(['name', 'isoCode', 'sortKey', 'priority']),
   Cities: COMMON_COLUMNS.concat(['countryId', 'name', 'googlePlaceId', 'lat', 'lng', 'sortKey', 'priority']),
   Spots: COMMON_COLUMNS.concat([
-    'parentCityId', 'name', 'type', 'googlePlaceId', 'lat', 'lng', 'address', 'mapsUrl', 'notes', 'tags', 'status',
+    'parentCityId', 'name', 'type', 'googlePlaceId', 'lat', 'lng', 'address', 'mapsUrl', 'notes', 'status',
     'sortKey', 'priority',
   ]),
   Links: COMMON_COLUMNS.concat(['spotId', 'url', 'source', 'note']),

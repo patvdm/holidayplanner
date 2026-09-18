@@ -38,7 +38,6 @@ class ExploreSortingTest {
             address = "",
             mapsUrl = "",
             notes = "",
-            tags = emptyList(),
             status = SpotStatus.UNVISITED,
             sortKey = sortKey,
             priority = Priority.NORMAL,

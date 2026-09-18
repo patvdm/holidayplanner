@@ -38,7 +38,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
 import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.GENERAL_CITY_NAME
 import com.pat.app.holidayplanner.ui.explore.CountryPickerSheet
@@ -58,8 +57,6 @@ private const val SHEET_SETTLE_MS = 250L
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaceSearchSheet(
-    mode: PlaceSearchMode,
-    countryId: String = "",
     cityId: String = "",
     prefillName: String = "",
     knownLat: Double? = null,
@@ -73,8 +70,7 @@ fun PlaceSearchSheet(
     viewModel: PlaceSearchViewModel = koinViewModel {
         parametersOf(
             PlaceSearchTarget(
-                mode, countryId, cityId, prefillName, knownLat, knownLng, knownAddress, knownMapsUrl,
-                knownCityName, knownIsoCode,
+                cityId, prefillName, knownLat, knownLng, knownAddress, knownMapsUrl, knownCityName, knownIsoCode,
             ),
         )
     },
@@ -99,9 +95,9 @@ fun PlaceSearchSheet(
         ) {
             val pending = state.pending
             if (pending == null) {
-                SearchStep(mode, state, viewModel, focusRequester, onSaved)
+                SearchStep(state, viewModel, focusRequester, onSaved)
             } else {
-                ConfirmStep(mode, state, pending, viewModel, onSaved)
+                ConfirmStep(state, pending, viewModel, onSaved)
             }
         }
     }
@@ -109,14 +105,12 @@ fun PlaceSearchSheet(
 
 @Composable
 private fun SearchStep(
-    mode: PlaceSearchMode,
     state: PlaceSearchUiState,
     viewModel: PlaceSearchViewModel,
     focusRequester: FocusRequester,
     onSaved: (String) -> Unit,
 ) {
-    val title = if (mode == PlaceSearchMode.CITY) R.string.country_add_city else R.string.city_add_spot
-    Text(stringResource(title), style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.place_search_title), style = MaterialTheme.typography.titleMedium)
 
     OutlinedTextField(
         value = state.query,
@@ -207,7 +201,7 @@ private fun HomeFields(state: PlaceSearchUiState, viewModel: PlaceSearchViewMode
         )
     }
 
-    if (state.country != null && state.asksForCity) {
+    if (state.country != null) {
         OutlinedTextField(
             value = state.homeCityName,
             onValueChange = viewModel::onHomeCityNameChange,
@@ -248,7 +242,6 @@ private fun HomeFields(state: PlaceSearchUiState, viewModel: PlaceSearchViewMode
 /** Shows where the pick will be filed, with a chance to correct the city before saving. */
 @Composable
 private fun ConfirmStep(
-    mode: PlaceSearchMode,
     state: PlaceSearchUiState,
     pending: PendingPick,
     viewModel: PlaceSearchViewModel,
@@ -267,7 +260,7 @@ private fun ConfirmStep(
     if (pending.hierarchy == null && state.needsHome) {
         // Google gave no usable address, so the spot still needs somewhere to live.
         HomeFields(state, viewModel)
-    } else if (mode == PlaceSearchMode.SPOT) {
+    } else {
         Text(
             text = stringResource(R.string.place_search_filed_under, pending.breadcrumb),
             style = MaterialTheme.typography.bodyMedium,

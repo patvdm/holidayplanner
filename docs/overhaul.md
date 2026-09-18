@@ -72,6 +72,15 @@ Old trip items of removed types are not migrated. Pat's existing trip data is te
   `Code.gs` schema, tests, and only as much UI as compiling needs. Done 2026-09-18; `setup()`
   needs a run. A trip's dates at creation wait for O4 with the rest of the trip screen.
 - **O2 Spots and lists.** The tag chips, notes in rows, tags UI removed, every manual add
-  removed, the Spots tab.
+  removed, the Spots tab. Done 2026-09-18. The place search sheet now only ever adds a spot; its
+  city mode went with the manual adds. `Code.gs` dropped the Spots `tags` column (harmless to
+  leave in the sheet).
 - **O3 Routes.** The Routes tab, the create-route funnel from all three entry points, completed.
 - **O4 Trips.** Country-based creation, days, the three item kinds, headers and tags on rows.
+
+## Later: pictures and polish
+
+Asked for on 2026-09-18, after O2, to follow the four milestones above. Spots, cities and
+countries get a picture, fetched automatically, shown on their list rows, replaceable by hand.
+Unrelated to a spot's saved links. Along with it, a general pass to make the app better looking.
+Not designed yet; the source of the pictures and how they sync between the two phones are open.

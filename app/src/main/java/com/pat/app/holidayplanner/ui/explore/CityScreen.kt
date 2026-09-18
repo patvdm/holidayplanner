@@ -11,14 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
@@ -43,17 +42,16 @@ import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
-import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import com.pat.app.holidayplanner.ui.components.HeartCount
-import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.SortMenu
 import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.TypeBadge
+import com.pat.app.holidayplanner.ui.components.firstLine
 import com.pat.app.holidayplanner.ui.components.label
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import org.koin.compose.viewmodel.koinViewModel
@@ -70,7 +68,6 @@ fun CityScreen(
     viewModel: CityViewModel = koinViewModel { parametersOf(cityId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var adding by remember { mutableStateOf(false) }
     var renamingPlace by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     val putKeyboardAway = rememberKeyboardDismiss()
@@ -125,11 +122,6 @@ fun CityScreen(
                 },
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { adding = true }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.city_add_spot))
-            }
-        },
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
             FilterRow(state, viewModel)
@@ -163,15 +155,6 @@ fun CityScreen(
                 }
             }
         }
-    }
-
-    if (adding) {
-        PlaceSearchSheet(
-            mode = PlaceSearchMode.SPOT,
-            cityId = cityId,
-            onDismiss = { adding = false },
-            onSaved = { adding = false },
-        )
     }
 
     if (renamingPlace) {
@@ -231,13 +214,6 @@ private fun FilterRow(state: CityUiState, viewModel: CityViewModel) {
                 label = { Text(stringResource(type.label())) },
             )
         }
-        state.tags.forEach { tag ->
-            FilterChip(
-                selected = state.filters.tag == tag,
-                onClick = { viewModel.setTagFilter(tag.takeIf { it != state.filters.tag }) },
-                label = { Text(tag) },
-            )
-        }
         if (state.filters.any) {
             FilterChip(
                 selected = false,
@@ -284,6 +260,15 @@ private fun SpotRowItem(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                }
+                // The reason a place was saved is usually the first thing written about it.
+                row.spot.notes.firstLine()?.let { note ->
+                    Text(
+                        text = note,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
             IconButton(onClick = onHeart) {

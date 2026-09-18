@@ -200,7 +200,6 @@ fun SpotDetailScreen(
             }
 
             NotesField(initial = state.spot?.notes.orEmpty(), onSave = viewModel::setNotes)
-            TagsField(initial = state.spot?.tags.orEmpty().joinToString(", "), onSave = viewModel::setTags)
 
             HorizontalDivider()
             LinksSection(
@@ -331,18 +330,6 @@ private fun NotesField(initial: String, onSave: (String) -> Unit) {
     SaveIfChanged(value, initial, onSave)
 }
 
-@Composable
-private fun TagsField(initial: String, onSave: (String) -> Unit) {
-    var value by remember(initial) { mutableStateOf(initial) }
-    OutlinedTextField(
-        value = value,
-        onValueChange = { value = it },
-        label = { Text(stringResource(R.string.spot_tags)) },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    SaveIfChanged(value, initial, onSave)
-}
 
 /** Saves a text field a moment after typing stops, which keeps one edit out of the sync queue. */
 @Composable

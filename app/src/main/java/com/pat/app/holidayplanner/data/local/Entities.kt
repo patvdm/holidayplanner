@@ -67,7 +67,6 @@ data class SpotEntity(
     /** The one Google Maps link for this spot. A spot is a place, and a place is one link. */
     val mapsUrl: String,
     val notes: String,
-    val tags: List<String>,
     val status: SpotStatus,
     val sortKey: String,
     val priority: Priority,

@@ -23,6 +23,7 @@ import com.pat.app.holidayplanner.ui.map.MapScope
 import com.pat.app.holidayplanner.ui.map.MapScreen
 import com.pat.app.holidayplanner.ui.search.SearchScreen
 import com.pat.app.holidayplanner.ui.settings.SettingsScreen
+import com.pat.app.holidayplanner.ui.spots.SpotsScreen
 import com.pat.app.holidayplanner.ui.trips.RouteBuilderScreen
 import com.pat.app.holidayplanner.ui.trips.TripEditorScreen
 import com.pat.app.holidayplanner.ui.trips.TripItemEditorScreen
@@ -92,6 +93,13 @@ fun AppNavigation() {
                         spotId = key.spotId,
                         onBack = nav::back,
                         onOpenMap = { nav.push(MapKey(spotId = key.spotId)) },
+                    )
+                }
+                entry<SpotsRootKey> {
+                    SpotsScreen(
+                        onSearch = { nav.push(SearchKey) },
+                        onSettings = { nav.push(SettingsKey) },
+                        onOpenSpot = { nav.push(SpotKey(it)) },
                     )
                 }
                 entry<TripsRootKey> {

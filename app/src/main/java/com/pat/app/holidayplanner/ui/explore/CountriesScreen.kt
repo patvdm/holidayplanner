@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Search
@@ -18,14 +17,12 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,10 +40,8 @@ import com.pat.app.holidayplanner.data.local.CountryRow
 import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
-import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
-import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
 import com.pat.app.holidayplanner.ui.components.SyncStatusIcon
@@ -65,8 +60,6 @@ fun CountriesScreen(
     viewModel: CountriesViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var showPicker by remember { mutableStateOf(false) }
-    var addingPlace by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<CountryRow?>(null) }
 
     Scaffold(
@@ -90,11 +83,6 @@ fun CountriesScreen(
                 },
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { addingPlace = true }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.countries_add_place))
-            }
-        },
     ) { padding ->
         SyncRefreshBox(
             modifier = Modifier
@@ -105,7 +93,6 @@ fun CountriesScreen(
                 if (state.rows.isEmpty()) {
                     PullableEmptyState(modifier = Modifier.weight(1f)) {
                         EmptyListMessage(stringResource(R.string.countries_empty))
-                        AddCountryButton { showPicker = true }
                     }
                 } else {
                     ReorderableColumn(
@@ -115,7 +102,6 @@ fun CountriesScreen(
                         reorderable = true,
                         onMoved = viewModel::move,
                         modifier = Modifier.weight(1f),
-                        footer = { AddCountryButton { showPicker = true } },
                     ) { row, handle ->
                         CountryRowItem(
                             row = row,
@@ -129,25 +115,6 @@ fun CountriesScreen(
                 }
             }
         }
-    }
-
-    if (addingPlace) {
-        PlaceSearchSheet(
-            mode = PlaceSearchMode.SPOT,
-            onDismiss = { addingPlace = false },
-            onSaved = { addingPlace = false },
-        )
-    }
-
-    if (showPicker) {
-        CountryPickerSheet(
-            options = viewModel.availableCountries(state.rows),
-            onPick = {
-                showPicker = false
-                viewModel.addCountry(it)
-            },
-            onDismiss = { showPicker = false },
-        )
     }
 
     renaming?.let { row ->
@@ -282,13 +249,3 @@ fun Priority.label(): Int = when (this) {
     Priority.NORMAL -> R.string.priority_normal
 }
 
-/**
- * Adding a country with nothing in it, which is the rarer case now that adding a place brings its
- * country along. It sits under the list rather than on the button, where the common action lives.
- */
-@Composable
-private fun AddCountryButton(onClick: () -> Unit) {
-    TextButton(onClick = onClick, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-        Text(stringResource(R.string.countries_add_country))
-    }
-}

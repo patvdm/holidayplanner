@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,10 +33,8 @@ import com.pat.app.holidayplanner.data.local.CityRow
 import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SortScope
-import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
-import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.SortMenu
@@ -56,7 +52,6 @@ fun CountryScreen(
     viewModel: CountryViewModel = koinViewModel { parametersOf(countryId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var adding by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<CityRow?>(null) }
 
     Scaffold(
@@ -88,11 +83,6 @@ fun CountryScreen(
                 },
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { adding = true }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.country_add_city))
-            }
-        },
     ) { padding ->
         if (state.rows.isEmpty()) {
             EmptyListMessage(stringResource(R.string.country_empty), Modifier.padding(padding))
@@ -117,15 +107,6 @@ fun CountryScreen(
                 )
             }
         }
-    }
-
-    if (adding) {
-        PlaceSearchSheet(
-            mode = PlaceSearchMode.CITY,
-            countryId = countryId,
-            onDismiss = { adding = false },
-            onSaved = { adding = false },
-        )
     }
 
     renaming?.let { row ->

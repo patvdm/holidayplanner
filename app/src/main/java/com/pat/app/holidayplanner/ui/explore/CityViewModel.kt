@@ -35,21 +35,18 @@ data class SpotFilters(
     val status: SpotStatus? = null,
     val priority: Priority? = null,
     val type: SpotType? = null,
-    val tag: String? = null,
 ) {
-    val any: Boolean get() = status != null || priority != null || type != null || tag != null
+    val any: Boolean get() = status != null || priority != null || type != null
 
     fun matches(row: SpotRow): Boolean =
         (status == null || row.spot.status == status) &&
             (priority == null || row.spot.priority == priority) &&
-            (type == null || row.spot.type == type) &&
-            (tag == null || tag in row.spot.tags)
+            (type == null || row.spot.type == type)
 }
 
 data class CityUiState(
     val place: CityEntity? = null,
     val rows: List<SpotRow> = emptyList(),
-    val tags: List<String> = emptyList(),
     val filters: SpotFilters = SpotFilters(),
     val sortMode: SortMode = SortMode.MANUAL,
     val userCount: Int = 0,
@@ -95,7 +92,6 @@ class CityViewModel(
         CityUiState(
             place = place,
             rows = list.rows.filter(list.filters::matches).sortedSpots(list.sortMode),
-            tags = list.rows.flatMap { it.spot.tags }.distinct().sorted(),
             filters = list.filters,
             sortMode = list.sortMode,
             userCount = userCount,
@@ -108,8 +104,6 @@ class CityViewModel(
     fun setPriorityFilter(priority: Priority?) = filters.update { it.copy(priority = priority) }
 
     fun setTypeFilter(type: SpotType?) = filters.update { it.copy(type = type) }
-
-    fun setTagFilter(tag: String?) = filters.update { it.copy(tag = tag) }
 
     fun clearFilters() {
         filters.value = SpotFilters()

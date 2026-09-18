@@ -77,7 +77,6 @@ class SheetMappingTest {
             address = "Plein 29, Den Haag",
             mapsUrl = "https://maps.app.goo.gl/AbCdEfGh",
             notes = "Book ahead",
-            tags = listOf("museum", "indoor"),
             status = SpotStatus.VISITED,
             sortKey = "G",
             priority = Priority.HIGH,

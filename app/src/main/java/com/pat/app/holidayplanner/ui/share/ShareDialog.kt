@@ -20,7 +20,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
 import org.koin.compose.viewmodel.koinViewModel
@@ -54,7 +53,6 @@ fun ShareDialog(
 
         // A Maps link goes straight to creating a spot; no link row is written for it.
         is ShareState.CreatingSpot -> PlaceSearchSheet(
-            mode = PlaceSearchMode.SPOT,
             prefillName = current.spot.name,
             knownLat = current.spot.lat,
             knownLng = current.spot.lng,
@@ -102,7 +100,6 @@ fun ShareDialog(
         // The picker opens over the app that shared the link, so nothing takes you away from it.
         is ShareState.Filing -> if (creatingSpot) {
             PlaceSearchSheet(
-                mode = PlaceSearchMode.SPOT,
                 onDismiss = { creatingSpot = false },
                 onSaved = { spotId ->
                     creatingSpot = false

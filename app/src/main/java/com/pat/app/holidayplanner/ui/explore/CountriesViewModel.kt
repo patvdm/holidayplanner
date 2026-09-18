@@ -5,8 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.CountryRow
 import com.pat.app.holidayplanner.data.repo.CountryRepository
 import com.pat.app.holidayplanner.data.repo.DeleteImpact
-import com.pat.app.holidayplanner.domain.CountryCatalog
-import com.pat.app.holidayplanner.domain.CountryOption
 import com.pat.app.holidayplanner.domain.Priority
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,16 +36,6 @@ class CountriesViewModel(
     ) { rows, pending ->
         CountriesUiState(rows = rows, pendingDelete = pending)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CountriesUiState())
-
-    /** The countries not added yet, which are the only ones worth offering. */
-    fun availableCountries(rows: List<CountryRow>): List<CountryOption> {
-        val taken = rows.map { it.country.isoCode.uppercase() }.toSet()
-        return CountryCatalog.all().filterNot { it.isoCode in taken }
-    }
-
-    fun addCountry(option: CountryOption) {
-        viewModelScope.launch { repository.add(name = option.name, isoCode = option.isoCode) }
-    }
 
     fun setPriority(id: String, priority: Priority) {
         viewModelScope.launch { repository.setPriority(id, priority) }
