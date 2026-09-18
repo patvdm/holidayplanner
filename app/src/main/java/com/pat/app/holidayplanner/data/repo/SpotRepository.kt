@@ -78,6 +78,7 @@ class SpotRepository(
             status = SpotStatus.UNVISITED,
             sortKey = SortKey.after(dao.lastSortKey(cityId)),
             priority = Priority.NORMAL,
+            imageUrl = "",
         )
         dao.upsert(listOf(spot))
         writer.requestSync()
@@ -99,6 +100,11 @@ class SpotRepository(
     suspend fun setType(id: String, type: SpotType) = edit(id) { it.copy(type = type) }
 
     suspend fun setPriority(id: String, priority: Priority) = edit(id) { it.copy(priority = priority) }
+
+    /** Blank asks for a picture to be found again; anything else is kept as given. */
+    suspend fun setImageUrl(id: String, url: String) = edit(id) { it.copy(imageUrl = url.trim()) }
+
+    fun observeWithoutPicture(): Flow<List<SpotListRow>> = dao.observeWithoutPicture()
 
     suspend fun move(id: String, previousKey: String?, nextKey: String?) =
         edit(id) { it.copy(sortKey = SortKey.between(previousKey, nextKey)) }

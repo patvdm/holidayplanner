@@ -14,7 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,13 +43,14 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * One trip item. Which fields appear depends on what it is: a flight has two airports and two
- * clocks, a stay has an address and a check-out, and an activity may simply point at a spot.
+ * clocks, and a spot points at the spot it is, whose own screen is a tap away.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripItemEditorScreen(
     itemId: String,
     onBack: () -> Unit,
+    onOpenSpot: (String) -> Unit,
     viewModel: TripItemViewModel = koinViewModel { parametersOf(itemId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -102,6 +103,11 @@ fun TripItemEditorScreen(
             }
 
             if (item.type == TripItemType.SPOT) {
+                if (item.spotId.isNotBlank()) {
+                    FilledTonalButton(onClick = { onOpenSpot(item.spotId) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.item_open_spot))
+                    }
+                }
                 OutlinedButton(onClick = { pickingSpot = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         if (item.spotId.isBlank()) {

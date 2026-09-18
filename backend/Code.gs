@@ -15,11 +15,13 @@ var COMMON_COLUMNS = ['id', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy', 
 
 var SCHEMA = {
   Users: COMMON_COLUMNS.concat(['name']),
-  Countries: COMMON_COLUMNS.concat(['name', 'isoCode', 'sortKey', 'priority']),
-  Cities: COMMON_COLUMNS.concat(['countryId', 'name', 'googlePlaceId', 'lat', 'lng', 'sortKey', 'priority']),
+  Countries: COMMON_COLUMNS.concat(['name', 'isoCode', 'sortKey', 'priority', 'imageUrl']),
+  Cities: COMMON_COLUMNS.concat([
+    'countryId', 'name', 'googlePlaceId', 'lat', 'lng', 'sortKey', 'priority', 'imageUrl',
+  ]),
   Spots: COMMON_COLUMNS.concat([
     'parentCityId', 'name', 'type', 'googlePlaceId', 'lat', 'lng', 'address', 'mapsUrl', 'notes', 'status',
-    'sortKey', 'priority',
+    'sortKey', 'priority', 'imageUrl',
   ]),
   Links: COMMON_COLUMNS.concat(['spotId', 'url', 'source', 'note']),
   Hearts: COMMON_COLUMNS.concat(['spotId', 'userId']),

@@ -46,6 +46,11 @@ class CountryViewModel(
         CountryUiState(country = country, rows = rows.sortedPlaces(mode), sortMode = mode, pendingDelete = pending)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CountryUiState())
 
+    /** Blank lets the automatic search have another go. */
+    fun setImageUrl(url: String) {
+        viewModelScope.launch { countryRepository.setImageUrl(countryId, url) }
+    }
+
     fun setSortMode(mode: SortMode) {
         viewModelScope.launch { prefs.setSortMode(SortScope.CITIES, mode) }
     }

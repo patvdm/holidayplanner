@@ -45,7 +45,14 @@ class SheetMappingTest {
 
     @Test
     fun `country round trips`() {
-        val entity = CountryEntity(meta, name = "Netherlands", isoCode = "NL", sortKey = "V", priority = Priority.HIGH)
+        val entity = CountryEntity(
+            meta = meta,
+            name = "Netherlands",
+            isoCode = "NL",
+            sortKey = "V",
+            priority = Priority.HIGH,
+            imageUrl = "https://upload.wikimedia.org/nl.jpg",
+        )
         assertEquals(entity, countryFromRow(SheetRow(countryToRow(entity))))
     }
 
@@ -60,6 +67,7 @@ class SheetMappingTest {
             lng = 4.3007,
             sortKey = "V",
             priority = Priority.NORMAL,
+            imageUrl = "",
         )
         assertEquals(entity, cityFromRow(SheetRow(cityToRow(entity))))
     }
@@ -80,6 +88,7 @@ class SheetMappingTest {
             status = SpotStatus.VISITED,
             sortKey = "G",
             priority = Priority.HIGH,
+            imageUrl = "https://upload.wikimedia.org/mauritshuis.jpg",
         )
         assertEquals(entity, spotFromRow(SheetRow(spotToRow(entity))))
     }

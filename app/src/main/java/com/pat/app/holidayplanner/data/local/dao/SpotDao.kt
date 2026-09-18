@@ -55,7 +55,7 @@ interface SpotDao : SyncDao<SpotEntity> {
     @Query(
         """
         SELECT s.id AS spotId, s.name AS spotName, p.id AS cityId, p.name AS cityName,
-            c.name AS countryName, c.isoCode AS isoCode
+            c.id AS countryId, c.name AS countryName, c.isoCode AS isoCode
         FROM spots s
         JOIN cities p ON p.id = s.parentCityId
         JOIN countries c ON c.id = p.countryId
@@ -76,6 +76,19 @@ interface SpotDao : SyncDao<SpotEntity> {
         """,
     )
     fun observeContext(spotId: String): Flow<SpotContext?>
+
+    /** Spots nobody has found a picture for yet, with where they are so the search can say so. */
+    @Query(
+        """
+        SELECT s.*, p.name AS cityName, c.id AS countryId, c.name AS countryName, c.isoCode AS isoCode
+        FROM spots s
+        JOIN cities p ON p.id = s.parentCityId
+        JOIN countries c ON c.id = p.countryId
+        WHERE s.deleted = 0 AND p.deleted = 0 AND c.deleted = 0 AND s.imageUrl = ''
+        ORDER BY s.createdAt DESC
+        """,
+    )
+    fun observeWithoutPicture(): Flow<List<SpotListRow>>
 
     /** Spots that carry a Maps link but no coordinates, which the map cannot plot. */
     @Query(

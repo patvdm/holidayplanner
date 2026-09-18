@@ -13,9 +13,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Flight
+import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,26 +38,52 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.data.local.RouteRow
+import com.pat.app.holidayplanner.data.local.TripItemRow
 import com.pat.app.holidayplanner.domain.Costs
 import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.domain.TripItemType
+import com.pat.app.holidayplanner.ui.components.PickFromListDialog
+import com.pat.app.holidayplanner.ui.components.PriorityBadge
+import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
+import com.pat.app.holidayplanner.ui.components.StatusChip
+import com.pat.app.holidayplanner.ui.components.Thumbnail
+import com.pat.app.holidayplanner.ui.components.TypeBadge
+import com.pat.app.holidayplanner.ui.components.WalkedBadge
+import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
+import java.time.LocalDate
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+/** What is being added to which day, while the person is still choosing. */
+private sealed interface Adding {
+    data class Kind(val date: LocalDate) : Adding
+    data class Spot(val date: LocalDate) : Adding
+    data class Route(val date: LocalDate) : Adding
+    data class RouteCity(val date: LocalDate) : Adding
+}
+
+/**
+ * A trip, day by day. Each day is a heading with a plus beside it, and what is under the heading
+ * is what happens that day: flights, spots and routes, in that order of importance to the eye.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripScreen(
     tripId: String,
     onBack: () -> Unit,
     onOpenItem: (String) -> Unit,
+    onOpenRoute: (String) -> Unit,
     onEditTrip: () -> Unit,
     viewModel: TripViewModel = koinViewModel { parametersOf(tripId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var addingItem by remember { mutableStateOf(false) }
+    var adding by remember { mutableStateOf<Adding?>(null) }
 
     Scaffold(
         topBar = {
@@ -72,55 +104,52 @@ fun TripScreen(
                 },
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { addingItem = true }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.trip_add_item))
-            }
-        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            if (state.timeline.days.isEmpty() && state.timeline.undated.isEmpty()) {
-                item {
+            if (!state.hasDates) {
+                item(key = "no-dates") { NoDatesCard(onEditTrip) }
+            } else if (state.isEmpty) {
+                item(key = "empty") {
                     Text(
                         text = stringResource(R.string.trip_empty),
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(24.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     )
                 }
             }
 
-            state.timeline.days.forEach { day ->
+            state.plan.days.forEach { day ->
                 item(key = "day-${day.date}") {
-                    Text(
-                        text = LocalTimes.formatDay(day.date),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
+                    DayHeader(date = day.date, onAdd = { adding = Adding.Kind(day.date) })
                 }
-                items(day.entries, key = { "${day.date}-${it.item.meta.id}-${it.role}" }) { entry ->
-                    ItemCard(entry = entry, onClick = { onOpenItem(entry.item.meta.id) })
+                items(day.entries, key = { it.item.meta.id }) { row ->
+                    TripItemCard(
+                        row = row,
+                        onClick = { open(row, onOpenItem, onOpenRoute) },
+                        onRemove = { viewModel.deleteItem(row.item.meta.id) },
+                    )
                 }
             }
 
-            if (state.timeline.undated.isNotEmpty()) {
+            if (state.plan.undated.isNotEmpty()) {
                 item(key = "undated") {
                     Text(
                         text = stringResource(R.string.trip_undated),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     )
                 }
-                items(state.timeline.undated, key = { "undated-${it.meta.id}" }) { item ->
-                    ItemCard(
-                        entry = TimelineEntry(item, ItemRole.START),
-                        onClick = { onOpenItem(item.meta.id) },
+                items(state.plan.undated, key = { "undated-${it.item.meta.id}" }) { row ->
+                    TripItemCard(
+                        row = row,
+                        onClick = { open(row, onOpenItem, onOpenRoute) },
+                        onRemove = { viewModel.deleteItem(row.item.meta.id) },
                     )
                 }
             }
@@ -131,78 +160,228 @@ fun TripScreen(
         }
     }
 
-    if (addingItem) {
-        ItemTypeDialog(
+    AddingDialogs(
+        adding = adding,
+        state = state,
+        viewModel = viewModel,
+        onChange = { adding = it },
+        onOpenItem = onOpenItem,
+        onOpenRoute = onOpenRoute,
+    )
+}
+
+/** A route opens its own screen; anything else opens the item, where its details live. */
+private fun open(row: TripItemRow, onOpenItem: (String) -> Unit, onOpenRoute: (String) -> Unit) {
+    if (row.item.type == TripItemType.ROUTE && row.item.routeId.isNotBlank()) {
+        onOpenRoute(row.item.routeId)
+    } else {
+        onOpenItem(row.item.meta.id)
+    }
+}
+
+@Composable
+private fun AddingDialogs(
+    adding: Adding?,
+    state: TripUiState,
+    viewModel: TripViewModel,
+    onChange: (Adding?) -> Unit,
+    onOpenItem: (String) -> Unit,
+    onOpenRoute: (String) -> Unit,
+) {
+    val countryId = state.trip?.countryId.orEmpty()
+    when (adding) {
+        null -> Unit
+
+        is Adding.Kind -> KindDialog(
+            date = adding.date,
             onPick = { type ->
-                addingItem = false
-                viewModel.addItem(type, onOpenItem)
+                when (type) {
+                    TripItemType.FLIGHT -> {
+                        onChange(null)
+                        viewModel.addFlight(adding.date, onOpenItem)
+                    }
+                    TripItemType.SPOT -> onChange(Adding.Spot(adding.date))
+                    TripItemType.ROUTE -> onChange(Adding.Route(adding.date))
+                }
             },
-            onDismiss = { addingItem = false },
+            onDismiss = { onChange(null) },
+        )
+
+        is Adding.Spot -> SpotPickerSheet(
+            filter = { it.countryId == countryId },
+            onPick = { spot ->
+                onChange(null)
+                viewModel.addSpot(adding.date, spot)
+            },
+            onDismiss = { onChange(null) },
+        )
+
+        is Adding.Route -> RoutePickerDialog(
+            state = state,
+            onPick = { route ->
+                onChange(null)
+                viewModel.addRoute(adding.date, route)
+            },
+            onNew = { onChange(Adding.RouteCity(adding.date)) },
+            onDismiss = { onChange(null) },
+        )
+
+        is Adding.RouteCity -> PickFromListDialog(
+            title = stringResource(R.string.route_pick_city),
+            options = state.cities.map { it.cityId to it.cityName },
+            onPick = { cityId ->
+                onChange(null)
+                state.cities.firstOrNull { it.cityId == cityId }?.let { city ->
+                    viewModel.addNewRoute(adding.date, city, onOpenRoute)
+                }
+            },
+            onDismiss = { onChange(null) },
         )
     }
 }
 
 @Composable
-private fun ItemCard(entry: TimelineEntry, onClick: () -> Unit) {
-    val item = entry.item
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                text = timeLabel(entry),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun NoDatesCard(onEditTrip: () -> Unit) {
+    Card(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.trip_no_dates_yet), style = MaterialTheme.typography.bodyMedium)
+            FilledTonalButton(onClick = onEditTrip) { Text(stringResource(R.string.trip_set_dates)) }
+        }
+    }
+}
+
+@Composable
+private fun DayHeader(date: LocalDate, onAdd: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 4.dp, top = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = LocalTimes.formatDay(date),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = onAdd) {
+            Icon(
+                Icons.Filled.Add,
+                contentDescription = stringResource(R.string.trip_add_to_day, LocalTimes.formatDay(date)),
+                tint = MaterialTheme.colorScheme.primary,
             )
-            Column(modifier = Modifier.weight(1f)) {
+        }
+    }
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+}
+
+/** One thing on a day. A flight and a route say what they are; a spot shows its picture and tags. */
+@Composable
+private fun TripItemCard(row: TripItemRow, onClick: () -> Unit, onRemove: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(start = 16.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        when (row.item.type) {
+            TripItemType.SPOT -> Thumbnail(row.spotImageUrl.orEmpty(), size = 48.dp)
+            TripItemType.FLIGHT -> KindIcon(Icons.Outlined.Flight)
+            TripItemType.ROUTE -> KindIcon(Icons.Outlined.Route)
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (row.item.type != TripItemType.SPOT) {
                 Text(
-                    text = item.title.ifBlank { stringResource(item.type.label()) },
-                    style = MaterialTheme.typography.titleMedium,
+                    text = stringResource(row.item.type.label()).uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary,
                 )
-                subtitle(entry)?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            }
+            Text(
+                text = row.title.ifBlank { stringResource(row.item.type.label()) },
+                style = MaterialTheme.typography.titleMedium,
+            )
+            subtitle(row)?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                row.spotPriority?.let { PriorityBadge(it) }
+                row.spotStatus?.let { StatusChip(it) }
+                row.spotType?.let { TypeBadge(it) }
+                row.routeCompleted?.let { WalkedBadge(it) }
             }
         }
-        HorizontalDivider()
+        RemoveMenu(onRemove)
     }
 }
 
 @Composable
-private fun timeLabel(entry: TimelineEntry): String {
-    val local = if (entry.role == ItemRole.END) entry.item.endLocal else entry.item.startLocal
-    return LocalTimes.timeOfDay(local).ifBlank { "—" }
-}
-
-/** What a card says under its title depends on why it is on this day. */
-@Composable
-private fun subtitle(entry: TimelineEntry): String? {
-    val item = entry.item
-    if (entry.role == ItemRole.END) return stringResource(R.string.trip_check_out)
-
-    val route = listOf(item.origin, item.destination).filter { it.isNotBlank() }
-    val elapsed = LocalTimes.elapsed(item.startLocal, item.startTimeZone, item.endLocal, item.endTimeZone)
-    val zones = if (LocalTimes.differentZones(item.startTimeZone, item.endTimeZone)) {
-        "${LocalTimes.zoneLabel(item.startTimeZone)} → ${LocalTimes.zoneLabel(item.endTimeZone)}"
-    } else {
-        null
-    }
-
-    val parts = listOfNotNull(
-        route.takeIf { it.size == 2 }?.joinToString(" → "),
-        zones,
-        elapsed?.let(LocalTimes::formatDuration),
+private fun KindIcon(icon: ImageVector) {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.tertiary,
+        modifier = Modifier.padding(horizontal = 12.dp),
     )
-    return parts.joinToString(" · ").takeIf { it.isNotBlank() }
+}
+
+@Composable
+private fun RemoveMenu(onRemove: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val putKeyboardAway = rememberKeyboardDismiss()
+    IconButton(
+        onClick = {
+            putKeyboardAway()
+            expanded = true
+        },
+    ) {
+        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
+    }
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = {
+            expanded = false
+            putKeyboardAway()
+        },
+        properties = PopupProperties(focusable = false),
+    ) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.trip_remove_item)) },
+            onClick = {
+                expanded = false
+                onRemove()
+            },
+        )
+    }
+}
+
+/** What a row says under its name: a flight its legs and length, a route its city and stops. */
+@Composable
+private fun subtitle(row: TripItemRow): String? {
+    val item = row.item
+    return when (item.type) {
+        TripItemType.FLIGHT -> {
+            val legs = listOf(item.origin, item.destination).filter { it.isNotBlank() }
+            val elapsed = LocalTimes.elapsed(item.startLocal, item.startTimeZone, item.endLocal, item.endTimeZone)
+            listOfNotNull(
+                LocalTimes.timeOfDay(item.startLocal).takeIf { it.isNotBlank() },
+                legs.takeIf { it.size == 2 }?.joinToString(" \u2192 "),
+                elapsed?.let(LocalTimes::formatDuration),
+            ).joinToString(" \u00b7 ").takeIf { it.isNotBlank() }
+        }
+
+        TripItemType.ROUTE -> row.routeCityName?.let {
+            stringResource(R.string.trip_route_stops, it, row.routeStopCount)
+        }
+
+        TripItemType.SPOT -> LocalTimes.timeOfDay(item.startLocal).takeIf { it.isNotBlank() }
+    }
 }
 
 @Composable
@@ -227,17 +406,14 @@ private fun TotalsSection(state: TripUiState) {
     }
 }
 
-/** A route is put on a day from the Routes side of the app, which arrives with O4. */
-private val OFFERED_ITEM_TYPES = listOf(TripItemType.FLIGHT, TripItemType.SPOT)
-
 @Composable
-private fun ItemTypeDialog(onPick: (TripItemType) -> Unit, onDismiss: () -> Unit) {
+private fun KindDialog(date: LocalDate, onPick: (TripItemType) -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.trip_add_item)) },
+        title = { Text(stringResource(R.string.trip_add_to_day, LocalTimes.formatDay(date))) },
         text = {
             Column {
-                OFFERED_ITEM_TYPES.forEach { type ->
+                TripItemType.entries.forEach { type ->
                     Text(
                         text = stringResource(type.label()),
                         style = MaterialTheme.typography.bodyLarge,
@@ -246,6 +422,62 @@ private fun ItemTypeDialog(onPick: (TripItemType) -> Unit, onDismiss: () -> Unit
                             .clickable { onPick(type) }
                             .padding(vertical = 12.dp),
                     )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+/** The routes through the trip's country, and the way to start one that is not there yet. */
+@Composable
+private fun RoutePickerDialog(
+    state: TripUiState,
+    onPick: (RouteRow) -> Unit,
+    onNew: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.trip_pick_route)) },
+        text = {
+            Column {
+                state.routes.forEach { route ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPick(route) }
+                            .padding(vertical = 10.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = route.route.name.ifBlank { route.cityName },
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            WalkedBadge(route.route.completed)
+                        }
+                        Text(
+                            text = stringResource(R.string.trip_route_stops, route.cityName, route.stopCount),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                FilledTonalButton(
+                    onClick = onNew,
+                    enabled = state.cities.isNotEmpty(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Text(stringResource(R.string.trip_new_route), modifier = Modifier.padding(start = 8.dp))
                 }
             }
         },

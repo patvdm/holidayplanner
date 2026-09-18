@@ -41,6 +41,16 @@ interface CityDao : SyncDao<CityEntity> {
     )
     fun observeOptions(): Flow<List<CityOption>>
 
+    /** Cities nobody has found a picture for yet. */
+    @Query(
+        """
+        SELECT p.id AS cityId, p.name AS cityName, c.id AS countryId, c.name AS countryName
+        FROM cities p JOIN countries c ON c.id = p.countryId
+        WHERE p.deleted = 0 AND c.deleted = 0 AND p.imageUrl = ''
+        """,
+    )
+    fun observeWithoutPicture(): Flow<List<CityOption>>
+
     @Query(
         """
         SELECT sortKey FROM cities

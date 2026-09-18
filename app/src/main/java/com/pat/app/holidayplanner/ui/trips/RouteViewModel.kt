@@ -6,6 +6,7 @@ import com.pat.app.holidayplanner.data.local.RouteEntity
 import com.pat.app.holidayplanner.data.local.RouteStopRow
 import com.pat.app.holidayplanner.data.local.SpotEntity
 import com.pat.app.holidayplanner.data.location.DeviceLocation
+import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.GeoPoint
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -47,6 +49,7 @@ data class RouteCandidate(
 
 data class RouteUiState(
     val route: RouteEntity? = null,
+    val cityName: String = "",
     val candidates: List<RouteCandidate> = emptyList(),
     val sorting: Boolean = false,
 ) {
@@ -78,6 +81,7 @@ class RouteViewModel(
     private val routes: RouteRepository,
     spots: SpotRepository,
     private val location: DeviceLocation,
+    cities: CityRepository,
 ) : ViewModel() {
 
     private val sorting = MutableStateFlow(false)
@@ -89,13 +93,20 @@ class RouteViewModel(
         if (cityId.isEmpty()) flowOf(emptyList()) else spots.observeSpots(cityId)
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val cityName: Flow<String> = route.flatMapLatest { current ->
+        val cityId = current?.cityId.orEmpty()
+        if (cityId.isEmpty()) flowOf("") else cities.observeCity(cityId).map { it?.name.orEmpty() }
+    }
+
     val uiState: StateFlow<RouteUiState> = combine(
         route,
+        cityName,
         citySpots,
         routes.observeStops(routeId),
         sorting,
-    ) { current, inCity, stops, busy ->
-        RouteUiState(route = current, candidates = inCity.asCandidates(stops), sorting = busy)
+    ) { current, city, inCity, stops, busy ->
+        RouteUiState(route = current, cityName = city, candidates = inCity.asCandidates(stops), sorting = busy)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), RouteUiState())
 
     /** Ticking a spot puts it on the walk; unticking takes it off and leaves it in the list. */

@@ -36,6 +36,7 @@ import com.pat.app.holidayplanner.ui.components.SortMenu
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
 import com.pat.app.holidayplanner.ui.components.SyncStatusIcon
+import com.pat.app.holidayplanner.ui.components.Thumbnail
 import com.pat.app.holidayplanner.ui.components.TypeBadge
 import com.pat.app.holidayplanner.ui.components.label
 import com.pat.app.holidayplanner.ui.components.firstLine
@@ -158,31 +159,34 @@ private fun FilterRow(state: SpotsUiState, viewModel: SpotsViewModel) {
 @Composable
 private fun SpotListItem(row: SpotListRow, onClick: () -> Unit) {
     Column {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(row.spot.name, style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = stringResource(R.string.spots_where, row.cityName, row.countryName),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                PriorityBadge(row.spot.priority)
-                StatusChip(row.spot.status)
-                TypeBadge(row.spot.type)
-            }
-            row.spot.notes.firstLine()?.let { note ->
+            Thumbnail(row.spot.imageUrl)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(row.spot.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = note,
+                    text = stringResource(R.string.spots_where, row.cityName, row.countryName),
                     style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PriorityBadge(row.spot.priority)
+                    StatusChip(row.spot.status)
+                    TypeBadge(row.spot.type)
+                }
+                row.spot.notes.firstLine()?.let { note ->
+                    Text(
+                        text = note,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
         HorizontalDivider()

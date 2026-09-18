@@ -58,15 +58,17 @@ fun DateTimeField(
     var pickingTime by remember { mutableStateOf(false) }
     var pickingZone by remember { mutableStateOf(false) }
 
+    // A day may be known before its time is: an item put on a day starts as a bare date.
+    val date = LocalTimes.dateOf(local)
     val moment = LocalTimes.parse(local)
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { pickingDate = true }) {
-                Text(moment?.toLocalDate()?.let(LocalTimes::formatDay) ?: stringResource(R.string.trip_pick_date))
+                Text(date?.let(LocalTimes::formatDay) ?: stringResource(R.string.trip_pick_date))
             }
-            OutlinedButton(onClick = { pickingTime = true }, enabled = moment != null) {
+            OutlinedButton(onClick = { pickingTime = true }, enabled = date != null) {
                 Text(moment?.let { LocalTimes.timeOfDay(local) } ?: stringResource(R.string.trip_pick_time))
             }
             OutlinedButton(onClick = { pickingZone = true }) {
@@ -77,22 +79,27 @@ fun DateTimeField(
 
     if (pickingDate) {
         DatePickerSheet(
-            initial = moment?.toLocalDate(),
-            onPick = { date ->
+            initial = date,
+            onPick = { picked ->
                 pickingDate = false
-                val time = moment?.toLocalTime() ?: java.time.LocalTime.of(DEFAULT_HOUR, 0)
-                onChange(LocalTimes.write(LocalDateTime.of(date, time)), zone)
+                val time = moment?.toLocalTime()
+                val written = if (time == null) {
+                    LocalTimes.writeDate(picked)
+                } else {
+                    LocalTimes.write(LocalDateTime.of(picked, time))
+                }
+                onChange(written, zone)
             },
             onDismiss = { pickingDate = false },
         )
     }
 
-    if (pickingTime && moment != null) {
+    if (pickingTime && date != null) {
         TimePickerDialog(
-            initial = moment,
+            initial = moment ?: date.atTime(DEFAULT_HOUR, 0),
             onPick = { hour, minute ->
                 pickingTime = false
-                onChange(LocalTimes.write(moment.withHour(hour).withMinute(minute)), zone)
+                onChange(LocalTimes.write(date.atTime(hour, minute)), zone)
             },
             onDismiss = { pickingTime = false },
         )

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Map
@@ -40,6 +39,8 @@ import com.pat.app.holidayplanner.data.local.CountryRow
 import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
+import com.pat.app.holidayplanner.ui.components.FlagFallback
+import com.pat.app.holidayplanner.ui.components.Thumbnail
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
@@ -162,10 +163,9 @@ private fun CountryRowItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = CountryCatalog.flag(row.country.isoCode),
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.size(32.dp),
+            Thumbnail(
+                imageUrl = row.country.imageUrl,
+                fallback = { FlagFallback(CountryCatalog.flag(row.country.isoCode)) },
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(row.country.name, style = MaterialTheme.typography.titleMedium)

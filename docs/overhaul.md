@@ -76,11 +76,28 @@ Old trip items of removed types are not migrated. Pat's existing trip data is te
   city mode went with the manual adds. `Code.gs` dropped the Spots `tags` column (harmless to
   leave in the sheet).
 - **O3 Routes.** The Routes tab, the create-route funnel from all three entry points, completed.
+  Done 2026-09-18. The tab lists routes still to walk, then walked ones; its + asks for a city.
+  The route screen is titled with its city.
 - **O4 Trips.** Country-based creation, days, the three item kinds, headers and tags on rows.
+  Done 2026-09-18. A new trip asks for country, start and end; every day between them is a
+  heading with a + that offers flight, spot (picked from the country's spots) or route (picked
+  from the country's routes, or "New route" which asks for a city and opens the route screen).
+  A spot on a day is a bare date, no time. Tapping a route item opens the route; a spot or flight
+  item opens the item editor, which has an "Open spot" button.
+- **O5 Pictures and polish.** Done 2026-09-18, see below.
 
-## Later: pictures and polish
+## Pictures and polish (O5)
 
-Asked for on 2026-09-18, after O2, to follow the four milestones above. Spots, cities and
-countries get a picture, fetched automatically, shown on their list rows, replaceable by hand.
-Unrelated to a spot's saved links. Along with it, a general pass to make the app better looking.
-Not designed yet; the source of the pictures and how they sync between the two phones are open.
+Asked for on 2026-09-18 after O2. Countries, cities and spots carry an `imageUrl` (sheet column
+on all three tabs; `setup()` must be run). Pictures are found automatically from Wikimedia:
+Wikivoyage's page image (its banner) for a country or city, else a Wikipedia search; a spot is a
+Wikipedia search whose first hit is trusted only when its title shares a real word with the spot's
+name, so a bar nobody has written about gets no picture rather than its city's. Flags, maps, logos
+and SVGs are skipped. `PictureBackfill` watches the three tables while the app is open and fills
+whatever is blank; a search that finds nothing writes `none` so it is not repeated on either phone.
+"Change picture" on the country, city and spot screens takes an image link; saving it blank lets
+the search run again. Camera-roll pictures are out of scope by decision. Coil 3.3.0 loads them.
+
+Polish: one fixed palette (teal, sand, coral) instead of the wallpaper colours, heavier titles,
+thumbnails on every country, city and spot row, a picture banner at the top of the country, city
+and spot screens.

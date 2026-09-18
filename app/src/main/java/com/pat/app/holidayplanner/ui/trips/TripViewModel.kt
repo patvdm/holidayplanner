@@ -2,18 +2,29 @@ package com.pat.app.holidayplanner.ui.trips
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pat.app.holidayplanner.data.local.CityOption
+import com.pat.app.holidayplanner.data.local.CountryEntity
+import com.pat.app.holidayplanner.data.local.RouteRow
+import com.pat.app.holidayplanner.data.local.SpotPickerRow
 import com.pat.app.holidayplanner.data.local.TripEntity
 import com.pat.app.holidayplanner.data.local.TripItemEntity
-import com.pat.app.holidayplanner.data.local.CountryEntity
+import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.CountryRepository
+import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.TripRepository
 import com.pat.app.holidayplanner.domain.Cost
 import com.pat.app.holidayplanner.domain.Costs
 import com.pat.app.holidayplanner.domain.CurrencyTotal
+import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.domain.TripItemType
+import java.time.LocalDate
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -21,37 +32,126 @@ private const val STOP_TIMEOUT_MS = 5_000L
 
 data class TripUiState(
     val trip: TripEntity? = null,
-    val timeline: Timeline = Timeline(emptyList(), emptyList()),
+    val plan: TripPlan = TripPlan(emptyList(), emptyList()),
     val totals: List<CurrencyTotal> = emptyList(),
     val totalsByType: List<Pair<TripItemType, List<CurrencyTotal>>> = emptyList(),
     val countries: List<CountryEntity> = emptyList(),
+    /** The routes through this trip's country, which a day can pick from. */
+    val routes: List<RouteRow> = emptyList(),
+    /** The cities of this trip's country, which a new route can walk. */
+    val cities: List<CityOption> = emptyList(),
 ) {
     /** The country this trip is to, which is where its spots and routes come from. */
     val country: CountryEntity? get() = countries.firstOrNull { it.meta.id == trip?.countryId }
+
+    val hasDates: Boolean
+        get() = trip != null &&
+            LocalTimes.parseDate(trip.startDate) != null &&
+            LocalTimes.parseDate(trip.endDate) != null
+
+    val isEmpty: Boolean get() = plan.days.all { it.entries.isEmpty() } && plan.undated.isEmpty()
 }
+
+/** The parts of the state that depend on which country the trip is to. */
+private data class CountryScope(val routes: List<RouteRow>, val cities: List<CityOption>)
 
 class TripViewModel(
     private val tripId: String,
     private val repository: TripRepository,
     countryRepository: CountryRepository,
+    private val routeRepository: RouteRepository,
+    cityRepository: CityRepository,
 ) : ViewModel() {
 
+    private val trip: Flow<TripEntity?> = repository.observeTrip(tripId)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val inCountry: Flow<CountryScope> = trip.flatMapLatest { current ->
+        val countryId = current?.countryId.orEmpty()
+        if (countryId.isEmpty()) {
+            flowOf(CountryScope(emptyList(), emptyList()))
+        } else {
+            combine(
+                routeRepository.observeRoutesInCountry(countryId),
+                cityRepository.observeOptions(),
+            ) { routes, cities -> CountryScope(routes, cities.filter { it.countryId == countryId }) }
+        }
+    }
+
     val uiState: StateFlow<TripUiState> = combine(
-        repository.observeTrip(tripId),
-        repository.observeItems(tripId),
+        trip,
+        repository.observeItemRows(tripId),
         countryRepository.observeCountries(),
-    ) { trip, items, countries ->
+        inCountry,
+    ) { current, rows, countries, scope ->
+        val items = rows.map { it.item }
         TripUiState(
-            trip = trip,
-            timeline = items.toTimeline(),
+            trip = current,
+            plan = rows.toPlan(
+                start = current?.let { LocalTimes.parseDate(it.startDate) },
+                end = current?.let { LocalTimes.parseDate(it.endDate) },
+            ),
             totals = Costs.byCurrency(items.mapNotNull(::costOf)),
             totalsByType = totalsByType(items),
             countries = countries,
+            routes = scope.routes,
+            cities = scope.cities,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TripUiState())
 
-    fun addItem(type: TripItemType, onCreated: (String) -> Unit) {
-        viewModelScope.launch { onCreated(repository.addItem(tripId = tripId, type = type)) }
+    /** A flight starts as a day and is filled in on its own screen, which opens at once. */
+    fun addFlight(date: LocalDate, onCreated: (String) -> Unit) {
+        viewModelScope.launch {
+            val id = repository.addItem(
+                tripId = tripId,
+                type = TripItemType.FLIGHT,
+                startLocal = LocalTimes.writeDate(date),
+            )
+            onCreated(id)
+        }
+    }
+
+    fun addSpot(date: LocalDate, spot: SpotPickerRow) {
+        viewModelScope.launch {
+            repository.addItem(
+                tripId = tripId,
+                type = TripItemType.SPOT,
+                title = spot.spotName,
+                spotId = spot.spotId,
+                startLocal = LocalTimes.writeDate(date),
+            )
+        }
+    }
+
+    fun addRoute(date: LocalDate, route: RouteRow) {
+        viewModelScope.launch {
+            repository.addItem(
+                tripId = tripId,
+                type = TripItemType.ROUTE,
+                title = route.route.name,
+                routeId = route.route.meta.id,
+                startLocal = LocalTimes.writeDate(date),
+            )
+        }
+    }
+
+    /**
+     * A route that does not exist yet: made through [city], put on the day, and opened so its
+     * stops can be ticked. This is the "add new route" on a trip day, and it funnels into the same
+     * route screen as everything else.
+     */
+    fun addNewRoute(date: LocalDate, city: CityOption, onCreated: (routeId: String) -> Unit) {
+        viewModelScope.launch {
+            val routeId = routeRepository.create(city.cityId, city.cityName)
+            repository.addItem(
+                tripId = tripId,
+                type = TripItemType.ROUTE,
+                title = city.cityName,
+                routeId = routeId,
+                startLocal = LocalTimes.writeDate(date),
+            )
+            onCreated(routeId)
+        }
     }
 
     fun deleteItem(itemId: String) {

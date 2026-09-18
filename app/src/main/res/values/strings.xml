@@ -3,6 +3,7 @@
 
     <string name="tab_explore">Explore</string>
     <string name="tab_trips">Trips</string>
+    <string name="tab_routes">Routes</string>
     <string name="tab_spots">Spots</string>
 
     <string name="action_search">Search</string>
@@ -132,7 +133,14 @@
     <string name="trip_edit">Edit trip</string>
     <string name="trip_delete">Delete this trip</string>
     <string name="trip_add_item">Add to trip</string>
-    <string name="trip_empty">Nothing planned yet. Add a flight, a stay or something to do.</string>
+    <string name="trip_empty">Nothing planned yet. Tap + on a day to add a flight, a spot or a route.</string>
+    <string name="trip_no_dates_yet">This trip has no dates yet. Set them to plan it day by day.</string>
+    <string name="trip_set_dates">Set dates</string>
+    <string name="trip_add_to_day">Add to %1$s</string>
+    <string name="trip_pick_route">Which route?</string>
+    <string name="trip_new_route">New route</string>
+    <string name="trip_remove_item">Remove from trip</string>
+    <string name="trip_route_stops">%1$s \u00b7 %2$d stops</string>
     <string name="trip_undated">No date yet</string>
     <string name="trip_totals">Totals</string>
     <string name="trip_check_out">Check out</string>
@@ -162,6 +170,7 @@
     <string name="item_doc_url">Document link</string>
     <string name="item_pick_spot">Link a spot</string>
     <string name="item_change_spot">Change the linked spot</string>
+    <string name="item_open_spot">Open spot</string>
 
 
     <string name="search_title">Search</string>
@@ -205,7 +214,11 @@
     <string name="route_open_part">Open part %1$d of %2$d</string>
     <string name="route_split_warning">Google Maps takes %1$d stops at a time, so this day opens as %2$d routes. Each one starts where the last one ended.</string>
     <string name="route_city_empty">No spots saved in this city yet. Add some and they appear here to tick.</string>
-    <string name="route_delete_message">The route is removed from the trip. The spots themselves are untouched.</string>
+    <string name="route_delete_message">Any trip day pointing at it loses the route. The spots themselves are untouched.</string>
+    <string name="route_row_detail">%1$s, %2$s \u00b7 %3$d stops</string>
+    <string name="routes_empty">No routes yet. Tap + to start one: a route walks the spots of one city.</string>
+    <string name="routes_no_cities">Save a spot somewhere first. A route walks the spots of one city.</string>
+    <string name="routes_walked_header">Walked</string>
     <string name="route_needs_two">A route needs at least two stops.</string>
     <string name="route_no_maps_app">Nothing on this device can open Maps.</string>
     <plurals name="route_without_location">
@@ -246,6 +259,11 @@
     <string name="map_show">Show map</string>
     <string name="map_no_pins">Nothing here has a position yet, so there is nothing to map.</string>
     <string name="map_open_spot">Open</string>
+
+    <!-- Pictures -->
+    <string name="picture_change">Change picture</string>
+    <string name="picture_url">Image link</string>
+    <string name="picture_url_hint">Paste a link to an image. Leave it blank to let the app look for one again.</string>
 
     <!-- Sync status -->
     <string name="sync_failed_retry">Last sync failed. Tap to try again.</string>

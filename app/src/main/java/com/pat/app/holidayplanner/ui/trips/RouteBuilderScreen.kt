@@ -83,7 +83,7 @@ fun RouteBuilderScreen(
     Scaffold(
         topBar = {
             BackTopBar(
-                title = stringResource(R.string.route_title),
+                title = state.cityName.ifBlank { stringResource(R.string.route_title) },
                 onBack = onBack,
                 actions = {
                     IconButton(onClick = { confirmingDelete = true }) {

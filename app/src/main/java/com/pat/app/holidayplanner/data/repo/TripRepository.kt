@@ -3,6 +3,8 @@ package com.pat.app.holidayplanner.data.repo
 import com.pat.app.holidayplanner.data.local.SyncMeta
 import com.pat.app.holidayplanner.data.local.TripEntity
 import com.pat.app.holidayplanner.data.local.TripItemEntity
+import com.pat.app.holidayplanner.data.local.TripItemRow
+import com.pat.app.holidayplanner.data.local.TripRow
 import com.pat.app.holidayplanner.data.local.dao.CascadeDao
 import com.pat.app.holidayplanner.data.local.dao.TripDao
 import com.pat.app.holidayplanner.data.local.dao.TripItemDao
@@ -21,9 +23,14 @@ class TripRepository(
 
     fun observeTrips(): Flow<List<TripEntity>> = dao.observeAll()
 
+    fun observeTripRows(): Flow<List<TripRow>> = dao.observeRows()
+
     fun observeTrip(id: String): Flow<TripEntity?> = dao.observeById(id)
 
     fun observeItems(tripId: String): Flow<List<TripItemEntity>> = itemDao.observeByTrip(tripId)
+
+    /** The items with what they point at resolved, which is what the day view shows. */
+    fun observeItemRows(tripId: String): Flow<List<TripItemRow>> = itemDao.observeRowsByTrip(tripId)
 
     suspend fun add(name: String, countryId: String, startDate: String, endDate: String): String {
         val stamp = writer.stamp()

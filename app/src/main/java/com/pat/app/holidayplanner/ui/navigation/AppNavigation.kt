@@ -21,6 +21,7 @@ import com.pat.app.holidayplanner.ui.explore.CityScreen
 import com.pat.app.holidayplanner.ui.explore.SpotDetailScreen
 import com.pat.app.holidayplanner.ui.map.MapScope
 import com.pat.app.holidayplanner.ui.map.MapScreen
+import com.pat.app.holidayplanner.ui.routes.RoutesScreen
 import com.pat.app.holidayplanner.ui.search.SearchScreen
 import com.pat.app.holidayplanner.ui.settings.SettingsScreen
 import com.pat.app.holidayplanner.ui.spots.SpotsScreen
@@ -102,6 +103,13 @@ fun AppNavigation() {
                         onOpenSpot = { nav.push(SpotKey(it)) },
                     )
                 }
+                entry<RoutesRootKey> {
+                    RoutesScreen(
+                        onSearch = { nav.push(SearchKey) },
+                        onSettings = { nav.push(SettingsKey) },
+                        onOpenRoute = { nav.push(RouteKey(it)) },
+                    )
+                }
                 entry<TripsRootKey> {
                     TripsScreen(
                         onSearch = { nav.push(SearchKey) },
@@ -114,6 +122,7 @@ fun AppNavigation() {
                         tripId = key.tripId,
                         onBack = nav::back,
                         onOpenItem = { nav.push(TripItemKey(it)) },
+                        onOpenRoute = { nav.push(RouteKey(it)) },
                         onEditTrip = { nav.push(TripEditorKey(key.tripId)) },
                     )
                 }
@@ -126,7 +135,11 @@ fun AppNavigation() {
                     )
                 }
                 entry<TripItemKey> { key ->
-                    TripItemEditorScreen(itemId = key.itemId, onBack = nav::back)
+                    TripItemEditorScreen(
+                        itemId = key.itemId,
+                        onBack = nav::back,
+                        onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
+                    )
                 }
                 entry<RouteKey> { key ->
                     RouteBuilderScreen(routeId = key.routeId, onBack = nav::back, onDeleted = nav::back)

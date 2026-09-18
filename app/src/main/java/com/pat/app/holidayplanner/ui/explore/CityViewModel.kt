@@ -133,6 +133,11 @@ class CityViewModel(
         viewModelScope.launch { cityRepository.rename(cityId, name) }
     }
 
+    /** Blank lets the automatic search have another go. */
+    fun setImageUrl(url: String) {
+        viewModelScope.launch { cityRepository.setImageUrl(cityId, url) }
+    }
+
     /** The row already carries the counts, so confirming a delete needs no extra query. */
     fun requestDelete(row: SpotRow) {
         pendingDelete.value = PendingDelete(

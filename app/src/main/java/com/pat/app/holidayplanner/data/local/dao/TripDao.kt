@@ -5,6 +5,7 @@ import androidx.room.Query
 import androidx.room.Upsert
 import com.pat.app.holidayplanner.data.local.SyncDao
 import com.pat.app.holidayplanner.data.local.TripEntity
+import com.pat.app.holidayplanner.data.local.TripRow
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -15,6 +16,17 @@ interface TripDao : SyncDao<TripEntity> {
 
     @Query("SELECT * FROM trips WHERE id = :id AND deleted = 0")
     fun observeById(id: String): Flow<TripEntity?>
+
+    /** Every trip with the country it is to, as the list shows them. */
+    @Query(
+        """
+        SELECT t.*, c.name AS countryName, c.isoCode AS isoCode
+        FROM trips t LEFT JOIN countries c ON c.id = t.countryId AND c.deleted = 0
+        WHERE t.deleted = 0
+        ORDER BY t.startDate, t.name COLLATE NOCASE
+        """,
+    )
+    fun observeRows(): Flow<List<TripRow>>
 
     @Query("SELECT COUNT(*) FROM trip_items WHERE tripId = :tripId AND deleted = 0")
     suspend fun countItems(tripId: String): Int

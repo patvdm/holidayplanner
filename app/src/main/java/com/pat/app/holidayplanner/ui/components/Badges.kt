@@ -64,6 +64,18 @@ fun TypeBadge(type: SpotType, modifier: Modifier = Modifier) {
     )
 }
 
+/** A route that has been walked wears the same green as a visited spot. */
+@Composable
+fun WalkedBadge(completed: Boolean, modifier: Modifier = Modifier) {
+    if (!completed) return
+    SmallBadge(
+        text = stringResource(R.string.route_completed),
+        background = VISITED_GREEN,
+        foreground = DARK_TEXT,
+        modifier = modifier,
+    )
+}
+
 fun SpotType.label(): Int = when (this) {
     SpotType.POI -> R.string.type_poi
     SpotType.ACCOMMODATION -> R.string.type_accommodation

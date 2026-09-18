@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -35,6 +39,10 @@ import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
+import com.pat.app.holidayplanner.ui.components.HeroImage
+import com.pat.app.holidayplanner.ui.components.PictureDialog
+import com.pat.app.holidayplanner.ui.components.Thumbnail
+import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.SortMenu
@@ -53,6 +61,9 @@ fun CountryScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var renaming by remember { mutableStateOf<CityRow?>(null) }
+    var changingPicture by remember { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
+    val putKeyboardAway = rememberKeyboardDismiss()
 
     Scaffold(
         topBar = {
@@ -80,33 +91,74 @@ fun CountryScreen(
                         Icon(Icons.Filled.Map, contentDescription = stringResource(R.string.map_show))
                     }
                     SortMenu(SortScope.CITIES, state.sortMode, viewModel::setSortMode)
+                    IconButton(
+                        onClick = {
+                            putKeyboardAway()
+                            menuOpen = true
+                        },
+                    ) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
+                    }
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = {
+                            menuOpen = false
+                            putKeyboardAway()
+                        },
+                        properties = PopupProperties(focusable = false),
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.picture_change)) },
+                            onClick = {
+                                menuOpen = false
+                                changingPicture = true
+                            },
+                        )
+                    }
                 },
             )
         },
     ) { padding ->
-        if (state.rows.isEmpty()) {
-            EmptyListMessage(stringResource(R.string.country_empty), Modifier.padding(padding))
-        } else {
-            ReorderableColumn(
-                items = state.rows,
-                idOf = { it.place.meta.id },
-                sortKeyOf = { it.place.sortKey },
-                reorderable = state.canReorder,
-                onMoved = viewModel::move,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-            ) { row, handle ->
-                CityRowItem(
-                    row = row,
-                    handle = handle,
-                    onClick = { onOpenPlace(row.place.meta.id) },
-                    onPriority = { viewModel.setPriority(row.place.meta.id, it) },
-                    onRename = { renaming = row },
-                    onDelete = { viewModel.requestDelete(row.place.meta.id, row.place.name) },
+        Column(modifier = Modifier.padding(padding)) {
+            state.country?.let { country ->
+                HeroImage(
+                    imageUrl = country.imageUrl,
+                    title = "${CountryCatalog.flag(country.isoCode)} ${country.name}".trim(),
                 )
             }
+            if (state.rows.isEmpty()) {
+                EmptyListMessage(stringResource(R.string.country_empty))
+            } else {
+                ReorderableColumn(
+                    items = state.rows,
+                    idOf = { it.place.meta.id },
+                    sortKeyOf = { it.place.sortKey },
+                    reorderable = state.canReorder,
+                    onMoved = viewModel::move,
+                    modifier = Modifier.fillMaxSize(),
+                ) { row, handle ->
+                    CityRowItem(
+                        row = row,
+                        handle = handle,
+                        onClick = { onOpenPlace(row.place.meta.id) },
+                        onPriority = { viewModel.setPriority(row.place.meta.id, it) },
+                        onRename = { renaming = row },
+                        onDelete = { viewModel.requestDelete(row.place.meta.id, row.place.name) },
+                    )
+                }
+            }
         }
+    }
+
+    if (changingPicture) {
+        PictureDialog(
+            current = state.country?.imageUrl.orEmpty(),
+            onSave = {
+                viewModel.setImageUrl(it)
+                changingPicture = false
+            },
+            onDismiss = { changingPicture = false },
+        )
     }
 
     renaming?.let { row ->
@@ -150,6 +202,7 @@ private fun CityRowItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Thumbnail(row.place.imageUrl)
             Column(modifier = Modifier.weight(1f)) {
                 Text(row.place.name, style = MaterialTheme.typography.titleMedium)
                 Text(

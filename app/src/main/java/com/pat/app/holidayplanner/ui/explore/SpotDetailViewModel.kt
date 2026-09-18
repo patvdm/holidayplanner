@@ -149,6 +149,11 @@ class SpotDetailViewModel(
         viewModelScope.launch { spotRepository.setMapsUrl(spotId, "") }
     }
 
+    /** Blank lets the automatic search have another go. */
+    fun setImageUrl(url: String) {
+        viewModelScope.launch { spotRepository.setImageUrl(spotId, url) }
+    }
+
     fun setAddress(address: String) {
         viewModelScope.launch { spotRepository.setAddress(spotId, address) }
     }

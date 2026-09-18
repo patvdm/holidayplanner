@@ -45,6 +45,9 @@ import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import com.pat.app.holidayplanner.ui.components.HeartCount
+import com.pat.app.holidayplanner.ui.components.HeroImage
+import com.pat.app.holidayplanner.ui.components.PictureDialog
+import com.pat.app.holidayplanner.ui.components.Thumbnail
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.SortMenu
@@ -69,6 +72,7 @@ fun CityScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var renamingPlace by remember { mutableStateOf(false) }
+    var changingPicture by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     val putKeyboardAway = rememberKeyboardDismiss()
     val routeTitle = state.place?.name.orEmpty()
@@ -118,12 +122,20 @@ fun CityScreen(
                                 viewModel.createRoute(routeTitle, onOpenRoute)
                             },
                         )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.picture_change)) },
+                            onClick = {
+                                menuOpen = false
+                                changingPicture = true
+                            },
+                        )
                     }
                 },
             )
         },
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
+            state.place?.let { HeroImage(imageUrl = it.imageUrl, title = it.name) }
             FilterRow(state, viewModel)
             if (state.rows.isEmpty()) {
                 EmptyListMessage(
@@ -155,6 +167,17 @@ fun CityScreen(
                 }
             }
         }
+    }
+
+    if (changingPicture) {
+        PictureDialog(
+            current = state.place?.imageUrl.orEmpty(),
+            onSave = {
+                viewModel.setImageUrl(it)
+                changingPicture = false
+            },
+            onDismiss = { changingPicture = false },
+        )
     }
 
     if (renamingPlace) {
@@ -242,8 +265,9 @@ private fun SpotRowItem(
                 .clickable(onClick = onClick)
                 .padding(start = 16.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Thumbnail(row.spot.imageUrl, size = 48.dp)
             Column(modifier = Modifier.weight(1f)) {
                 Text(row.spot.name, style = MaterialTheme.typography.titleMedium)
                 Row(

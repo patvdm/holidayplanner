@@ -1,7 +1,10 @@
 package com.pat.app.holidayplanner.data.local
 
 import androidx.room.Embedded
+import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
+import com.pat.app.holidayplanner.domain.SpotType
+import com.pat.app.holidayplanner.domain.TripItemType
 
 /** A country with the counts shown on its row. */
 data class CountryRow(
@@ -53,6 +56,7 @@ data class SpotPickerRow(
     val spotName: String,
     val cityId: String,
     val cityName: String,
+    val countryId: String,
     val countryName: String,
     val isoCode: String,
 ) {
@@ -109,6 +113,38 @@ data class RouteRow(
     val countryId: String,
     val stopCount: Int,
 )
+
+/** A trip as the Trips tab lists it, with the country it is to. */
+data class TripRow(
+    @Embedded val trip: TripEntity,
+    val countryName: String?,
+    val isoCode: String?,
+)
+
+/**
+ * One thing on a trip day, with the spot or route it points at resolved: a spot row shows the
+ * spot's tags and picture, a route row how far along the walk is.
+ */
+data class TripItemRow(
+    @Embedded val item: TripItemEntity,
+    val spotName: String?,
+    val spotPriority: Priority?,
+    val spotStatus: SpotStatus?,
+    val spotType: SpotType?,
+    val spotImageUrl: String?,
+    val routeName: String?,
+    val routeCompleted: Boolean?,
+    val routeCityName: String?,
+    val routeStopCount: Int,
+) {
+    /** What the row is called: the thing it points at if it still exists, else what was typed. */
+    val title: String
+        get() = when (item.type) {
+            TripItemType.SPOT -> spotName ?: item.title
+            TripItemType.ROUTE -> routeName ?: item.title
+            TripItemType.FLIGHT -> item.title
+        }
+}
 
 /** A spot as the Spots tab lists it: the spot plus where it is. */
 data class SpotListRow(

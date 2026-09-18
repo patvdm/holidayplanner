@@ -72,6 +72,7 @@ fun countryToRow(entity: CountryEntity): Map<String, String> = buildRow(entity.m
     put("isoCode", entity.isoCode)
     put("sortKey", entity.sortKey)
     put("priority", entity.priority.name)
+    put("imageUrl", entity.imageUrl)
 }
 
 fun countryFromRow(row: SheetRow): CountryEntity? {
@@ -82,6 +83,7 @@ fun countryFromRow(row: SheetRow): CountryEntity? {
         isoCode = row.str("isoCode").trim().uppercase(),
         sortKey = row.str("sortKey").trim(),
         priority = Priority.fromSheet(row.str("priority")),
+        imageUrl = row.str("imageUrl").trim(),
     )
 }
 
@@ -95,6 +97,7 @@ fun cityToRow(entity: CityEntity): Map<String, String> = buildRow(entity.meta) {
     put("lng", entity.lng.orBlank())
     put("sortKey", entity.sortKey)
     put("priority", entity.priority.name)
+    put("imageUrl", entity.imageUrl)
 }
 
 fun cityFromRow(row: SheetRow): CityEntity? {
@@ -108,6 +111,7 @@ fun cityFromRow(row: SheetRow): CityEntity? {
         lng = row.doubleOrNull("lng"),
         sortKey = row.str("sortKey").trim(),
         priority = Priority.fromSheet(row.str("priority")),
+        imageUrl = row.str("imageUrl").trim(),
     )
 }
 
@@ -126,6 +130,7 @@ fun spotToRow(entity: SpotEntity): Map<String, String> = buildRow(entity.meta) {
     put("status", entity.status.name)
     put("sortKey", entity.sortKey)
     put("priority", entity.priority.name)
+    put("imageUrl", entity.imageUrl)
 }
 
 fun spotFromRow(row: SheetRow): SpotEntity? {
@@ -144,6 +149,7 @@ fun spotFromRow(row: SheetRow): SpotEntity? {
         status = SpotStatus.fromSheet(row.str("status")),
         sortKey = row.str("sortKey").trim(),
         priority = Priority.fromSheet(row.str("priority")),
+        imageUrl = row.str("imageUrl").trim(),
     )
 }
 

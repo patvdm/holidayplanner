@@ -41,8 +41,11 @@ object LocalTimes {
 
     fun writeDate(date: LocalDate): String = date.format(DATE_FORMAT)
 
-    /** The day an item belongs to, used to group a timeline. */
-    fun dateOf(local: String): LocalDate? = parse(local)?.toLocalDate()
+    /**
+     * The day an item belongs to. A bare date counts: a spot put on a day has no time of its own,
+     * and asking for one would be asking for something nobody knows.
+     */
+    fun dateOf(local: String): LocalDate? = parse(local)?.toLocalDate() ?: parseDate(local)
 
     /** "14:05", or empty when nothing was written. */
     fun timeOfDay(local: String): String = parse(local)?.format(TIME_OF_DAY).orEmpty()

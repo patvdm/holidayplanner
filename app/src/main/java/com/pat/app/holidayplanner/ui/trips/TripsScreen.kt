@@ -1,7 +1,6 @@
 package com.pat.app.holidayplanner.ui.trips
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +21,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -30,10 +31,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
-import com.pat.app.holidayplanner.data.local.TripEntity
+import com.pat.app.holidayplanner.data.local.TripRow
+import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.ui.components.TabTopBar
-import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -73,8 +74,8 @@ fun TripsScreen(
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(state.upcoming, key = { it.meta.id }) { trip ->
-                        TripRowItem(trip = trip, onClick = { onOpenTrip(trip.meta.id) })
+                    items(state.upcoming, key = { it.trip.meta.id }) { row ->
+                        TripRowItem(row = row, onClick = { onOpenTrip(row.trip.meta.id) })
                     }
                     if (state.past.isNotEmpty()) {
                         item {
@@ -92,8 +93,8 @@ fun TripsScreen(
                             )
                         }
                         if (showPast) {
-                            items(state.past, key = { it.meta.id }) { trip ->
-                                TripRowItem(trip = trip, onClick = { onOpenTrip(trip.meta.id) })
+                            items(state.past, key = { it.trip.meta.id }) { row ->
+                                TripRowItem(row = row, onClick = { onOpenTrip(row.trip.meta.id) })
                             }
                         }
                     }
@@ -106,9 +107,9 @@ fun TripsScreen(
         val countries by viewModel.countryOptions.collectAsStateWithLifecycle(initialValue = emptyList())
         NewTripDialog(
             countries = countries,
-            onConfirm = { name, country ->
+            onConfirm = { name, country, start, end ->
                 adding = false
-                viewModel.addTrip(name, country, onOpenTrip)
+                viewModel.addTrip(name, country, start, end, onOpenTrip)
             },
             onDismiss = { adding = false },
         )
@@ -116,29 +117,38 @@ fun TripsScreen(
 }
 
 @Composable
-private fun TripRowItem(trip: TripEntity, onClick: () -> Unit) {
+private fun TripRowItem(row: TripRow, onClick: () -> Unit) {
     Column {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(trip.name, style = MaterialTheme.typography.titleMedium)
             Text(
-                text = tripDates(trip),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = CountryCatalog.flag(row.isoCode.orEmpty()),
+                style = MaterialTheme.typography.headlineSmall,
             )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(row.trip.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = listOfNotNull(row.countryName?.takeIf { it.isNotBlank() }, tripDates(row))
+                        .joinToString(" \u00b7 "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         HorizontalDivider()
     }
 }
 
 @Composable
-private fun tripDates(trip: TripEntity): String {
-    val start = LocalTimes.parseDate(trip.startDate)
-    val end = LocalTimes.parseDate(trip.endDate)
+private fun tripDates(row: TripRow): String {
+    val start = LocalTimes.parseDate(row.trip.startDate)
+    val end = LocalTimes.parseDate(row.trip.endDate)
     return when {
         start != null && end != null -> "${LocalTimes.formatDay(start)} – ${LocalTimes.formatDay(end)}"
         start != null -> LocalTimes.formatDay(start)

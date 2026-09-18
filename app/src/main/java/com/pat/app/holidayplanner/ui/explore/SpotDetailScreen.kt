@@ -55,6 +55,8 @@ import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
+import com.pat.app.holidayplanner.ui.components.HeroImage
+import com.pat.app.holidayplanner.ui.components.PictureDialog
 import com.pat.app.holidayplanner.ui.components.PickFromListDialog
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import com.pat.app.holidayplanner.ui.components.label
@@ -113,105 +115,116 @@ fun SpotDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .verticalScroll(rememberScrollState()),
         ) {
-            state.context?.let { where ->
-                Text(
-                    text = stringResource(R.string.spot_breadcrumb, where.countryName, where.cityName),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            state.spot?.let { spot ->
+                HeroImage(
+                    imageUrl = spot.imageUrl,
+                    title = spot.name,
+                    subtitle = state.context?.let {
+                        stringResource(R.string.spot_breadcrumb, it.countryName, it.cityName)
+                    },
                 )
             }
-            HorizontalDivider()
-            SectionLabel(stringResource(R.string.spot_location))
-            state.spot?.address?.takeIf { it.isNotBlank() }?.let {
-                Text(text = it, style = MaterialTheme.typography.bodyMedium)
-            }
-            if (state.hasOwnMapsLink) {
-                Text(
-                    text = state.spot?.mapsUrl.orEmpty(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = { context.openExternalUrl(state.mapsUrl) }) {
-                    Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                    Text(stringResource(R.string.spot_open_in_maps))
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { dialogs.renaming = true }) {
+                        Text(stringResource(R.string.action_rename))
+                    }
+                    OutlinedButton(onClick = { dialogs.changingPicture = true }) {
+                        Text(stringResource(R.string.picture_change))
+                    }
+                }
+                HorizontalDivider()
+                SectionLabel(stringResource(R.string.spot_location))
+                state.spot?.address?.takeIf { it.isNotBlank() }?.let {
+                    Text(text = it, style = MaterialTheme.typography.bodyMedium)
                 }
                 if (state.hasOwnMapsLink) {
-                    TextButton(onClick = viewModel::clearMapsUrl) {
-                        Text(stringResource(R.string.spot_location_clear))
+                    Text(
+                        text = state.spot?.mapsUrl.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalButton(onClick = { context.openExternalUrl(state.mapsUrl) }) {
+                        Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                        Text(stringResource(R.string.spot_open_in_maps))
                     }
-                } else {
-                    TextButton(onClick = { dialogs.addingMapsLink = true }) {
-                        Text(stringResource(R.string.spot_location_add))
+                    if (state.hasOwnMapsLink) {
+                        TextButton(onClick = viewModel::clearMapsUrl) {
+                            Text(stringResource(R.string.spot_location_clear))
+                        }
+                    } else {
+                        TextButton(onClick = { dialogs.addingMapsLink = true }) {
+                            Text(stringResource(R.string.spot_location_add))
+                        }
                     }
                 }
-            }
-            OutlinedButton(onClick = { dialogs.renaming = true }) { Text(stringResource(R.string.action_rename)) }
+                HeartsSection(names = state.hearts.map { it.name }.filter { it.isNotBlank() })
+                HorizontalDivider()
 
-            HeartsSection(names = state.hearts.map { it.name }.filter { it.isNotBlank() })
-            HorizontalDivider()
-
-            SectionLabel(stringResource(R.string.spot_priority))
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Priority.entries.forEach { priority ->
-                    FilterChip(
-                        selected = state.spot?.priority == priority,
-                        onClick = { viewModel.setPriority(priority) },
-                        label = { Text(stringResource(priority.label())) },
-                    )
+                SectionLabel(stringResource(R.string.spot_priority))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Priority.entries.forEach { priority ->
+                        FilterChip(
+                            selected = state.spot?.priority == priority,
+                            onClick = { viewModel.setPriority(priority) },
+                            label = { Text(stringResource(priority.label())) },
+                        )
+                    }
                 }
-            }
 
-            SectionLabel(stringResource(R.string.spot_type))
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                SpotType.entries.forEach { type ->
-                    FilterChip(
-                        selected = state.spot?.type == type,
-                        onClick = { viewModel.setType(type) },
-                        label = { Text(stringResource(type.label())) },
-                    )
+                SectionLabel(stringResource(R.string.spot_type))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SpotType.entries.forEach { type ->
+                        FilterChip(
+                            selected = state.spot?.type == type,
+                            onClick = { viewModel.setType(type) },
+                            label = { Text(stringResource(type.label())) },
+                        )
+                    }
                 }
-            }
 
-            SectionLabel(stringResource(R.string.spot_status))
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                SpotStatus.entries.forEach { status ->
-                    FilterChip(
-                        selected = state.spot?.status == status,
-                        onClick = { viewModel.setStatus(status) },
-                        label = { Text(stringResource(status.label())) },
-                    )
+                SectionLabel(stringResource(R.string.spot_status))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SpotStatus.entries.forEach { status ->
+                        FilterChip(
+                            selected = state.spot?.status == status,
+                            onClick = { viewModel.setStatus(status) },
+                            label = { Text(stringResource(status.label())) },
+                        )
+                    }
                 }
-            }
 
-            NotesField(initial = state.spot?.notes.orEmpty(), onSave = viewModel::setNotes)
+                NotesField(initial = state.spot?.notes.orEmpty(), onSave = viewModel::setNotes)
 
-            HorizontalDivider()
-            LinksSection(
-                links = state.links,
-                onOpen = { context.openExternalUrl(it) },
-                onDelete = viewModel::deleteLink,
-                onAdd = { dialogs.addingLink = true },
-            )
+                HorizontalDivider()
+                LinksSection(
+                    links = state.links,
+                    onOpen = { context.openExternalUrl(it) },
+                    onDelete = viewModel::deleteLink,
+                    onAdd = { dialogs.addingLink = true },
+                )
 
-            HorizontalDivider()
-            OutlinedButton(onClick = { dialogs.movingSpot = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.spot_move))
+                HorizontalDivider()
+                OutlinedButton(onClick = { dialogs.movingSpot = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.spot_move))
+                }
             }
         }
     }
@@ -225,6 +238,7 @@ private class SpotDialogs {
     var addingLink by mutableStateOf(false)
     var addingMapsLink by mutableStateOf(false)
     var movingSpot by mutableStateOf(false)
+    var changingPicture by mutableStateOf(false)
     var confirmingDelete by mutableStateOf(false)
 }
 
@@ -245,6 +259,17 @@ private fun SpotDialogs(
                 dialogs.renaming = false
             },
             onDismiss = { dialogs.renaming = false },
+        )
+    }
+
+    if (dialogs.changingPicture) {
+        PictureDialog(
+            current = state.spot?.imageUrl.orEmpty(),
+            onSave = {
+                viewModel.setImageUrl(it)
+                dialogs.changingPicture = false
+            },
+            onDismiss = { dialogs.changingPicture = false },
         )
     }
 

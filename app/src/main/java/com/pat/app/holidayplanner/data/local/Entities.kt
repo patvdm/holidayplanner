@@ -31,6 +31,8 @@ data class CountryEntity(
     val isoCode: String,
     val sortKey: String,
     val priority: Priority,
+    /** A picture, found automatically or pasted by hand. See [com.pat.app.holidayplanner.domain.NO_PICTURE]. */
+    val imageUrl: String,
 ) : SyncEntity
 
 @Entity(
@@ -47,6 +49,7 @@ data class CityEntity(
     val lng: Double?,
     val sortKey: String,
     val priority: Priority,
+    val imageUrl: String,
 ) : SyncEntity
 
 @Entity(
@@ -70,6 +73,7 @@ data class SpotEntity(
     val status: SpotStatus,
     val sortKey: String,
     val priority: Priority,
+    val imageUrl: String,
 ) : SyncEntity
 
 @Entity(tableName = "links", primaryKeys = ["id"], indices = [Index("spotId")])

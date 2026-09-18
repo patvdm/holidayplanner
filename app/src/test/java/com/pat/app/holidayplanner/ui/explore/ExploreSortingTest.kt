@@ -41,6 +41,7 @@ class ExploreSortingTest {
             status = SpotStatus.UNVISITED,
             sortKey = sortKey,
             priority = Priority.NORMAL,
+            imageUrl = "",
         ),
         heartCount = hearts,
         linkCount = 0,

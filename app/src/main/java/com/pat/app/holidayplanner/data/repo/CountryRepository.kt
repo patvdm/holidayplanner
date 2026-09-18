@@ -34,6 +34,7 @@ class CountryRepository(
             isoCode = isoCode.trim().uppercase(),
             sortKey = SortKey.after(dao.lastSortKey()),
             priority = Priority.NORMAL,
+            imageUrl = "",
         )
         dao.upsert(listOf(country))
         writer.requestSync()
@@ -47,6 +48,11 @@ class CountryRepository(
     suspend fun rename(id: String, name: String) = edit(id) { it.copy(name = name.trim()) }
 
     suspend fun setPriority(id: String, priority: Priority) = edit(id) { it.copy(priority = priority) }
+
+    /** Blank asks for a picture to be found again; anything else is kept as given. */
+    suspend fun setImageUrl(id: String, url: String) = edit(id) { it.copy(imageUrl = url.trim()) }
+
+    fun observeWithoutPicture(): Flow<List<CountryEntity>> = dao.observeWithoutPicture()
 
     /** Reorders by rewriting one row: [previousKey] and [nextKey] are the new neighbours' keys. */
     suspend fun move(id: String, previousKey: String?, nextKey: String?) =
