@@ -25,9 +25,6 @@ private const val THUMB_WIDTH = 1200
 private const val WIKIVOYAGE = "https://en.wikivoyage.org/w/api.php"
 private const val WIKIPEDIA = "https://en.wikipedia.org/w/api.php"
 
-/** Wikimedia asks every client to say who it is. */
-private const val USER_AGENT = "HolidayPlanner/1.0 (Android; private two-person app)"
-
 /** Words too short or too common to prove a page is about the spot rather than its city. */
 private const val MIN_TOKEN_LENGTH = 3
 private val STOP_WORDS = setOf("the", "and", "der", "die", "das", "del", "della", "les", "los", "las", "van", "von")
@@ -174,7 +171,7 @@ private fun defaultClient(): HttpClient = HttpClient(OkHttp) {
         socketTimeoutMillis = TIMEOUT_MS
     }
     defaultRequest {
-        header(HttpHeaders.UserAgent, USER_AGENT)
+        header(HttpHeaders.UserAgent, APP_USER_AGENT)
         header(HttpHeaders.Accept, "application/json")
     }
 }

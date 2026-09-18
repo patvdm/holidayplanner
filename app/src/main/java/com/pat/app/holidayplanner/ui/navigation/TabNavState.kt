@@ -50,13 +50,25 @@ class TabNavState(
     val currentKey: NavKey
         get() = backStack.last()
 
+    /** True while the map is what is showing, so the tab bar can light its middle button. */
+    val onMap: Boolean
+        get() = currentKey is MapKey
+
     fun selectTab(tab: AppTab) {
+        // The map belongs to the moment it was opened, not to the tab it was opened over.
+        if (onMap) back()
         if (tab == currentTab) {
             popToRoot(tab)
         } else {
             tabOrder.remove(tab)
             tabOrder.add(tab)
         }
+    }
+
+    /** Shows the map for the screen that is up now. Tapping again while it shows does nothing. */
+    fun openMap() {
+        if (onMap) return
+        push(MapKey.forScreen(currentKey))
     }
 
     fun push(key: NavKey) {

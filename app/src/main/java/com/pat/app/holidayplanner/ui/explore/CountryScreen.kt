@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -56,7 +55,6 @@ fun CountryScreen(
     countryId: String,
     onBack: () -> Unit,
     onOpenPlace: (String) -> Unit,
-    onOpenMap: () -> Unit,
     viewModel: CountryViewModel = koinViewModel { parametersOf(countryId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -87,9 +85,6 @@ fun CountryScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenMap) {
-                        Icon(Icons.Filled.Map, contentDescription = stringResource(R.string.map_show))
-                    }
                     SortMenu(SortScope.CITIES, state.sortMode, viewModel::setSortMode)
                     IconButton(
                         onClick = {

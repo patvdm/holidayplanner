@@ -39,13 +39,27 @@ data class TripItemKey(val itemId: String) : NavKey
 @Serializable
 data class RouteKey(val routeId: String) : NavKey
 
-/** A full screen map. The ids do not filter anything; they say where to point the camera. */
+/**
+ * The map, opened from the middle button of the tab bar. The ids do not filter anything; they say
+ * where to point the camera, and come from whatever screen was showing when the button was tapped.
+ */
 @Serializable
 data class MapKey(
     val countryId: String = "",
     val cityId: String = "",
     val spotId: String = "",
-) : FullScreenKey
+) : NavKey {
+    companion object {
+        /** The map for a screen: a country, city or spot screen centres on itself, anything else shows all. */
+        fun forScreen(key: NavKey): MapKey = when (key) {
+            is CountryKey -> MapKey(countryId = key.countryId)
+            is CityKey -> MapKey(cityId = key.cityId)
+            is SpotKey -> MapKey(spotId = key.spotId)
+            is MapKey -> key
+            else -> MapKey()
+        }
+    }
+}
 
 @Serializable
 data object SearchKey : FullScreenKey

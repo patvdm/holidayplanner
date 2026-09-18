@@ -75,8 +75,6 @@
 
     <string name="spot_breadcrumb">%1$s › %2$s</string>
     <string name="spot_location">Location</string>
-    <string name="spot_location_add">Add a Maps link</string>
-    <string name="spot_location_clear">Remove Maps link</string>
     <string name="spot_open_in_maps">Open in Maps</string>
     <string name="spot_heart">Heart this spot</string>
     <string name="spot_hearts_none">Nobody has hearted this yet.</string>
@@ -256,7 +254,6 @@
 
     <!-- Map -->
     <string name="map_title">Map</string>
-    <string name="map_show">Show map</string>
     <string name="map_no_pins">Nothing here has a position yet, so there is nothing to map.</string>
     <string name="map_open_spot">Open</string>
 

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -67,7 +66,6 @@ fun CityScreen(
     onBack: () -> Unit,
     onOpenSpot: (String) -> Unit,
     onOpenRoute: (String) -> Unit,
-    onOpenMap: () -> Unit,
     viewModel: CityViewModel = koinViewModel { parametersOf(cityId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -95,9 +93,6 @@ fun CityScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenMap) {
-                        Icon(Icons.Filled.Map, contentDescription = stringResource(R.string.map_show))
-                    }
                     SortMenu(SortScope.SPOTS, state.sortMode, viewModel::setSortMode)
                     IconButton(
                         onClick = {

@@ -1,6 +1,11 @@
 package com.pat.app.holidayplanner
 
 import android.app.Application
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import com.pat.app.holidayplanner.data.remote.APP_USER_AGENT
 import com.pat.app.holidayplanner.data.repo.CoordinateBackfill
 import com.pat.app.holidayplanner.data.repo.PictureBackfill
 import com.pat.app.holidayplanner.data.sync.SyncScheduler
@@ -9,12 +14,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 
-class HolidayPlannerApp : Application() {
+class HolidayPlannerApp : Application(), SingletonImageLoader.Factory {
 
     private val syncScheduler: SyncScheduler by inject()
     private val coordinateBackfill: CoordinateBackfill by inject()
@@ -36,4 +42,15 @@ class HolidayPlannerApp : Application() {
         // Finds a picture for anything that has none, now and whenever something new is saved.
         appScope.launch { pictureBackfill.watch() }
     }
+
+    /** The image loader every picture goes through, fetching with a name Wikimedia will serve. */
+    override fun newImageLoader(context: PlatformContext): ImageLoader = ImageLoader.Builder(context)
+        .components { add(OkHttpNetworkFetcherFactory(callFactory = pictureClient())) }
+        .build()
+
+    private fun pictureClient(): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            chain.proceed(chain.request().newBuilder().header("User-Agent", APP_USER_AGENT).build())
+        }
+        .build()
 }

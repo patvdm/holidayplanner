@@ -70,7 +70,6 @@ import org.koin.core.parameter.parametersOf
 fun SpotDetailScreen(
     spotId: String,
     onBack: () -> Unit,
-    onOpenMap: () -> Unit,
     viewModel: SpotDetailViewModel = koinViewModel { parametersOf(spotId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -90,9 +89,6 @@ fun SpotDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenMap) {
-                        Icon(Icons.Filled.Map, contentDescription = stringResource(R.string.map_show))
-                    }
                     IconButton(onClick = viewModel::toggleHeart) {
                         Icon(
                             imageVector = if (state.heartedByMe) {
@@ -151,20 +147,9 @@ fun SpotDetailScreen(
                         maxLines = 1,
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(onClick = { context.openExternalUrl(state.mapsUrl) }) {
-                        Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                        Text(stringResource(R.string.spot_open_in_maps))
-                    }
-                    if (state.hasOwnMapsLink) {
-                        TextButton(onClick = viewModel::clearMapsUrl) {
-                            Text(stringResource(R.string.spot_location_clear))
-                        }
-                    } else {
-                        TextButton(onClick = { dialogs.addingMapsLink = true }) {
-                            Text(stringResource(R.string.spot_location_add))
-                        }
-                    }
+                FilledTonalButton(onClick = { context.openExternalUrl(state.mapsUrl) }) {
+                    Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text(stringResource(R.string.spot_open_in_maps))
                 }
                 HeartsSection(names = state.hearts.map { it.name }.filter { it.isNotBlank() })
                 HorizontalDivider()
@@ -236,7 +221,6 @@ fun SpotDetailScreen(
 private class SpotDialogs {
     var renaming by mutableStateOf(false)
     var addingLink by mutableStateOf(false)
-    var addingMapsLink by mutableStateOf(false)
     var movingSpot by mutableStateOf(false)
     var changingPicture by mutableStateOf(false)
     var confirmingDelete by mutableStateOf(false)
@@ -270,18 +254,6 @@ private fun SpotDialogs(
                 dialogs.changingPicture = false
             },
             onDismiss = { dialogs.changingPicture = false },
-        )
-    }
-
-    if (dialogs.addingMapsLink) {
-        TextInputDialog(
-            title = stringResource(R.string.spot_location_add),
-            label = stringResource(R.string.label_url),
-            onConfirm = {
-                viewModel.setMapsUrl(it)
-                dialogs.addingMapsLink = false
-            },
-            onDismiss = { dialogs.addingMapsLink = false },
         )
     }
 

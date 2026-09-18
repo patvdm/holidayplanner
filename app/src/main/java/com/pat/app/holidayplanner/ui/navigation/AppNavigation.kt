@@ -2,6 +2,8 @@ package com.pat.app.holidayplanner.ui.navigation
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -15,6 +17,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.ui.explore.CountriesScreen
 import com.pat.app.holidayplanner.ui.explore.CountryScreen
 import com.pat.app.holidayplanner.ui.explore.CityScreen
@@ -31,6 +34,9 @@ import com.pat.app.holidayplanner.ui.trips.TripItemEditorScreen
 import com.pat.app.holidayplanner.ui.trips.TripScreen
 import com.pat.app.holidayplanner.ui.trips.TripsScreen
 
+/** The map sits in the middle of the five buttons, after Explore and Trips. */
+private const val MAP_SLOT = 2
+
 @Composable
 fun AppNavigation() {
     val nav = rememberTabNavState()
@@ -43,9 +49,17 @@ fun AppNavigation() {
         bottomBar = {
             if (showTabs) {
                 NavigationBar {
-                    AppTab.entries.forEach { tab ->
+                    AppTab.entries.forEachIndexed { index, tab ->
+                        if (index == MAP_SLOT) {
+                            NavigationBarItem(
+                                selected = nav.onMap,
+                                onClick = nav::openMap,
+                                icon = { Icon(Icons.Outlined.Map, contentDescription = null) },
+                                label = { Text(stringResource(R.string.map_title)) },
+                            )
+                        }
                         NavigationBarItem(
-                            selected = tab == nav.currentTab,
+                            selected = tab == nav.currentTab && !nav.onMap,
                             onClick = { nav.selectTab(tab) },
                             icon = { Icon(tab.icon, contentDescription = null) },
                             label = { Text(stringResource(tab.label)) },
@@ -69,7 +83,6 @@ fun AppNavigation() {
                         onSearch = { nav.push(SearchKey) },
                         onSettings = { nav.push(SettingsKey) },
                         onOpenCountry = { nav.push(CountryKey(it)) },
-                        onOpenMap = { nav.push(MapKey()) },
                     )
                 }
                 entry<CountryKey> { key ->
@@ -77,7 +90,6 @@ fun AppNavigation() {
                         countryId = key.countryId,
                         onBack = nav::back,
                         onOpenPlace = { nav.push(CityKey(it)) },
-                        onOpenMap = { nav.push(MapKey(countryId = key.countryId)) },
                     )
                 }
                 entry<CityKey> { key ->
@@ -86,14 +98,12 @@ fun AppNavigation() {
                         onBack = nav::back,
                         onOpenSpot = { nav.push(SpotKey(it)) },
                         onOpenRoute = { nav.push(RouteKey(it)) },
-                        onOpenMap = { nav.push(MapKey(cityId = key.cityId)) },
                     )
                 }
                 entry<SpotKey> { key ->
                     SpotDetailScreen(
                         spotId = key.spotId,
                         onBack = nav::back,
-                        onOpenMap = { nav.push(MapKey(spotId = key.spotId)) },
                     )
                 }
                 entry<SpotsRootKey> {
