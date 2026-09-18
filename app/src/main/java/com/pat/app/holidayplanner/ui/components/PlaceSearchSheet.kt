@@ -38,25 +38,36 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.data.local.SpotPickerRow
+import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.GENERAL_CITY_NAME
 import com.pat.app.holidayplanner.ui.explore.CountryPickerSheet
 import kotlinx.coroutines.delay
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 private const val LIST_MAX_HEIGHT_DP = 360
 private const val SHEET_SETTLE_MS = 250L
 
+/** Enough of your own spots to spot the one you meant, without pushing Google's off the screen. */
+private const val MAX_EXISTING_MATCHES = 5
+
 /**
- * Adds a place or a spot, by searching Google or by typing a name.
+ * Adds a spot by searching Google, or picks one that already exists.
  *
- * The search is the fast path, but it is never the only path: with no API key, no connection, or a
- * spent quota, the same sheet lets the name be typed and saves a row without coordinates.
+ * With [onPickExisting] set, the one search field looks through your own spots as well, and they
+ * are listed above Google's suggestions: a link about somewhere you already saved is filed with one
+ * tap, and somewhere new is one tap further. The search is the fast path, but it is never the only
+ * path: with no API key, no connection, or a spent quota, the same sheet lets the name be typed and
+ * saves a row without coordinates.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaceSearchSheet(
+    title: String = stringResource(R.string.place_search_title),
+    onPickExisting: ((SpotPickerRow) -> Unit)? = null,
     cityId: String = "",
     prefillName: String = "",
     knownLat: Double? = null,
@@ -95,7 +106,7 @@ fun PlaceSearchSheet(
         ) {
             val pending = state.pending
             if (pending == null) {
-                SearchStep(state, viewModel, focusRequester, onSaved)
+                SearchStep(title, state, viewModel, focusRequester, onPickExisting, onSaved)
             } else {
                 ConfirmStep(state, pending, viewModel, onSaved)
             }
@@ -105,12 +116,14 @@ fun PlaceSearchSheet(
 
 @Composable
 private fun SearchStep(
+    title: String,
     state: PlaceSearchUiState,
     viewModel: PlaceSearchViewModel,
     focusRequester: FocusRequester,
+    onPickExisting: ((SpotPickerRow) -> Unit)?,
     onSaved: (String) -> Unit,
 ) {
-    Text(stringResource(R.string.place_search_title), style = MaterialTheme.typography.titleMedium)
+    Text(title, style = MaterialTheme.typography.titleMedium)
 
     OutlinedTextField(
         value = state.query,
@@ -130,25 +143,12 @@ private fun SearchStep(
             .focusRequester(focusRequester),
     )
 
-    state.manualReason?.let { reason ->
-        Text(
-            text = stringResource(
-                when (reason) {
-                    ManualReason.NO_KEY -> R.string.place_search_no_key
-                    ManualReason.SEARCH_FAILED -> R.string.place_search_failed
-                },
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
-        )
-        state.errorDetail?.let {
-            Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-        }
-    }
+    ManualNotice(state)
 
     if (state.searching) CircularProgressIndicator()
 
-    if (state.needsHome) HomeFields(state, viewModel)
+    // Google says where a picked place belongs, so a home is only asked for when typing a name.
+    if (state.needsHome && state.manual) HomeFields(state, viewModel)
 
     if (state.manual) {
         Button(
@@ -159,30 +159,107 @@ private fun SearchStep(
             Text(stringResource(R.string.action_add))
         }
     } else {
-        LazyColumn(modifier = Modifier.heightIn(max = LIST_MAX_HEIGHT_DP.dp)) {
-            items(state.predictions, key = { it.googlePlaceId }) { prediction ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.pick(prediction) }
-                        .padding(vertical = 12.dp),
-                ) {
-                    Text(prediction.primaryText, style = MaterialTheme.typography.bodyLarge)
-                    if (prediction.secondaryText.isNotBlank()) {
-                        Text(
-                            text = prediction.secondaryText,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                HorizontalDivider()
+        Results(state, viewModel, onPickExisting)
+        if (state.query.isNotBlank()) {
+            TextButton(onClick = { viewModel.saveManually(onSaved) }, enabled = state.canSaveManually) {
+                Text(stringResource(R.string.place_search_use_typed))
             }
         }
-        TextButton(onClick = { viewModel.saveManually(onSaved) }, enabled = state.canSaveManually) {
-            Text(stringResource(R.string.place_search_use_typed))
+    }
+}
+
+/** Why the search is off, when it is. */
+@Composable
+private fun ManualNotice(state: PlaceSearchUiState) {
+    val reason = state.manualReason ?: return
+    Text(
+        text = stringResource(
+            when (reason) {
+                ManualReason.NO_KEY -> R.string.place_search_no_key
+                ManualReason.SEARCH_FAILED -> R.string.place_search_failed
+            },
+        ),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+    )
+    state.errorDetail?.let {
+        Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+    }
+}
+
+/** Your own matching spots first, then what Google suggests. */
+@Composable
+private fun Results(
+    state: PlaceSearchUiState,
+    viewModel: PlaceSearchViewModel,
+    onPickExisting: ((SpotPickerRow) -> Unit)?,
+) {
+    val existing = if (onPickExisting == null) emptyList() else rememberExistingMatches(state.query)
+    LazyColumn(modifier = Modifier.heightIn(max = LIST_MAX_HEIGHT_DP.dp)) {
+        if (existing.isNotEmpty()) {
+            item(key = "yours") { ListHeader(stringResource(R.string.place_search_yours)) }
+            items(existing, key = { "spot-${it.spotId}" }) { row ->
+                ResultRow(primary = row.spotName, secondary = row.group) { onPickExisting?.invoke(row) }
+            }
+        }
+        if (existing.isNotEmpty() && state.predictions.isNotEmpty()) {
+            item(key = "new") { ListHeader(stringResource(R.string.place_search_new)) }
+        }
+        items(state.predictions, key = { it.googlePlaceId }) { prediction ->
+            ResultRow(primary = prediction.primaryText, secondary = prediction.secondaryText) {
+                viewModel.pick(prediction)
+            }
         }
     }
+}
+
+/** Your own spots whose name or whereabouts contain what was typed, a few at most. */
+@Composable
+private fun rememberExistingMatches(query: String, repository: SpotRepository = koinInject()): List<SpotPickerRow> {
+    val rows by remember(repository) { repository.observePickerRows() }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    return remember(rows, query) {
+        val needle = query.trim()
+        if (needle.isEmpty()) {
+            emptyList()
+        } else {
+            rows.filter { row ->
+                row.spotName.contains(needle, ignoreCase = true) ||
+                    row.cityName.contains(needle, ignoreCase = true) ||
+                    row.countryName.contains(needle, ignoreCase = true)
+            }.take(MAX_EXISTING_MATCHES)
+        }
+    }
+}
+
+@Composable
+private fun ListHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+    )
+}
+
+@Composable
+private fun ResultRow(primary: String, secondary: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+    ) {
+        Text(primary, style = MaterialTheme.typography.bodyLarge)
+        if (secondary.isNotBlank()) {
+            Text(
+                text = secondary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    HorizontalDivider()
 }
 
 /**

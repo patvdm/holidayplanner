@@ -1,33 +1,25 @@
 package com.pat.app.holidayplanner.ui.share
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
-import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * The dialog that pops over the sharing app: a preview of the link, a note, and one Save, which
- * files it straight away. The spot picker opens over the same dialog, so filing a reel never takes
- * you out of Instagram. Backing out of the picker saves nothing: a link with no spot is not kept.
+ * What pops over the sharing app. A Maps link becomes a spot on its own. Any other link asks one
+ * question, which spot it is about, in a single sheet that searches your spots and Google at once,
+ * so a spot that does not exist yet is one tap further than one that does. Nothing takes you out
+ * of Instagram, and backing out saves nothing: a link with no spot is not kept.
  */
 @Composable
 fun ShareDialog(
@@ -37,7 +29,6 @@ fun ShareDialog(
     viewModel: ShareViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var creatingSpot by remember { mutableStateOf(false) }
 
     LaunchedEffect(sharedText) { viewModel.onShared(sharedText) }
     LaunchedEffect(state) { if (state is ShareState.Saved) onClose() }
@@ -88,82 +79,14 @@ fun ShareDialog(
             dismissButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.action_cancel)) } },
         )
 
-        is ShareState.Ready -> SaveDialog(
-            url = current.link.url,
-            note = current.note,
-            hint = stringResource(R.string.share_maps_fallback).takeIf { current.link.isMapsLink },
-            detail = current.mapsIssue,
-            viewModel = viewModel,
-            onClose = onClose,
+        // One sheet over the app that shared the link: your spots and Google's, in one search.
+        is ShareState.Filing -> PlaceSearchSheet(
+            title = stringResource(R.string.share_pick_spot),
+            onPickExisting = { viewModel.fileUnder(it.spotId) },
+            onDismiss = viewModel::cancelFiling,
+            onSaved = viewModel::fileUnder,
         )
-
-        // The picker opens over the app that shared the link, so nothing takes you away from it.
-        is ShareState.Filing -> if (creatingSpot) {
-            PlaceSearchSheet(
-                onDismiss = { creatingSpot = false },
-                onSaved = { spotId ->
-                    creatingSpot = false
-                    viewModel.fileUnder(spotId)
-                },
-            )
-        } else {
-            SpotPickerSheet(
-                onPick = { viewModel.fileUnder(it.spotId) },
-                onDismiss = viewModel::cancelFiling,
-                allowCreate = true,
-                onCreateNew = { creatingSpot = true },
-            )
-        }
     }
-}
-
-@Composable
-private fun SaveDialog(
-    url: String,
-    note: String,
-    hint: String?,
-    detail: String? = null,
-    viewModel: ShareViewModel,
-    onClose: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onClose,
-        title = { Text(stringResource(R.string.share_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = url,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                )
-                hint?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-                detail?.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        maxLines = 3,
-                    )
-                }
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = viewModel::onNoteChange,
-                    label = { Text(stringResource(R.string.share_note_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-        confirmButton = { TextButton(onClick = viewModel::save) { Text(stringResource(R.string.share_save)) } },
-        dismissButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.action_cancel)) } },
-    )
 }
 
 @Composable

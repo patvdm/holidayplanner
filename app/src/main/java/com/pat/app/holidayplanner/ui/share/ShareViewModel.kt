@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.share
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.SpotContext
@@ -15,8 +16,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val TAG = "ShareViewModel"
 
 /**
  * A place shared from Maps, ready to become a spot.
@@ -45,17 +47,6 @@ sealed interface ShareState {
     /** The share had no link in it at all. */
     data object NoLink : ShareState
 
-    /**
-     * Ready to save, with a note. Maps links are the same state: [SharedLink.isMapsLink] decides
-     * the wording, so there is one path through the dialog rather than two that can drift apart.
-     */
-    data class Ready(
-        val link: SharedLink,
-        val note: String = "",
-        /** Why a Maps link did not become a spot, shown so a failure is diagnosable rather than mute. */
-        val mapsIssue: String? = null,
-    ) : ShareState
-
     /** The same link is already saved, so offer to open it rather than saving it twice. */
     data class Duplicate(val existing: ExistingLink) : ShareState
 
@@ -66,12 +57,13 @@ sealed interface ShareState {
     data class CreatingSpot(val spot: SharedSpot) : ShareState
 
     /**
-     * Asking which spot the link belongs to, without leaving the other app.
+     * Asking which spot the link belongs to, without leaving the other app. This is the first and
+     * only question for anything that is not a Maps link: pick a spot, or find a new one.
      *
      * Nothing is written yet: a link with nowhere to live is not worth keeping, so backing out here
      * saves nothing rather than leaving something to tidy up later.
      */
-    data class Filing(val link: SharedLink, val note: String) : ShareState
+    data class Filing(val link: SharedLink) : ShareState
 
     data object Saved : ShareState
 }
@@ -106,7 +98,7 @@ class ShareViewModel(
             state.value = when {
                 existing != null -> ShareState.Duplicate(describe(existing.meta.id, existing.url, existing.spotId))
                 shared.isMapsLink -> ShareState.Resolving
-                else -> ShareState.Ready(shared)
+                else -> ShareState.Filing(shared)
             }
             if (state.value == ShareState.Resolving) resolveMapsLink(shared)
         }
@@ -114,14 +106,14 @@ class ShareViewModel(
 
     /**
      * Follows the short link and reads the place out of the real address. If that fails, the link
-     * is offered as an ordinary one rather than lost.
+     * is filed under a spot like any other rather than lost; the reason goes to the log.
      */
     private suspend fun resolveMapsLink(shared: SharedLink) {
         val outcome = linkResolver.resolve(shared.url)
         val resolved = outcome.getOrNull()
         if (resolved == null) {
-            val reason = outcome.exceptionOrNull()?.message.orEmpty()
-            state.value = ShareState.Ready(shared, mapsIssue = reason)
+            Log.w(TAG, "could not follow ${shared.url}: ${outcome.exceptionOrNull()?.message}")
+            state.value = ShareState.Filing(shared)
             return
         }
         val place = MapsLinkParser.parse(resolved.url)
@@ -146,11 +138,12 @@ class ShareViewModel(
         state.value = if (place.isEmpty && name.isBlank()) {
             // Either it never redirected, or the address shape is one the parser has not met.
             val detail = if (resolved.movedFrom(shared.url)) {
-                "No place in ${resolved.url}"
+                "no place in ${resolved.url}"
             } else {
-                "Did not redirect: HTTP ${resolved.status} after ${resolved.hops} hops"
+                "did not redirect: HTTP ${resolved.status} after ${resolved.hops} hops"
             }
-            ShareState.Ready(shared, mapsIssue = detail)
+            Log.w(TAG, "Maps link kept as a plain link: $detail")
+            ShareState.Filing(shared)
         } else {
             ShareState.CreatingSpot(
                 SharedSpot(
@@ -172,16 +165,6 @@ class ShareViewModel(
         state.value = ShareState.Saved
     }
 
-    fun onNoteChange(value: String) {
-        state.update { current -> if (current is ShareState.Ready) current.copy(note = value) else current }
-    }
-
-    /** Moves on to the only question that matters: which spot is this link about. */
-    fun save() {
-        val ready = state.value as? ShareState.Ready ?: return
-        state.value = ShareState.Filing(ready.link, ready.note)
-    }
-
     /** Writes the link against the spot it belongs to, which is the only way it gets written. */
     fun fileUnder(spotId: String) {
         val filing = state.value as? ShareState.Filing ?: return
@@ -190,7 +173,7 @@ class ShareViewModel(
             linkRepository.add(
                 url = filing.link.url,
                 source = filing.link.source,
-                note = filing.note,
+                note = "",
                 spotId = spotId,
             )
         }
