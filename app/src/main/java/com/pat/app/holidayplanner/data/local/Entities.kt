@@ -130,10 +130,6 @@ data class TripItemEntity(
     val spotId: String,
     val routeId: String,
     val bookingRef: String,
-    /** Integer minor units, paired with [currency]. Never a float. */
-    val costMinor: Long?,
-    val currency: String,
-    val docUrl: String,
     val notes: String,
 ) : SyncEntity
 

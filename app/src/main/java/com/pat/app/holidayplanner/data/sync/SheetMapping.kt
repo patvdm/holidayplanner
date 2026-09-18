@@ -52,8 +52,6 @@ private fun SheetRow.meta(): SyncMeta? {
 
 private fun Double?.orBlank(): String = this?.toString().orEmpty()
 
-private fun Long?.orBlank(): String = this?.toString().orEmpty()
-
 // Users -----------------------------------------------------------------------------------------
 
 fun userToRow(entity: UserEntity): Map<String, String> = buildRow(entity.meta) {
@@ -226,9 +224,6 @@ fun tripItemToRow(entity: TripItemEntity): Map<String, String> = buildRow(entity
     put("spotId", entity.spotId)
     put("routeId", entity.routeId)
     put("bookingRef", entity.bookingRef)
-    put("costMinor", entity.costMinor.orBlank())
-    put("currency", entity.currency)
-    put("docUrl", entity.docUrl)
     put("notes", entity.notes)
 }
 
@@ -250,9 +245,6 @@ fun tripItemFromRow(row: SheetRow): TripItemEntity? {
         spotId = row.str("spotId").trim(),
         routeId = row.str("routeId").trim(),
         bookingRef = row.str("bookingRef").trim(),
-        costMinor = row.longOrNull("costMinor"),
-        currency = row.str("currency").trim().uppercase(),
-        docUrl = row.str("docUrl").trim(),
         notes = row.str("notes"),
     )
 }

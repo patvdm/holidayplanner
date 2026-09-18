@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -45,7 +46,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.RouteRow
 import com.pat.app.holidayplanner.data.local.TripItemRow
-import com.pat.app.holidayplanner.domain.Costs
 import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.domain.TripItemType
 import com.pat.app.holidayplanner.ui.components.PickFromListDialog
@@ -86,6 +86,8 @@ fun TripScreen(
     var adding by remember { mutableStateOf<Adding?>(null) }
 
     Scaffold(
+        // The tab bar below already keeps clear of the system bar; padding for it again left a dead strip.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text(state.trip?.name.orEmpty()) },
@@ -152,10 +154,6 @@ fun TripScreen(
                         onRemove = { viewModel.deleteItem(row.item.meta.id) },
                     )
                 }
-            }
-
-            if (state.totals.isNotEmpty()) {
-                item(key = "totals") { TotalsSection(state) }
             }
         }
     }
@@ -361,50 +359,35 @@ private fun RemoveMenu(onRemove: () -> Unit) {
     }
 }
 
-/** What a row says under its name: a flight its legs and length, a route its city and stops. */
+/** What a row says under its name: a flight its number and length, a route its city and stops. */
 @Composable
 private fun subtitle(row: TripItemRow): String? {
     val item = row.item
     return when (item.type) {
+        // The legs are the name, so the line under it holds the flight number, the time and how long.
         TripItemType.FLIGHT -> {
-            val legs = listOf(item.origin, item.destination).filter { it.isNotBlank() }
             val elapsed = LocalTimes.elapsed(item.startLocal, item.startTimeZone, item.endLocal, item.endTimeZone)
             listOfNotNull(
+                item.title.takeIf { it.isNotBlank() && row.title != it },
                 LocalTimes.timeOfDay(item.startLocal).takeIf { it.isNotBlank() },
-                legs.takeIf { it.size == 2 }?.joinToString(" \u2192 "),
                 elapsed?.let(LocalTimes::formatDuration),
             ).joinToString(" \u00b7 ").takeIf { it.isNotBlank() }
         }
 
-        TripItemType.ROUTE -> row.routeCityName?.let {
-            stringResource(R.string.trip_route_stops, it, row.routeStopCount)
-        }
+        TripItemType.ROUTE -> routeDetail(row.title, row.routeCityName, row.routeStopCount)
 
         TripItemType.SPOT -> LocalTimes.timeOfDay(item.startLocal).takeIf { it.isNotBlank() }
     }
 }
 
+/** A route named after its city says so once: then only the stop count is worth adding. */
 @Composable
-private fun TotalsSection(state: TripUiState) {
-    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
-        Text(
-            text = stringResource(R.string.trip_totals),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        state.totals.forEach { total ->
-            Text(text = Costs.format(total), style = MaterialTheme.typography.titleMedium)
-        }
-        state.totalsByType.forEach { (type, totals) ->
-            Text(
-                text = "${stringResource(type.label())}: ${totals.joinToString(", ") { Costs.format(it) }}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+private fun routeDetail(name: String, cityName: String?, stops: Int): String =
+    if (cityName.isNullOrBlank() || cityName == name) {
+        stringResource(R.string.route_stop_count, stops)
+    } else {
+        stringResource(R.string.trip_route_stops, cityName, stops)
     }
-}
 
 @Composable
 private fun KindDialog(date: LocalDate, onPick: (TripItemType) -> Unit, onDismiss: () -> Unit) {
@@ -463,7 +446,7 @@ private fun RoutePickerDialog(
                             WalkedBadge(route.route.completed)
                         }
                         Text(
-                            text = stringResource(R.string.trip_route_stops, route.cityName, route.stopCount),
+                            text = routeDetail(route.route.name, route.cityName, route.stopCount),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

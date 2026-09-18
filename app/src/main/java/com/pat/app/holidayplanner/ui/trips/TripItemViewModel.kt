@@ -10,10 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** Money is typed in major units and stored in minor ones, so the text stays as the person wrote it. */
 data class ItemEditorState(
     val item: TripItemEntity? = null,
-    val costText: String = "",
     val saving: Boolean = false,
 ) {
     val type get() = item?.type
@@ -44,17 +42,12 @@ class TripItemViewModel(
                     startTimeZone = zone,
                     endTimeZone = item.endTimeZone.ifBlank { zone },
                 ),
-                costText = item.costMinor.toMajorUnits(),
             )
         }
     }
 
     fun edit(change: (TripItemEntity) -> TripItemEntity) {
         state.value = state.value.copy(item = state.value.item?.let(change))
-    }
-
-    fun onCostChange(text: String) {
-        state.value = state.value.copy(costText = text)
     }
 
     fun setStart(local: String, zone: String) = edit { it.copy(startLocal = local, startTimeZone = zone) }
@@ -71,7 +64,7 @@ class TripItemViewModel(
         val item = state.value.item ?: return
         state.value = state.value.copy(saving = true)
         viewModelScope.launch {
-            repository.updateItem(item.copy(costMinor = state.value.costText.toMinorUnits()))
+            repository.updateItem(item)
             onSaved()
         }
     }
@@ -82,19 +75,4 @@ class TripItemViewModel(
             onDeleted()
         }
     }
-}
-
-private const val MINOR_UNITS_PER_MAJOR = 100
-
-/** "249.50" becomes 24950. Anything unreadable becomes no cost rather than a wrong one. */
-private fun String.toMinorUnits(): Long? {
-    val cleaned = trim().replace(',', '.')
-    if (cleaned.isEmpty()) return null
-    val amount = cleaned.toDoubleOrNull() ?: return null
-    return Math.round(amount * MINOR_UNITS_PER_MAJOR)
-}
-
-private fun Long?.toMajorUnits(): String {
-    val minor = this ?: return ""
-    return (minor.toDouble() / MINOR_UNITS_PER_MAJOR).toString()
 }

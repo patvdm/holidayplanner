@@ -134,9 +134,6 @@ class SheetMappingTest {
             spotId = "",
             routeId = "",
             bookingRef = "0012AB",
-            costMinor = 24_950,
-            currency = "EUR",
-            docUrl = "https://drive/x",
             notes = "aisle seats",
         )
         assertEquals(entity, tripItemFromRow(SheetRow(tripItemToRow(entity))))
@@ -158,9 +155,6 @@ class SheetMappingTest {
             spotId = "",
             routeId = "",
             bookingRef = "",
-            costMinor = null,
-            currency = "",
-            docUrl = "",
             notes = "",
         )
         assertEquals(entity, tripItemFromRow(SheetRow(tripItemToRow(entity))))
@@ -187,11 +181,8 @@ class SheetMappingTest {
                 endLocal = "",
                 endTimeZone = "",
                 spotId = "",
-            routeId = "",
+                routeId = "",
                 bookingRef = "000742",
-                costMinor = null,
-                currency = "",
-                docUrl = "",
                 notes = "",
             ),
         )

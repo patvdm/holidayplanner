@@ -137,12 +137,18 @@ data class TripItemRow(
     val routeCityName: String?,
     val routeStopCount: Int,
 ) {
-    /** What the row is called: the thing it points at if it still exists, else what was typed. */
+    /**
+     * What the row is called: the thing it points at if it still exists, else what was typed. A
+     * flight is called after where it goes, since "AMS \u2192 LIS" says more than its number does.
+     */
     val title: String
         get() = when (item.type) {
             TripItemType.SPOT -> spotName ?: item.title
             TripItemType.ROUTE -> routeName ?: item.title
-            TripItemType.FLIGHT -> item.title
+            TripItemType.FLIGHT -> listOf(item.origin, item.destination)
+                .filter { it.isNotBlank() }
+                .joinToString(" \u2192 ")
+                .ifBlank { item.title }
         }
 }
 

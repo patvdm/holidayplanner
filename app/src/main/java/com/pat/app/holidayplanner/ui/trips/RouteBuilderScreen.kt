@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -81,6 +82,8 @@ fun RouteBuilderScreen(
     }
 
     Scaffold(
+        // The tab bar below already keeps clear of the system bar; padding for it again left a dead strip.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             BackTopBar(
                 title = state.cityName.ifBlank { stringResource(R.string.route_title) },

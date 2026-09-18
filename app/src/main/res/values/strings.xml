@@ -138,8 +138,8 @@
     <string name="trip_new_route">New route</string>
     <string name="trip_remove_item">Remove from trip</string>
     <string name="trip_route_stops">%1$s \u00b7 %2$d stops</string>
+    <string name="route_stop_count">%1$d stops</string>
     <string name="trip_undated">No date yet</string>
-    <string name="trip_totals">Totals</string>
     <string name="trip_check_out">Check out</string>
     <string name="trip_dates">Dates</string>
     <string name="trip_start_date">Start date</string>
@@ -162,9 +162,6 @@
     <string name="item_arrives">Arrives</string>
     <string name="item_date">Date</string>
     <string name="item_booking_ref">Booking reference</string>
-    <string name="item_cost">Cost</string>
-    <string name="item_currency">Currency</string>
-    <string name="item_doc_url">Document link</string>
     <string name="item_pick_spot">Link a spot</string>
     <string name="item_change_spot">Change the linked spot</string>
     <string name="item_open_spot">Open spot</string>
@@ -213,6 +210,7 @@
     <string name="route_city_empty">No spots saved in this city yet. Add some and they appear here to tick.</string>
     <string name="route_delete_message">Any trip day pointing at it loses the route. The spots themselves are untouched.</string>
     <string name="route_row_detail">%1$s, %2$s \u00b7 %3$d stops</string>
+    <string name="route_row_detail_country">%1$s \u00b7 %2$d stops</string>
     <string name="routes_empty">No routes yet. Tap + to start one: a route walks the spots of one city.</string>
     <string name="routes_no_cities">Save a spot somewhere first. A route walks the spots of one city.</string>
     <string name="routes_walked_header">Walked</string>

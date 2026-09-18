@@ -12,9 +12,6 @@ import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.CountryRepository
 import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.TripRepository
-import com.pat.app.holidayplanner.domain.Cost
-import com.pat.app.holidayplanner.domain.Costs
-import com.pat.app.holidayplanner.domain.CurrencyTotal
 import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.domain.TripItemType
 import java.time.LocalDate
@@ -33,8 +30,6 @@ private const val STOP_TIMEOUT_MS = 5_000L
 data class TripUiState(
     val trip: TripEntity? = null,
     val plan: TripPlan = TripPlan(emptyList(), emptyList()),
-    val totals: List<CurrencyTotal> = emptyList(),
-    val totalsByType: List<Pair<TripItemType, List<CurrencyTotal>>> = emptyList(),
     val countries: List<CountryEntity> = emptyList(),
     /** The routes through this trip's country, which a day can pick from. */
     val routes: List<RouteRow> = emptyList(),
@@ -84,15 +79,12 @@ class TripViewModel(
         countryRepository.observeCountries(),
         inCountry,
     ) { current, rows, countries, scope ->
-        val items = rows.map { it.item }
         TripUiState(
             trip = current,
             plan = rows.toPlan(
                 start = current?.let { LocalTimes.parseDate(it.startDate) },
                 end = current?.let { LocalTimes.parseDate(it.endDate) },
             ),
-            totals = Costs.byCurrency(items.mapNotNull(::costOf)),
-            totalsByType = totalsByType(items),
             countries = countries,
             routes = scope.routes,
             cities = scope.cities,
@@ -178,17 +170,4 @@ class TripViewModel(
         val current = uiState.value.trip ?: return
         viewModelScope.launch { repository.update(change(current)) }
     }
-
-    /** Per type, so it is clear whether the flights or the hotels are what cost the money. */
-    private fun totalsByType(items: List<TripItemEntity>): List<Pair<TripItemType, List<CurrencyTotal>>> =
-        TripItemType.entries.mapNotNull { type ->
-            val costs = items.filter { it.type == type }.mapNotNull(::costOf)
-            val totals = Costs.byCurrency(costs)
-            if (totals.isEmpty()) null else type to totals
-        }
-}
-
-private fun costOf(item: TripItemEntity): Cost? {
-    val amount = item.costMinor ?: return null
-    return Cost(amountMinor = amount, currency = item.currency)
 }

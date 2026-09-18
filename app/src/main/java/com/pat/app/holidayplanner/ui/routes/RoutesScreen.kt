@@ -126,13 +126,13 @@ fun RouteRowItem(row: RouteRow, onClick: () -> Unit) {
                     text = row.route.name.ifBlank { row.cityName },
                     style = MaterialTheme.typography.titleMedium,
                 )
+                // A route named after its city says so once.
                 Text(
-                    text = stringResource(
-                        R.string.route_row_detail,
-                        row.cityName,
-                        row.countryName,
-                        row.stopCount,
-                    ),
+                    text = if (row.route.name.isBlank() || row.route.name == row.cityName) {
+                        stringResource(R.string.route_row_detail_country, row.countryName, row.stopCount)
+                    } else {
+                        stringResource(R.string.route_row_detail, row.cityName, row.countryName, row.stopCount)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

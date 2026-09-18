@@ -28,7 +28,7 @@ var SCHEMA = {
   Trips: COMMON_COLUMNS.concat(['name', 'countryId', 'startDate', 'endDate', 'notes']),
   TripItems: COMMON_COLUMNS.concat([
     'tripId', 'type', 'title', 'origin', 'destination', 'startLocal', 'startTimeZone', 'endLocal', 'endTimeZone',
-    'spotId', 'routeId', 'bookingRef', 'costMinor', 'currency', 'docUrl', 'notes',
+    'spotId', 'routeId', 'bookingRef', 'notes',
   ]),
   Routes: COMMON_COLUMNS.concat(['cityId', 'name', 'completed', 'notes']),
   RouteStops: COMMON_COLUMNS.concat(['routeId', 'spotId', 'sortKey']),

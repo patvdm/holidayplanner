@@ -134,7 +134,11 @@ private fun TripRowItem(row: TripRow, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(row.trip.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = listOfNotNull(row.countryName?.takeIf { it.isNotBlank() }, tripDates(row))
+                    // A trip named after its country says so once.
+                    text = listOfNotNull(
+                        row.countryName?.takeIf { it.isNotBlank() && it != row.trip.name },
+                        tripDates(row),
+                    )
                         .joinToString(" \u00b7 "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

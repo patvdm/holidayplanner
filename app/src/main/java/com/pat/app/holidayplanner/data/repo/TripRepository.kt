@@ -84,9 +84,6 @@ class TripRepository(
             spotId = spotId,
             routeId = routeId,
             bookingRef = "",
-            costMinor = null,
-            currency = "",
-            docUrl = "",
             notes = "",
         )
         itemDao.upsert(listOf(item))

@@ -2,9 +2,9 @@ package com.pat.app.holidayplanner.ui.trips
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
@@ -58,6 +57,8 @@ fun TripItemEditorScreen(
     var pickingSpot by remember { mutableStateOf(false) }
 
     Scaffold(
+        // The tab bar below already keeps clear of the system bar; padding for it again left a dead strip.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(item?.type?.label() ?: R.string.trip_add_item)) },
@@ -87,13 +88,22 @@ fun TripItemEditorScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            TextField(
-                label = stringResource(titleLabelFor(item.type)),
-                value = item.title,
-                capitalize = true,
-            ) { text -> viewModel.edit { it.copy(title = text) } }
-
+            // When and where first, since that is what a flight is; its number and booking come after.
+            DateTimeField(
+                label = stringResource(startLabelFor(item.type)),
+                local = item.startLocal,
+                zone = item.startTimeZone,
+                onChange = viewModel::setStart,
+            )
+            // Only a flight has a second clock; a spot or a route simply belongs to a day.
             if (item.type == TripItemType.FLIGHT) {
+                DateTimeField(
+                    label = stringResource(R.string.item_arrives),
+                    local = item.endLocal,
+                    zone = item.endTimeZone,
+                    onChange = viewModel::setEnd,
+                )
+                HorizontalDivider()
                 TextField(stringResource(R.string.item_origin), item.origin, capitalize = true) { text ->
                     viewModel.edit { it.copy(origin = text) }
                 }
@@ -102,6 +112,7 @@ fun TripItemEditorScreen(
                 }
             }
 
+            HorizontalDivider()
             if (item.type == TripItemType.SPOT) {
                 if (item.spotId.isNotBlank()) {
                     FilledTonalButton(onClick = { onOpenSpot(item.spotId) }, modifier = Modifier.fillMaxWidth()) {
@@ -119,47 +130,13 @@ fun TripItemEditorScreen(
                 }
             }
 
-            HorizontalDivider()
-            DateTimeField(
-                label = stringResource(startLabelFor(item.type)),
-                local = item.startLocal,
-                zone = item.startTimeZone,
-                onChange = viewModel::setStart,
-            )
-            // Only a flight has a second clock; a spot or a route simply belongs to a day.
-            if (item.type == TripItemType.FLIGHT) {
-                DateTimeField(
-                    label = stringResource(R.string.item_arrives),
-                    local = item.endLocal,
-                    zone = item.endTimeZone,
-                    onChange = viewModel::setEnd,
-                )
-            }
-
-
-            HorizontalDivider()
+            TextField(
+                label = stringResource(titleLabelFor(item.type)),
+                value = item.title,
+                capitalize = true,
+            ) { text -> viewModel.edit { it.copy(title = text) } }
             TextField(stringResource(R.string.item_booking_ref), item.bookingRef) { text ->
                 viewModel.edit { it.copy(bookingRef = text) }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = state.costText,
-                    onValueChange = viewModel::onCostChange,
-                    label = { Text(stringResource(R.string.item_cost)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedTextField(
-                    value = item.currency,
-                    onValueChange = { text -> viewModel.edit { it.copy(currency = text.uppercase()) } },
-                    label = { Text(stringResource(R.string.item_currency)) },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            TextField(stringResource(R.string.item_doc_url), item.docUrl) { text ->
-                viewModel.edit { it.copy(docUrl = text) }
             }
             TextField(stringResource(R.string.spot_notes), item.notes, capitalize = true, singleLine = false) { text ->
                 viewModel.edit { it.copy(notes = text) }
