@@ -6,6 +6,9 @@ phone app:
 
 - **add_places**: files places into the backend through the sheet's Inbox (see `docs/import.md`),
   so "tell me about Kasteeltuinen Arcen" followed by "add it to my travel plans" just works.
+- **update_place**: "mark the Rijksmuseum visited", "make Plitvice high priority", "add a note to
+  Hvar", or a rename. Goes through the sync API like an edit on a phone would.
+- **remove_place**: deletes a spot and its links. Claude is told to ask first.
 - **list_places**: what is already saved, so Claude checks for duplicates and can answer "what do
   I have in Croatia?".
 

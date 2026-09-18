@@ -54,6 +54,41 @@ const TOOLS = [
     },
   },
   {
+    name: 'update_place',
+    description:
+      'Changes one saved place in the Holiday Planner travel database: mark it visited, change its priority ' +
+      'or type, rename it, or replace or add to its notes. Find it by `spot` (its current name) and, when the ' +
+      'same name exists in more than one city, `city`. Only the fields given are changed.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        spot: { type: 'string', description: 'Current name of the place. Required.' },
+        city: { type: 'string', description: 'City it is filed under, to tell same-named places apart.' },
+        name: { type: 'string', description: 'New name.' },
+        status: { type: 'string', enum: ['visited', 'unvisited'] },
+        priority: { type: 'string', enum: ['high', 'normal'] },
+        type: { type: 'string', enum: ['poi', 'restaurant', 'accommodation'] },
+        notes: { type: 'string', description: 'Replaces the notes entirely.' },
+        append_notes: { type: 'string', description: 'Added as a new line under the existing notes.' },
+      },
+      required: ['spot'],
+    },
+  },
+  {
+    name: 'remove_place',
+    description:
+      'Removes one saved place from the Holiday Planner travel database, with its links. Find it by `spot` ' +
+      'and, if needed, `city`. Ask the user before calling this unless they clearly asked for a removal.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        spot: { type: 'string', description: 'Current name of the place. Required.' },
+        city: { type: 'string', description: 'City it is filed under, to tell same-named places apart.' },
+      },
+      required: ['spot'],
+    },
+  },
+  {
     name: 'list_places',
     description:
       'Lists what is already in the Holiday Planner travel database: countries, their cities and the spots in ' +
@@ -127,6 +162,8 @@ async function handle(message, env) {
 async function callTool({ name, arguments: args = {} }, env) {
   try {
     if (name === 'add_places') return await addPlaces(args, env);
+    if (name === 'update_place') return await updatePlace(args, env);
+    if (name === 'remove_place') return await removePlace(args, env);
     if (name === 'list_places') return await listPlaces(args, env);
     return toolText(`Unknown tool: ${name}`, true);
   } catch (err) {
@@ -149,6 +186,71 @@ async function addPlaces({ places }, env) {
   if (!reply.ok) return toolText(`Backend error: ${reply.error || JSON.stringify(reply)}`, true);
   const lines = (reply.results || []).map((r) => `${r.result}: ${r.spot}`);
   return toolText(lines.length ? lines.join('\n') : 'Nothing was imported.');
+}
+
+/** The saved spot called `spot`, in `city` if given. A string back means it could not be settled. */
+async function findSpot({ spot, city }, env) {
+  const reply = await backend(env, { action: 'pull', since: 0, tables: ['Countries', 'Cities', 'Spots'] });
+  if (!reply.ok) return `Backend error: ${reply.error || JSON.stringify(reply)}`;
+  const live = (table) => (reply.changes[table] || []).filter((r) => r.deleted !== 'true');
+  const cities = live('Cities');
+  const wantedName = text(spot).toLowerCase();
+  const wantedCity = text(city).toLowerCase();
+  const matches = live('Spots').filter((s) => {
+    if (s.name.toLowerCase() !== wantedName) return false;
+    if (!wantedCity) return true;
+    const home = cities.find((c) => c.id === s.parentCityId);
+    return home && home.name.toLowerCase() === wantedCity;
+  });
+  if (matches.length === 0) return `No saved place called "${spot}"${city ? ` in ${city}` : ''}.`;
+  if (matches.length > 1) {
+    const where = matches.map((s) => (cities.find((c) => c.id === s.parentCityId) || {}).name || '?');
+    return `"${spot}" exists in more than one city (${where.join(', ')}); say which one.`;
+  }
+  return matches[0];
+}
+
+async function updatePlace(args, env) {
+  const found = await findSpot(args, env);
+  if (typeof found === 'string') return toolText(found, true);
+  const changes = {};
+  if (text(args.name)) changes.name = text(args.name);
+  if (text(args.status)) changes.status = text(args.status).toUpperCase();
+  if (text(args.priority)) changes.priority = text(args.priority).toUpperCase();
+  if (text(args.type)) changes.type = text(args.type).toUpperCase();
+  if (args.notes !== undefined && args.notes !== null) changes.notes = text(args.notes);
+  if (text(args.append_notes)) {
+    changes.notes = [changes.notes !== undefined ? changes.notes : found.notes, text(args.append_notes)]
+      .filter(Boolean)
+      .join('\n');
+  }
+  if (Object.keys(changes).length === 0) return toolText('Nothing to change was given.', true);
+  const now = String(Date.now());
+  const reply = await backend(env, {
+    action: 'push',
+    rows: { Spots: [{ id: found.id, updatedAt: now, updatedBy: 'claude', ...changes }] },
+  });
+  if (!reply.ok) return toolText(`Backend error: ${reply.error || JSON.stringify(reply)}`, true);
+  const what = Object.keys(changes).map((k) => `${k} = ${changes[k]}`).join(', ');
+  return toolText(`Updated ${found.name}: ${what}.`);
+}
+
+async function removePlace(args, env) {
+  const found = await findSpot(args, env);
+  if (typeof found === 'string') return toolText(found, true);
+  const extras = await backend(env, { action: 'pull', since: 0, tables: ['Links', 'Hearts'] });
+  if (!extras.ok) return toolText(`Backend error: ${extras.error || JSON.stringify(extras)}`, true);
+  const now = String(Date.now());
+  const gone = (id) => ({ id, updatedAt: now, updatedBy: 'claude', deleted: 'true' });
+  const attached = (table) => (extras.changes[table] || []).filter((r) => r.spotId === found.id && r.deleted !== 'true');
+  const rows = {
+    Spots: [gone(found.id)],
+    Links: attached('Links').map((r) => gone(r.id)),
+    Hearts: attached('Hearts').map((r) => gone(r.id)),
+  };
+  const reply = await backend(env, { action: 'push', rows });
+  if (!reply.ok) return toolText(`Backend error: ${reply.error || JSON.stringify(reply)}`, true);
+  return toolText(`Removed ${found.name} (and ${rows.Links.length} link(s)).`);
 }
 
 async function listPlaces({ country }, env) {
