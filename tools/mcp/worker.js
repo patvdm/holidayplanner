@@ -56,36 +56,47 @@ const TOOLS = [
   {
     name: 'update_place',
     description:
-      'Changes one saved place in the Holiday Planner travel database: mark it visited, change its priority ' +
-      'or type, rename it, or replace or add to its notes. Find it by `spot` (its current name) and, when the ' +
-      'same name exists in more than one city, `city`. Only the fields given are changed.',
+      'Changes one country, city or spot already saved in the Holiday Planner travel database: mark a spot ' +
+      'visited, change a priority or type, rename something, replace or add to a spot\'s notes, or set the ' +
+      'picture shown for it. Say which `kind` it is (default spot) and its current `name`; add `city` or ' +
+      '`country` when the same name exists twice. Only the fields given are changed. `status`, `type`, `notes` ' +
+      'and `append_notes` apply to spots only.',
     inputSchema: {
       type: 'object',
       properties: {
-        spot: { type: 'string', description: 'Current name of the place. Required.' },
-        city: { type: 'string', description: 'City it is filed under, to tell same-named places apart.' },
-        name: { type: 'string', description: 'New name.' },
+        kind: { type: 'string', enum: ['spot', 'city', 'country'], description: 'What to change. Default spot.' },
+        name: { type: 'string', description: 'Its current name (a country also matches its two-letter code).' },
+        city: { type: 'string', description: 'City a spot is filed under, to tell same-named spots apart.' },
+        country: { type: 'string', description: 'Country a city is in, to tell same-named cities apart.' },
+        new_name: { type: 'string', description: 'Rename it to this.' },
         status: { type: 'string', enum: ['visited', 'unvisited'] },
         priority: { type: 'string', enum: ['high', 'normal'] },
         type: { type: 'string', enum: ['poi', 'restaurant', 'accommodation'] },
         notes: { type: 'string', description: 'Replaces the notes entirely.' },
         append_notes: { type: 'string', description: 'Added as a new line under the existing notes.' },
+        image_url: {
+          type: 'string',
+          description:
+            'Direct link to an image file (jpg or png), which becomes the picture shown in the app. Pass an ' +
+            'empty string to clear it, which makes the app look for a new picture on its own.',
+        },
       },
-      required: ['spot'],
+      required: ['name'],
     },
   },
   {
     name: 'remove_place',
     description:
-      'Removes one saved place from the Holiday Planner travel database, with its links. Find it by `spot` ' +
-      'and, if needed, `city`. Ask the user before calling this unless they clearly asked for a removal.',
+      'Removes one saved spot from the Holiday Planner travel database, with its links. Find it by `name` ' +
+      'and, if needed, `city`. Ask the user before calling this unless they clearly asked for a removal. ' +
+      'Countries and cities are not removed this way; they go when the app has nothing left under them.',
     inputSchema: {
       type: 'object',
       properties: {
-        spot: { type: 'string', description: 'Current name of the place. Required.' },
-        city: { type: 'string', description: 'City it is filed under, to tell same-named places apart.' },
+        name: { type: 'string', description: 'Current name of the spot. Required.' },
+        city: { type: 'string', description: 'City it is filed under, to tell same-named spots apart.' },
       },
-      required: ['spot'],
+      required: ['name'],
     },
   },
   {
@@ -93,11 +104,13 @@ const TOOLS = [
     description:
       'Lists what is already in the Holiday Planner travel database: countries, their cities and the spots in ' +
       'each. Use it before adding, to avoid duplicates, or when the user asks what they have saved somewhere. ' +
-      'Optional `country` narrows it to one country by name or ISO code.',
+      'Optional `country` narrows it to one country by name or ISO code; `details` adds each entry\'s notes ' +
+      'and picture, which is what to use before changing one.',
     inputSchema: {
       type: 'object',
       properties: {
         country: { type: 'string', description: 'Country name or two-letter code to narrow to. Optional.' },
+        details: { type: 'boolean', description: 'Include notes and picture links. Default false.' },
       },
     },
   },
@@ -188,56 +201,100 @@ async function addPlaces({ places }, env) {
   return toolText(lines.length ? lines.join('\n') : 'Nothing was imported.');
 }
 
-/** The saved spot called `spot`, in `city` if given. A string back means it could not be settled. */
-async function findSpot({ spot, city }, env) {
+const TABLE_OF = { country: 'Countries', city: 'Cities', spot: 'Spots' };
+
+/**
+ * The one saved country, city or spot going by `name`, narrowed by `city` or `country` when the
+ * name is not unique. A string back is the reason it could not be settled, ready to show.
+ */
+async function findRecord({ kind, name, city, country }, env) {
+  const table = TABLE_OF[kind];
+  if (!table) return `Unknown kind "${kind}". Use spot, city or country.`;
   const reply = await backend(env, { action: 'pull', since: 0, tables: ['Countries', 'Cities', 'Spots'] });
   if (!reply.ok) return `Backend error: ${reply.error || JSON.stringify(reply)}`;
-  const live = (table) => (reply.changes[table] || []).filter((r) => r.deleted !== 'true');
+  const live = (t) => (reply.changes[t] || []).filter((r) => r.deleted !== 'true');
+  const countries = live('Countries');
   const cities = live('Cities');
-  const wantedName = text(spot).toLowerCase();
-  const wantedCity = text(city).toLowerCase();
-  const matches = live('Spots').filter((s) => {
-    if (s.name.toLowerCase() !== wantedName) return false;
-    if (!wantedCity) return true;
-    const home = cities.find((c) => c.id === s.parentCityId);
-    return home && home.name.toLowerCase() === wantedCity;
-  });
-  if (matches.length === 0) return `No saved place called "${spot}"${city ? ` in ${city}` : ''}.`;
-  if (matches.length > 1) {
-    const where = matches.map((s) => (cities.find((c) => c.id === s.parentCityId) || {}).name || '?');
-    return `"${spot}" exists in more than one city (${where.join(', ')}); say which one.`;
+  const wanted = text(name).toLowerCase();
+  const inCountry = text(country).toLowerCase();
+  const inCity = text(city).toLowerCase();
+
+  let matches;
+  if (kind === 'country') {
+    matches = countries.filter((c) => c.name.toLowerCase() === wanted || c.isoCode.toLowerCase() === wanted);
+  } else if (kind === 'city') {
+    matches = cities.filter((c) => {
+      if (c.name.toLowerCase() !== wanted) return false;
+      if (!inCountry) return true;
+      const home = countries.find((x) => x.id === c.countryId);
+      return home && (home.name.toLowerCase() === inCountry || home.isoCode.toLowerCase() === inCountry);
+    });
+  } else {
+    matches = live('Spots').filter((s) => {
+      if (s.name.toLowerCase() !== wanted) return false;
+      if (!inCity) return true;
+      const home = cities.find((c) => c.id === s.parentCityId);
+      return home && home.name.toLowerCase() === inCity;
+    });
   }
-  return matches[0];
+
+  if (matches.length === 0) return `No saved ${kind} called "${name}".`;
+  if (matches.length > 1) {
+    const where = matches.map((m) => {
+      const home = kind === 'city'
+        ? countries.find((x) => x.id === m.countryId)
+        : cities.find((c) => c.id === m.parentCityId);
+      return (home || {}).name || '?';
+    });
+    return `More than one ${kind} is called "${name}" (${where.join(', ')}); say which one.`;
+  }
+  return { table, record: matches[0] };
 }
 
 async function updatePlace(args, env) {
-  const found = await findSpot(args, env);
+  const kind = text(args.kind).toLowerCase() || 'spot';
+  const found = await findRecord({ ...args, kind }, env);
   if (typeof found === 'string') return toolText(found, true);
+  const { table, record } = found;
+
+  const spotOnly = ['status', 'type', 'notes', 'append_notes'].filter((f) => text(args[f]));
+  if (kind !== 'spot' && spotOnly.length) {
+    return toolText(`A ${kind} has no ${spotOnly.join(' or ')}; those belong to a spot.`, true);
+  }
+
   const changes = {};
-  if (text(args.name)) changes.name = text(args.name);
-  if (text(args.status)) changes.status = text(args.status).toUpperCase();
+  if (text(args.new_name)) changes.name = text(args.new_name);
   if (text(args.priority)) changes.priority = text(args.priority).toUpperCase();
-  if (text(args.type)) changes.type = text(args.type).toUpperCase();
-  if (args.notes !== undefined && args.notes !== null) changes.notes = text(args.notes);
-  if (text(args.append_notes)) {
-    changes.notes = [changes.notes !== undefined ? changes.notes : found.notes, text(args.append_notes)]
-      .filter(Boolean)
-      .join('\n');
+  // An empty string is a real value here: it clears the picture and starts a fresh search.
+  if (args.image_url !== undefined && args.image_url !== null) changes.imageUrl = text(args.image_url);
+  if (kind === 'spot') {
+    if (text(args.status)) changes.status = text(args.status).toUpperCase();
+    if (text(args.type)) changes.type = text(args.type).toUpperCase();
+    if (args.notes !== undefined && args.notes !== null) changes.notes = text(args.notes);
+    if (text(args.append_notes)) {
+      changes.notes = [changes.notes !== undefined ? changes.notes : record.notes, text(args.append_notes)]
+        .filter(Boolean)
+        .join('\n');
+    }
   }
   if (Object.keys(changes).length === 0) return toolText('Nothing to change was given.', true);
+
   const now = String(Date.now());
   const reply = await backend(env, {
     action: 'push',
-    rows: { Spots: [{ id: found.id, updatedAt: now, updatedBy: 'claude', ...changes }] },
+    rows: { [table]: [{ id: record.id, updatedAt: now, updatedBy: 'claude', ...changes }] },
   });
   if (!reply.ok) return toolText(`Backend error: ${reply.error || JSON.stringify(reply)}`, true);
-  const what = Object.keys(changes).map((k) => `${k} = ${changes[k]}`).join(', ');
-  return toolText(`Updated ${found.name}: ${what}.`);
+  const what = Object.keys(changes)
+    .map((k) => `${k} = ${changes[k] === '' ? '(cleared)' : changes[k]}`)
+    .join(', ');
+  return toolText(`Updated the ${kind} ${record.name}: ${what}.`);
 }
 
 async function removePlace(args, env) {
-  const found = await findSpot(args, env);
-  if (typeof found === 'string') return toolText(found, true);
+  const found0 = await findRecord({ ...args, kind: 'spot' }, env);
+  if (typeof found0 === 'string') return toolText(found0, true);
+  const found = found0.record;
   const extras = await backend(env, { action: 'pull', since: 0, tables: ['Links', 'Hearts'] });
   if (!extras.ok) return toolText(`Backend error: ${extras.error || JSON.stringify(extras)}`, true);
   const now = String(Date.now());
@@ -253,8 +310,8 @@ async function removePlace(args, env) {
   return toolText(`Removed ${found.name} (and ${rows.Links.length} link(s)).`);
 }
 
-async function listPlaces({ country }, env) {
-  const reply = await backend(env, { action: 'pull', since: 0 });
+async function listPlaces({ country, details }, env) {
+  const reply = await backend(env, { action: 'pull', since: 0, tables: ['Countries', 'Cities', 'Spots'] });
   if (!reply.ok) return toolText(`Backend error: ${reply.error || JSON.stringify(reply)}`, true);
   const live = (table) => (reply.changes[table] || []).filter((r) => r.deleted !== 'true');
   const wanted = text(country).toLowerCase();
@@ -263,27 +320,75 @@ async function listPlaces({ country }, env) {
     .sort((a, b) => (a.sortKey > b.sortKey ? 1 : -1));
   const cities = live('Cities');
   const spots = live('Spots');
+  const inOrder = (rows) => rows.sort((a, b) => (a.sortKey > b.sortKey ? 1 : -1));
+
   const lines = [];
   for (const c of countries) {
-    lines.push(`${c.name} (${c.isoCode})${c.priority === 'HIGH' ? ' [high]' : ''}`);
-    for (const city of cities.filter((x) => x.countryId === c.id).sort((a, b) => (a.sortKey > b.sortKey ? 1 : -1))) {
-      const here = spots.filter((s) => s.parentCityId === city.id).sort((a, b) => (a.sortKey > b.sortKey ? 1 : -1));
-      const names = here.map((s) => {
-        const tags = [s.type !== 'POI' ? s.type.toLowerCase() : '', s.priority === 'HIGH' ? 'high' : '', s.status === 'VISITED' ? 'visited' : '']
-          .filter(Boolean);
-        return s.name + (tags.length ? ` (${tags.join(', ')})` : '');
-      });
-      lines.push(`  ${city.name}: ${names.join('; ') || '(no spots yet)'}`);
+    lines.push(`${c.name} (${c.isoCode})${c.priority === 'HIGH' ? ' [high]' : ''}${picture(c, details)}`);
+    for (const city of inOrder(cities.filter((x) => x.countryId === c.id))) {
+      const here = inOrder(spots.filter((s) => s.parentCityId === city.id));
+      if (!details) {
+        const names = here.map((s) => s.name + tagsOf(s));
+        lines.push(`  ${city.name}: ${names.join('; ') || '(no spots yet)'}`);
+        continue;
+      }
+      lines.push(`  ${city.name}${picture(city, true)}`);
+      if (here.length === 0) lines.push('    (no spots yet)');
+      for (const s of here) {
+        lines.push(`    ${s.name}${tagsOf(s)}${picture(s, true)}`);
+        const note = s.notes.split('\n').map((l) => l.trim()).find(Boolean);
+        if (note) lines.push(`      ${note}`);
+      }
     }
   }
   return toolText(lines.length ? lines.join('\n') : wanted ? `Nothing saved for "${country}".` : 'Nothing saved yet.');
 }
 
+const tagsOf = (spot) => {
+  const tags = [
+    spot.type !== 'POI' ? spot.type.toLowerCase() : '',
+    spot.priority === 'HIGH' ? 'high' : '',
+    spot.status === 'VISITED' ? 'visited' : '',
+  ].filter(Boolean);
+  return tags.length ? ` (${tags.join(', ')})` : '';
+};
+
+/** "none" is what the app writes once a search found nothing, so it never searches twice. */
+const picture = (row, details) => {
+  if (!details) return '';
+  if (!row.imageUrl) return ' — no picture yet, the app is still looking';
+  if (row.imageUrl === 'none') return ' — no picture found';
+  return ` — picture: ${row.imageUrl}`;
+};
+
 /**
  * Calls the Apps Script API. It answers every POST with a redirect to a one-shot URL that only
  * works with the cookies the redirect set, so the hop is followed by hand with those cookies.
  */
+/** What an answer to each action must carry, so a reply meant for an earlier call is spotted. */
+const ANSWERS = { pull: 'changes', push: 'accepted', inbox: 'results', ping: 'serverTime' };
+
+/**
+ * Calls the backend and insists on an answer to the call actually made.
+ *
+ * Apps Script redirects each POST to a single-use URL, and asking twice in quick succession can
+ * hand back the previous call's body. Unnoticed, a pull answered by a push reads as an empty
+ * database, which would look like every saved place had vanished.
+ */
 async function backend(env, body) {
+  const expected = ANSWERS[body.action];
+  let last;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    last = await backendOnce(env, body);
+    // A sign-in or error page instead of JSON is the same stale-URL hiccup, and passes on a retry.
+    const stale = (!last.ok && String(last.error).startsWith('not JSON')) || (last.ok && expected && !(expected in last));
+    if (!stale) return last;
+    await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+  }
+  return { ok: false, error: `the backend answered something other than the ${body.action} that was asked for` };
+}
+
+async function backendOnce(env, body) {
   let response = await fetch(env.SHEETS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -307,9 +412,7 @@ async function backend(env, body) {
   }
   const raw = await response.text();
   try {
-    const parsed = JSON.parse(raw);
-    if (parsed && parsed.ok && body.action === 'pull' && !parsed.changes) parsed.changes = {};
-    return parsed;
+    return JSON.parse(raw);
   } catch (err) {
     return { ok: false, error: `not JSON (HTTP ${response.status}): ${raw.slice(0, 200)}` };
   }

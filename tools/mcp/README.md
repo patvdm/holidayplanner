@@ -7,10 +7,15 @@ phone app:
 - **add_places**: files places into the backend through the sheet's Inbox (see `docs/import.md`),
   so "tell me about Kasteeltuinen Arcen" followed by "add it to my travel plans" just works.
 - **update_place**: "mark the Rijksmuseum visited", "make Plitvice high priority", "add a note to
-  Hvar", or a rename. Goes through the sync API like an edit on a phone would.
+  Hvar", a rename, or "change Belgium's picture to this link". Works on a country, a city or a
+  spot, and goes through the sync API like an edit on a phone would. Clearing a picture (an empty
+  link) makes the app look for a new one by itself.
 - **remove_place**: deletes a spot and its links. Claude is told to ask first.
 - **list_places**: what is already saved, so Claude checks for duplicates and can answer "what do
-  I have in Croatia?".
+  I have in Croatia?". With `details` it also lists notes and the picture each entry is using,
+  which is what to look at before changing one.
+
+Trips, routes and links are not exposed: they are made in the app.
 
 Nothing here touches the phones directly; they pick the rows up on their next sync.
 
