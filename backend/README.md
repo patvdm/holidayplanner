@@ -23,6 +23,13 @@ Creating a *new* deployment instead changes the URL, and every phone would need 
 
 If the schema gained columns, run `setup()` again. It only appends missing columns.
 
+## Adding places in plain words
+
+The `Inbox` tab (created by `setup()`) takes places typed in plain words and turns them into
+countries, cities and spots: see `docs/import.md`. Menu **Holiday Planner → Import inbox rows**,
+or run `installInboxTrigger()` once to import every ten minutes. The API action `inbox` appends
+rows and imports them, which is what `tools/import/inbox.py` uses.
+
 ## Manual edits in the sheet
 
 You can edit data rows by hand. The `onEdit` trigger stamps `updatedAt`, `syncedAt` and

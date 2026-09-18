@@ -37,6 +37,16 @@ var SCHEMA = {
 /** Whitelist of tabs the API touches. Any other tab in the spreadsheet is ignored. */
 var TABLES = Object.keys(SCHEMA);
 
+/**
+ * The Inbox tab: a place to type or paste places in plain words, from any device, without ids or
+ * timestamps. importInbox() turns each row into a country, a city and a spot, geocoding as it goes.
+ * `result` is written back per row: "done", "exists", or why it failed. Not part of the sync.
+ */
+var INBOX = 'Inbox';
+var INBOX_COLUMNS = ['country', 'city', 'spot', 'type', 'priority', 'notes', 'link', 'result'];
+var INBOX_AUTHOR = 'sheet';
+var SORT_DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
 /** Columns onEdit writes; edits limited to these never re-stamp a row. */
 var STAMP_COLUMNS = ['updatedAt', 'updatedBy', 'syncedAt'];
 
@@ -63,6 +73,39 @@ function setup() {
     sheet.getRange(1, 1, sheet.getMaxRows(), sheet.getMaxColumns()).setNumberFormat('@');
     sheet.setFrozenRows(1);
   });
+  setupInbox(ss);
+}
+
+/** The Inbox tab, with its columns and an example row so it explains itself. */
+function setupInbox(ss) {
+  var sheet = ss.getSheetByName(INBOX);
+  if (!sheet) {
+    sheet = ss.insertSheet(INBOX);
+    sheet.getRange(1, 1, 1, INBOX_COLUMNS.length).setValues([INBOX_COLUMNS]);
+    sheet.getRange(2, 1, 1, INBOX_COLUMNS.length).setValues([[
+      'Netherlands', 'Den Haag', 'Vredespaleis', 'poi', 'high', 'Peace Palace, book a tour', '', 'example',
+    ]]);
+  }
+  sheet.getRange(1, 1, sheet.getMaxRows(), sheet.getMaxColumns()).setNumberFormat('@');
+  sheet.setFrozenRows(1);
+}
+
+/** Adds the Holiday Planner menu when the sheet is opened in a browser. */
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('Holiday Planner')
+    .addItem('Import inbox rows', 'importInbox')
+    .addToUi();
+}
+
+/**
+ * Run once from the editor to have the inbox imported every ten minutes, so rows typed on a phone
+ * (where the menu does not exist) are picked up on their own.
+ */
+function installInboxTrigger() {
+  var already = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'importInbox'; });
+  if (already) return;
+  ScriptApp.newTrigger('importInbox').timeBased().everyMinutes(10).create();
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -100,6 +143,8 @@ function doPost(e) {
         return json(pull(body));
       case 'push':
         return json(push(body));
+      case 'inbox':
+        return json(inbox(body));
       default:
         return json({ ok: false, error: 'unknown_action' });
     }
@@ -218,6 +263,235 @@ function push(body) {
   });
 
   return { ok: true, serverTime: now, accepted: accepted, skipped: skipped, errors: errors };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Inbox: places in plain words become countries, cities and spots
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * API entry: appends the given rows ({country, city, spot, type, priority, notes, link}) to the
+ * Inbox and imports everything waiting there. Returns one result per row imported.
+ */
+function inbox(body) {
+  var rows = Array.isArray(body.rows) ? body.rows : [];
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(INBOX);
+  if (!sheet) {
+    setupInbox(ss);
+    sheet = ss.getSheetByName(INBOX);
+  }
+  if (rows.length > 0) {
+    var values = rows.map(function (r) {
+      return INBOX_COLUMNS.map(function (col) { return col === 'result' ? '' : cellToString(r[col]); });
+    });
+    var first = sheet.getLastRow() + 1;
+    sheet.getRange(first, 1, values.length, INBOX_COLUMNS.length).setValues(values.map(function (row) {
+      return row.map(escapeCell);
+    }));
+  }
+  return { ok: true, serverTime: Date.now(), results: importInboxRows(ss) };
+}
+
+/** Menu and trigger entry: imports every Inbox row that has no result yet. */
+function importInbox() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(LOCK_TIMEOUT_MS)) return;
+  try {
+    importInboxRows(SpreadsheetApp.getActiveSpreadsheet());
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * The work. Each waiting row is geocoded once (spot, city, country together), which also settles
+ * which country it is in, then filed under an existing country and city or new ones. A Google
+ * Maps link becomes the spot's own link; any other link is attached as a link row.
+ */
+function importInboxRows(ss) {
+  var sheet = ss.getSheetByName(INBOX);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var width = INBOX_COLUMNS.length;
+  var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, width).getValues();
+  var resultCol = INBOX_COLUMNS.indexOf('result');
+
+  var tables = {
+    Countries: readTable(ss, 'Countries'),
+    Cities: readTable(ss, 'Cities'),
+    Spots: readTable(ss, 'Spots'),
+    Links: readTable(ss, 'Links'),
+  };
+  var changed = { Countries: false, Cities: false, Spots: false, Links: false };
+  var results = [];
+
+  values.forEach(function (row, i) {
+    var entry = {};
+    INBOX_COLUMNS.forEach(function (col, c) { entry[col] = cellToString(row[c]).trim(); });
+    if (entry.result !== '' || (entry.spot === '' && entry.city === '' && entry.country === '')) return;
+    var outcome;
+    try {
+      outcome = importOne(entry, tables, changed);
+    } catch (err) {
+      outcome = 'failed: ' + String(err && err.message ? err.message : err);
+    }
+    sheet.getRange(i + 2, resultCol + 1).setValue(outcome);
+    results.push({ spot: entry.spot, result: outcome });
+  });
+
+  Object.keys(changed).forEach(function (name) {
+    if (changed[name]) writeTable(tables[name]);
+  });
+  return results;
+}
+
+function importOne(entry, tables, changed) {
+  var now = String(Date.now());
+  var spotName = entry.spot || entry.city || entry.country;
+  var query = [entry.spot, entry.city, entry.country].filter(function (s) { return s !== ''; }).join(', ');
+  var geo = geocode(query);
+  if (!geo) return 'failed: could not locate "' + query + '"';
+
+  var isoCode = geo.isoCode;
+  if (!isoCode) return 'failed: no country found for "' + query + '"';
+  var countryName = entry.country || geo.countryName || isoCode;
+
+  var country = findRow(tables.Countries, function (r) { return r.isoCode.toUpperCase() === isoCode; });
+  if (!country) {
+    country = newRow(tables.Countries, now, {
+      name: countryName, isoCode: isoCode, sortKey: nextSortKey(tables.Countries, function () { return true; }),
+      priority: 'NORMAL', imageUrl: '',
+    });
+    changed.Countries = true;
+  }
+
+  var cityName = entry.city || geo.cityName || 'General';
+  var city = findRow(tables.Cities, function (r) {
+    return r.countryId === country.id && r.name.toLowerCase() === cityName.toLowerCase();
+  });
+  if (!city) {
+    var cityGeo = entry.city ? geocode(cityName + ', ' + countryName) : null;
+    city = newRow(tables.Cities, now, {
+      countryId: country.id, name: cityName, googlePlaceId: '',
+      lat: cityGeo ? String(cityGeo.lat) : '', lng: cityGeo ? String(cityGeo.lng) : '',
+      sortKey: nextSortKey(tables.Cities, function (r) { return r.countryId === country.id; }),
+      priority: 'NORMAL', imageUrl: '',
+    });
+    changed.Cities = true;
+  }
+
+  var existing = findRow(tables.Spots, function (r) {
+    return r.parentCityId === city.id && r.name.toLowerCase() === spotName.toLowerCase();
+  });
+  if (existing) return 'exists';
+
+  var link = entry.link;
+  var isMapsLink = /google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps/i.test(link);
+  var spot = newRow(tables.Spots, now, {
+    parentCityId: city.id, name: spotName, type: parseType(entry.type), googlePlaceId: '',
+    lat: entry.spot ? String(geo.lat) : '', lng: entry.spot ? String(geo.lng) : '', address: geo.address || '',
+    mapsUrl: isMapsLink ? link : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query),
+    notes: entry.notes, status: 'UNVISITED',
+    sortKey: nextSortKey(tables.Spots, function (r) { return r.parentCityId === city.id; }),
+    priority: parsePriority(entry.priority), imageUrl: '',
+  });
+  changed.Spots = true;
+
+  if (link !== '' && !isMapsLink) {
+    newRow(tables.Links, now, { spotId: spot.id, url: link, source: linkSource(link), note: '' });
+    changed.Links = true;
+  }
+  return 'done';
+}
+
+/** Google's geocoder, which also says which country and city a place is in. Null when it has no idea. */
+function geocode(query) {
+  var response = Maps.newGeocoder().geocode(query);
+  var hit = response && response.results && response.results[0];
+  if (!hit) return null;
+  var out = { lat: hit.geometry.location.lat, lng: hit.geometry.location.lng, address: hit.formatted_address };
+  (hit.address_components || []).forEach(function (part) {
+    var types = part.types || [];
+    if (types.indexOf('country') !== -1) {
+      out.isoCode = String(part.short_name).toUpperCase();
+      out.countryName = part.long_name;
+    }
+    if (!out.cityName && (types.indexOf('locality') !== -1 || types.indexOf('postal_town') !== -1)) {
+      out.cityName = part.long_name;
+    }
+  });
+  if (!out.cityName) {
+    (hit.address_components || []).forEach(function (part) {
+      if (!out.cityName && (part.types || []).indexOf('administrative_area_level_2') !== -1) out.cityName = part.long_name;
+    });
+  }
+  return out;
+}
+
+function parseType(text) {
+  var t = text.toLowerCase();
+  if (/rest|food|eat|cafe|café|bar/.test(t)) return 'RESTAURANT';
+  if (/acc|hotel|stay|sleep|hostel|camp|b&b/.test(t)) return 'ACCOMMODATION';
+  return 'POI';
+}
+
+function parsePriority(text) {
+  var t = text.toLowerCase();
+  return (t === 'high' || t === 'must' || t === 'yes' || t === 'x' || t === '1' || t === '!') ? 'HIGH' : 'NORMAL';
+}
+
+function linkSource(url) {
+  var u = url.toLowerCase();
+  if (u.indexOf('instagram.com') !== -1) return 'INSTAGRAM';
+  if (u.indexOf('tiktok.com') !== -1) return 'TIKTOK';
+  if (u.indexOf('youtube.com') !== -1 || u.indexOf('youtu.be') !== -1) return 'YOUTUBE';
+  return 'WEB';
+}
+
+/** The first live row of a table matching the predicate, as an object with an `id`. */
+function findRow(table, predicate) {
+  for (var r = 1; r < table.values.length; r++) {
+    var obj = rowToObject(table.headers, table.values[r]);
+    if (obj.id === '' || obj.deleted === 'true') continue;
+    if (predicate(obj)) return obj;
+  }
+  return null;
+}
+
+/** Appends a row with fresh id and stamps, returns it as an object. Written to the sheet later. */
+function newRow(table, now, fields) {
+  var obj = {
+    id: Utilities.getUuid(), createdAt: now, createdBy: INBOX_AUTHOR, updatedAt: now, updatedBy: INBOX_AUTHOR,
+    syncedAt: now, deleted: 'false',
+  };
+  Object.keys(fields).forEach(function (k) { obj[k] = fields[k]; });
+  table.values.push(table.headers.map(function (h) { return h in obj ? cellToString(obj[h]) : ''; }));
+  return obj;
+}
+
+/** A sort key after the last one among the rows the predicate selects, the way the app makes them. */
+function nextSortKey(table, predicate) {
+  var last = '';
+  for (var r = 1; r < table.values.length; r++) {
+    var obj = rowToObject(table.headers, table.values[r]);
+    if (obj.id === '' || obj.deleted === 'true' || !predicate(obj)) continue;
+    if (obj.sortKey > last) last = obj.sortKey;
+  }
+  return sortKeyMidpoint(last, null);
+}
+
+/** Fractional base-62 keys: a port of the app's SortKey.between(before, null). */
+function sortKeyMidpoint(before, after) {
+  if (after !== null) {
+    var shared = 0;
+    while (shared < after.length && (shared < before.length ? before[shared] : SORT_DIGITS[0]) === after[shared]) shared++;
+    if (shared > 0) return after.substring(0, shared) + sortKeyMidpoint(before.substring(shared), after.substring(shared));
+  }
+  var low = before === '' ? 0 : SORT_DIGITS.indexOf(before[0]);
+  var high = after === null ? SORT_DIGITS.length : SORT_DIGITS.indexOf(after[0]);
+  if (high - low > 1) return SORT_DIGITS[Math.floor((low + high + 1) / 2)];
+  if (after !== null && after.length > 1) return after.substring(0, 1);
+  return SORT_DIGITS[low] + sortKeyMidpoint(before.substring(1), null);
 }
 
 // ---------------------------------------------------------------------------------------------
