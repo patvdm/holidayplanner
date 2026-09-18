@@ -284,23 +284,32 @@ async function listPlaces({ country }, env) {
  * works with the cookies the redirect set, so the hop is followed by hand with those cookies.
  */
 async function backend(env, body) {
-  const first = await fetch(env.SHEETS_URL, {
+  let response = await fetch(env.SHEETS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...body, secret: env.SHEETS_SECRET }),
     redirect: 'manual',
   });
-  let response = first;
-  if (first.status >= 300 && first.status < 400) {
-    const location = first.headers.get('Location');
-    const cookies = (first.headers.getSetCookie ? first.headers.getSetCookie() : [])
-      .map((c) => c.split(';')[0])
-      .join('; ');
-    response = await fetch(location, { headers: cookies ? { Cookie: cookies } : {} });
+  // A large answer goes through more than one redirect; each hop may set cookies the next needs.
+  const cookies = {};
+  for (let hop = 0; hop < 5 && response.status >= 300 && response.status < 400; hop++) {
+    const location = response.headers.get('Location');
+    if (!location) break;
+    (response.headers.getSetCookie ? response.headers.getSetCookie() : []).forEach((c) => {
+      const [name, ...rest] = c.split(';')[0].split('=');
+      cookies[name.trim()] = rest.join('=');
+    });
+    const jar = Object.keys(cookies).map((k) => `${k}=${cookies[k]}`).join('; ');
+    response = await fetch(new URL(location, env.SHEETS_URL), {
+      headers: jar ? { Cookie: jar } : {},
+      redirect: 'manual',
+    });
   }
   const raw = await response.text();
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.ok && body.action === 'pull' && !parsed.changes) parsed.changes = {};
+    return parsed;
   } catch (err) {
     return { ok: false, error: `not JSON (HTTP ${response.status}): ${raw.slice(0, 200)}` };
   }
