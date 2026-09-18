@@ -5,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -13,6 +14,7 @@ import io.ktor.http.HttpHeaders
 import java.io.IOException
 import java.text.Normalizer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -30,13 +32,18 @@ private const val USER_AGENT = "HolidayPlanner/1.0 (Android; private two-person 
 private const val MIN_TOKEN_LENGTH = 3
 private val STOP_WORDS = setOf("the", "and", "der", "die", "das", "del", "della", "les", "los", "las", "van", "von")
 
+/** A page as the API describes it: its real title (after redirects) and its lead picture, if any. */
+private data class Page(val title: String, val thumbnail: String?)
+
 /**
  * Pictures from Wikivoyage and Wikipedia, which cost nothing and cover most places worth a trip.
  *
- * A country or city is looked up on Wikivoyage first, whose page image is the wide banner a guide
- * opens with, and on Wikipedia when Wikivoyage has no page. A spot is searched for on Wikipedia,
- * and the first hit is only trusted when its title shares a real word with the spot's name: a
- * search for a bar nobody has written about lands on the city's page, whose picture would be wrong.
+ * A country or city is looked up on Wikivoyage first. Its pages open with a wide banner kept on
+ * Commons as "<Title> banner.jpg", which is the best picture of a place anyone has chosen; failing
+ * that its lead image, failing that Wikipedia's page of the same name, failing that a search. A
+ * spot is a Wikipedia search, and the first hit is only trusted when its title shares a real word
+ * with the spot's name: a search for a bar nobody has written about lands on the city's page,
+ * whose picture would be wrong.
  */
 class WikimediaPictures(
     private val clientFactory: () -> HttpClient = ::defaultClient,
@@ -45,59 +52,73 @@ class WikimediaPictures(
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun forPlace(name: String, within: String): Result<String?> = runCatchingNetwork {
-        byTitle(WIKIVOYAGE, name)
-            ?: bySearch(WIKIPEDIA, "$name $within".trim(), mustMatch = null)
+        val guide = pageOf(WIKIVOYAGE, name)
+        val fromGuide = guide?.let { banner(it.title) ?: it.thumbnail?.takeIf { url -> url.isPhotograph() } }
+        fromGuide
+            ?: pageOf(WIKIPEDIA, name)?.thumbnail?.takeIf { it.isPhotograph() }
+            ?: search(WIKIPEDIA, "$name $within".trim(), mustMatch = null)
     }
 
     override suspend fun forSpot(name: String, cityName: String, countryName: String): Result<String?> =
         runCatchingNetwork {
             val proof = distinctiveTokens(name, cityName, countryName)
             if (proof.isEmpty()) return@runCatchingNetwork null
-            bySearch(WIKIPEDIA, "$name $cityName".trim(), mustMatch = proof)
+            search(WIKIPEDIA, "$name $cityName".trim(), mustMatch = proof)
         }
 
-    private suspend fun byTitle(api: String, title: String): String? = clientFactory().use { client ->
-        val body = client.get(api) {
-            parameter("action", "query")
-            parameter("format", "json")
-            parameter("formatversion", "2")
-            parameter("redirects", "1")
-            parameter("prop", "pageimages")
-            parameter("piprop", "thumbnail")
-            parameter("pithumbsize", THUMB_WIDTH)
-            parameter("titles", title)
-        }.bodyAsText()
-        firstThumbnail(body, mustMatch = null)
-    }
+    /** The page called [title], or null when there is none. Redirects are followed. */
+    private suspend fun pageOf(api: String, title: String): Page? = pages(api) {
+        parameter("redirects", "1")
+        parameter("prop", "pageimages")
+        parameter("piprop", "thumbnail")
+        parameter("pithumbsize", THUMB_WIDTH)
+        parameter("titles", title)
+    }.firstOrNull { it["missing"] == null }?.toPage()
 
-    private suspend fun bySearch(api: String, query: String, mustMatch: Set<String>?): String? =
-        clientFactory().use { client ->
-            val body = client.get(api) {
+    /** The Wikivoyage banner for a page, which lives on Commons under a name that follows the page's. */
+    private suspend fun banner(title: String): String? = pages(WIKIVOYAGE) {
+        parameter("prop", "imageinfo")
+        parameter("iiprop", "url")
+        parameter("iiurlwidth", THUMB_WIDTH)
+        parameter("titles", "File:$title banner.jpg")
+    }.firstOrNull()
+        ?.get("imageinfo")?.jsonArray?.firstOrNull()?.jsonObject
+        ?.get("thumburl")?.jsonPrimitive?.content
+        ?.takeIf { it.isPhotograph() }
+
+    /** The first search hit with a usable picture whose title passes [mustMatch], if any. */
+    private suspend fun search(api: String, query: String, mustMatch: Set<String>?): String? = pages(api) {
+        parameter("generator", "search")
+        parameter("gsrsearch", query)
+        parameter("gsrlimit", "3")
+        parameter("prop", "pageimages")
+        parameter("piprop", "thumbnail")
+        parameter("pithumbsize", THUMB_WIDTH)
+    }.asSequence()
+        .map { it.toPage() }
+        .filter { page -> mustMatch == null || titleProves(page.title, mustMatch) }
+        .mapNotNull { it.thumbnail }
+        .firstOrNull { it.isPhotograph() }
+
+    /** One query call, returning the pages it describes. */
+    private suspend fun pages(api: String, params: HttpRequestBuilder.() -> Unit): List<JsonObject> {
+        val body = clientFactory().use { client ->
+            client.get(api) {
                 parameter("action", "query")
                 parameter("format", "json")
                 parameter("formatversion", "2")
-                parameter("generator", "search")
-                parameter("gsrsearch", query)
-                parameter("gsrlimit", "3")
-                parameter("prop", "pageimages")
-                parameter("piprop", "thumbnail")
-                parameter("pithumbsize", THUMB_WIDTH)
+                params()
             }.bodyAsText()
-            firstThumbnail(body, mustMatch)
         }
-
-    /** The first page with a usable picture whose title passes [mustMatch], if any. */
-    private fun firstThumbnail(body: String, mustMatch: Set<String>?): String? {
-        val pages = json.parseToJsonElement(body).jsonObject["query"]?.jsonObject?.get("pages")?.jsonArray
-            ?: return null
-        return pages.asSequence()
-            .map { it.jsonObject }
-            .filter { page ->
-                mustMatch == null || titleProves(page["title"]?.jsonPrimitive?.content.orEmpty(), mustMatch)
-            }
-            .mapNotNull { page -> page["thumbnail"]?.jsonObject?.get("source")?.jsonPrimitive?.content }
-            .firstOrNull { it.isPhotograph() }
+        return json.parseToJsonElement(body).jsonObject["query"]?.jsonObject?.get("pages")?.jsonArray
+            ?.map { it.jsonObject }
+            .orEmpty()
     }
+
+    private fun JsonObject.toPage(): Page = Page(
+        title = this["title"]?.jsonPrimitive?.content.orEmpty(),
+        thumbnail = this["thumbnail"]?.jsonObject?.get("source")?.jsonPrimitive?.content,
+    )
 
     private fun titleProves(title: String, proof: Set<String>): Boolean {
         val plain = title.plain()
@@ -119,6 +140,7 @@ class WikimediaPictures(
         Log.w(TAG, "network failure: ${e.message}")
         Result.failure(e)
     } catch (e: IllegalStateException) {
+        // Includes being told to slow down, which is worth another try later rather than never.
         Log.w(TAG, "client failure: ${e.message}")
         Result.failure(e)
     } catch (e: IllegalArgumentException) {
@@ -135,11 +157,13 @@ private fun String.plain(): String = Normalizer.normalize(this, Normalizer.Form.
     .replace(Regex("[^a-z0-9]+"), " ")
     .trim()
 
-/** A flag, a map or a logo is a picture of the page, not of the place. */
+/**
+ * Only a JPEG is taken to be a photograph. Maps, flags, logos and diagrams arrive as PNG or SVG,
+ * and a page's lead image is one of those surprisingly often.
+ */
 private fun String.isPhotograph(): Boolean {
-    val file = substringAfterLast('/').lowercase()
-    return !file.contains(".svg") && !file.contains("flag_of") && !file.contains("_map") &&
-        !file.startsWith("map_") && !file.contains("logo") && !file.contains("coat_of_arms")
+    val file = substringAfterLast('/').substringBefore('?').lowercase()
+    return (file.endsWith(".jpg") || file.endsWith(".jpeg")) && !file.contains("flag_of") && !file.contains("_map")
 }
 
 private fun defaultClient(): HttpClient = HttpClient(OkHttp) {

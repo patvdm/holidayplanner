@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.conflate
 
 private const val TAG = "PictureBackfill"
 
-/** A breath between requests, so a phone with a hundred spots is a polite client. */
-private const val PAUSE_MS = 300L
+/** A breath between requests: Wikimedia answers a burst with "too many requests" and nothing else. */
+private const val PAUSE_MS = 1_000L
 
 /** Rows handled per emission; the rest arrive on the next one, which the writes trigger. */
 private const val MAX_PER_ROUND = 25
