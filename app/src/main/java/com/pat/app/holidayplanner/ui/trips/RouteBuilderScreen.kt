@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -15,13 +16,13 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -39,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,6 +49,11 @@ import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
+import com.pat.app.holidayplanner.ui.components.PriorityBadge
+import com.pat.app.holidayplanner.ui.components.StatusChip
+import com.pat.app.holidayplanner.ui.components.Thumbnail
+import com.pat.app.holidayplanner.ui.components.TypeBadge
+import com.pat.app.holidayplanner.ui.components.firstLine
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.openExternalUrl
 import kotlinx.coroutines.launch
@@ -204,6 +211,7 @@ private fun StopList(state: RouteUiState, viewModel: RouteViewModel, modifier: M
     }
 }
 
+/** A spot as it looks everywhere else in the app, with a tick and its place on the walk in front. */
 @Composable
 private fun CandidateRow(
     candidate: RouteCandidate,
@@ -211,24 +219,50 @@ private fun CandidateRow(
     handle: (@Composable () -> Unit)?,
     onToggle: (Boolean) -> Unit,
 ) {
-    ListItem(
-        leadingContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = candidate.selected, onCheckedChange = onToggle)
-                if (position != null) {
-                    Text(position.toString(), style = MaterialTheme.typography.titleMedium)
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onToggle(!candidate.selected) }
+                .padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Checkbox(checked = candidate.selected, onCheckedChange = onToggle)
+            Text(
+                text = position?.toString().orEmpty(),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.width(POSITION_WIDTH_DP.dp),
+            )
+            Thumbnail(candidate.imageUrl, size = 48.dp)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(candidate.name, style = MaterialTheme.typography.titleMedium)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    PriorityBadge(candidate.priority)
+                    StatusChip(candidate.status)
+                    TypeBadge(candidate.type)
+                }
+                candidate.notes.firstLine()?.let { note ->
+                    Text(
+                        text = note,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
-        },
-        headlineContent = { Text(candidate.name) },
-        supportingContent = {
-            if (candidate.address.isNotBlank()) {
-                Text(candidate.address, style = MaterialTheme.typography.bodySmall)
-            }
-        },
-        trailingContent = handle,
-    )
+            handle?.invoke()
+        }
+        HorizontalDivider()
+    }
 }
+
+/** Room for a two-digit stop number, so the rows line up whether or not a spot is on the walk. */
+private const val POSITION_WIDTH_DP = 20
 
 @Composable
 private fun RouteFooter(state: RouteUiState, onOpen: (List<RouteCandidate>) -> Unit) {

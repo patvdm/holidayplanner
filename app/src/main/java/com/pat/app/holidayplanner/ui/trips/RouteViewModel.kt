@@ -11,7 +11,10 @@ import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.GeoPoint
 import com.pat.app.holidayplanner.domain.MapsUrls
+import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.Proximity
+import com.pat.app.holidayplanner.domain.SpotStatus
+import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.domain.RoutePoint
 import com.pat.app.holidayplanner.domain.TravelMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,6 +46,11 @@ data class RouteCandidate(
     val googlePlaceId: String,
     val stopId: String?,
     val sortKey: String,
+    val imageUrl: String,
+    val priority: Priority,
+    val status: SpotStatus,
+    val type: SpotType,
+    val notes: String,
 ) {
     val selected: Boolean get() = stopId != null
 }
@@ -176,6 +184,11 @@ private fun List<SpotEntity>.asCandidates(stops: List<RouteStopRow>): List<Route
             googlePlaceId = spot.googlePlaceId,
             stopId = stop?.stopId,
             sortKey = stop?.sortKey ?: spot.sortKey,
+            imageUrl = spot.imageUrl,
+            priority = spot.priority,
+            status = spot.status,
+            type = spot.type,
+            notes = spot.notes,
         )
     }
     val (on, off) = candidates.partition { it.selected }
