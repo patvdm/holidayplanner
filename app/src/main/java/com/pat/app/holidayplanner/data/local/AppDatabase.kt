@@ -10,6 +10,7 @@ import com.pat.app.holidayplanner.data.local.dao.CountryDao
 import com.pat.app.holidayplanner.data.local.dao.HeartDao
 import com.pat.app.holidayplanner.data.local.dao.LinkDao
 import com.pat.app.holidayplanner.data.local.dao.CityDao
+import com.pat.app.holidayplanner.data.local.dao.RouteDao
 import com.pat.app.holidayplanner.data.local.dao.RouteStopDao
 import com.pat.app.holidayplanner.data.local.dao.SearchDao
 import com.pat.app.holidayplanner.data.local.dao.SpotDao
@@ -30,10 +31,11 @@ private const val DATABASE_NAME = "holiday_planner.db"
         HeartEntity::class,
         TripEntity::class,
         TripItemEntity::class,
+        RouteEntity::class,
         RouteStopEntity::class,
         SyncStateEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -47,6 +49,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun heartDao(): HeartDao
     abstract fun tripDao(): TripDao
     abstract fun tripItemDao(): TripItemDao
+    abstract fun routeDao(): RouteDao
     abstract fun routeStopDao(): RouteStopDao
     abstract fun searchDao(): SearchDao
     abstract fun cascadeDao(): CascadeDao

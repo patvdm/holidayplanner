@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddLocationAlt
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -36,9 +35,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.data.remote.PlaceSearchMode
-import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
-import com.pat.app.holidayplanner.data.local.TripItemEntity
 import com.pat.app.holidayplanner.domain.Costs
 import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.domain.TripItemType
@@ -51,13 +47,11 @@ fun TripScreen(
     tripId: String,
     onBack: () -> Unit,
     onOpenItem: (String) -> Unit,
-    onOpenRoute: (String) -> Unit,
     onEditTrip: () -> Unit,
     viewModel: TripViewModel = koinViewModel { parametersOf(tripId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var addingItem by remember { mutableStateOf(false) }
-    var addingSpot by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -72,13 +66,6 @@ fun TripScreen(
                     }
                 },
                 actions = {
-                    // Spots are what a day route is built from, so adding one belongs here too.
-                    IconButton(onClick = { addingSpot = true }, enabled = state.trip != null) {
-                        Icon(
-                            Icons.Filled.AddLocationAlt,
-                            contentDescription = stringResource(R.string.trip_add_spot, state.cityName),
-                        )
-                    }
                     IconButton(onClick = onEditTrip) {
                         Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.trip_edit))
                     }
@@ -117,7 +104,7 @@ fun TripScreen(
                     )
                 }
                 items(day.entries, key = { "${day.date}-${it.item.meta.id}-${it.role}" }) { entry ->
-                    ItemCard(entry = entry, onClick = { open(entry.item, onOpenItem, onOpenRoute) })
+                    ItemCard(entry = entry, onClick = { onOpenItem(entry.item.meta.id) })
                 }
             }
 
@@ -133,7 +120,7 @@ fun TripScreen(
                 items(state.timeline.undated, key = { "undated-${it.meta.id}" }) { item ->
                     ItemCard(
                         entry = TimelineEntry(item, ItemRole.START),
-                        onClick = { open(item, onOpenItem, onOpenRoute) },
+                        onClick = { onOpenItem(item.meta.id) },
                     )
                 }
             }
@@ -144,25 +131,11 @@ fun TripScreen(
         }
     }
 
-    if (addingSpot) {
-        PlaceSearchSheet(
-            mode = PlaceSearchMode.SPOT,
-            cityId = state.trip?.cityId.orEmpty(),
-            onDismiss = { addingSpot = false },
-            onSaved = { addingSpot = false },
-        )
-    }
-
     if (addingItem) {
         ItemTypeDialog(
             onPick = { type ->
                 addingItem = false
-                // The trip's own city is the route's city, so there is nothing to ask.
-                if (type == TripItemType.DAY_ROUTE) {
-                    viewModel.addDayRoute(onOpenRoute)
-                } else {
-                    viewModel.addItem(type, onOpenItem)
-                }
+                viewModel.addItem(type, onOpenItem)
             },
             onDismiss = { addingItem = false },
         )
@@ -228,7 +201,6 @@ private fun subtitle(entry: TimelineEntry): String? {
         route.takeIf { it.size == 2 }?.joinToString(" → "),
         zones,
         elapsed?.let(LocalTimes::formatDuration),
-        item.address.takeIf { it.isNotBlank() },
     )
     return parts.joinToString(" · ").takeIf { it.isNotBlank() }
 }
@@ -255,14 +227,8 @@ private fun TotalsSection(state: TripUiState) {
     }
 }
 
-/**
- * What can be added to a trip, day route first because it is the reason for the screen.
- *
- * Activities and transport are deliberately absent: an activity is a spot, which belongs on a day
- * route, and transport within a trip was never used. The enum keeps both so trips created before
- * this still read correctly.
- */
-private val OFFERED_ITEM_TYPES = listOf(TripItemType.DAY_ROUTE, TripItemType.STAY, TripItemType.FLIGHT)
+/** A route is put on a day from the Routes side of the app, which arrives with O4. */
+private val OFFERED_ITEM_TYPES = listOf(TripItemType.FLIGHT, TripItemType.SPOT)
 
 @Composable
 private fun ItemTypeDialog(onPick: (TripItemType) -> Unit, onDismiss: () -> Unit) {
@@ -292,17 +258,6 @@ private fun ItemTypeDialog(onPick: (TripItemType) -> Unit, onDismiss: () -> Unit
 
 fun TripItemType.label(): Int = when (this) {
     TripItemType.FLIGHT -> R.string.item_flight
-    TripItemType.STAY -> R.string.item_stay
-    TripItemType.TRANSPORT -> R.string.item_transport
-    TripItemType.ACTIVITY -> R.string.item_activity
-    TripItemType.DAY_ROUTE -> R.string.item_day_route
-}
-
-/** A day route has a screen of its own; every other item type shares the generic editor. */
-private fun open(
-    item: TripItemEntity,
-    onOpenItem: (String) -> Unit,
-    onOpenRoute: (String) -> Unit,
-) {
-    if (item.type == TripItemType.DAY_ROUTE) onOpenRoute(item.meta.id) else onOpenItem(item.meta.id)
+    TripItemType.SPOT -> R.string.item_spot
+    TripItemType.ROUTE -> R.string.item_route
 }

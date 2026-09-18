@@ -176,11 +176,6 @@ fun SpotDetailScreen(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                FilterChip(
-                    selected = state.spot?.type == null,
-                    onClick = { viewModel.setType(null) },
-                    label = { Text(stringResource(R.string.type_clear)) },
-                )
                 SpotType.entries.forEach { type ->
                     FilterChip(
                         selected = state.spot?.type == type,

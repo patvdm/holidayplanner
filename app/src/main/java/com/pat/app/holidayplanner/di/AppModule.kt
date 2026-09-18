@@ -19,7 +19,6 @@ import com.pat.app.holidayplanner.data.repo.LocalWriter
 import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.CoordinateBackfill
-import com.pat.app.holidayplanner.data.repo.DayPlanner
 import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.SearchRepository
 import com.pat.app.holidayplanner.data.repo.SpotPinRepository
@@ -73,6 +72,7 @@ val appModule = module {
     single { get<AppDatabase>().heartDao() }
     single { get<AppDatabase>().tripDao() }
     single { get<AppDatabase>().tripItemDao() }
+    single { get<AppDatabase>().routeDao() }
     single { get<AppDatabase>().routeStopDao() }
     single { get<AppDatabase>().searchDao() }
     single { get<AppDatabase>().cascadeDao() }
@@ -96,8 +96,7 @@ val appModule = module {
     single { LinkRepository(get(), get()) }
     single { HierarchyResolver(get(), get()) }
     single { TripRepository(get(), get(), get(), get(), get()) }
-    single { RouteRepository(get(), get()) }
-    single { DayPlanner(get(), get()) }
+    single { RouteRepository(get(), get(), get(), get(), get()) }
     single { SearchRepository(get()) }
     single { SpotPinRepository(get()) }
     single { CoordinateBackfill(get(), get(), get()) }
@@ -117,7 +116,7 @@ val appModule = module {
     viewModel { (spotId: String) -> SpotDetailViewModel(spotId, get(), get(), get(), get()) }
     viewModel { (tripId: String) -> TripViewModel(tripId, get(), get()) }
     viewModel { (itemId: String) -> TripItemViewModel(itemId, get()) }
-    viewModel { (itemId: String) -> RouteViewModel(itemId, get(), get(), get(), get()) }
+    viewModel { (routeId: String) -> RouteViewModel(routeId, get(), get(), get()) }
     viewModel { (scope: MapScope) -> MapViewModel(scope, get()) }
     viewModel { (target: PlaceSearchTarget) ->
         PlaceSearchViewModel(target, get(), get(), get(), get(), get())

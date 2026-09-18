@@ -4,6 +4,7 @@ import com.pat.app.holidayplanner.data.local.CountryEntity
 import com.pat.app.holidayplanner.data.local.HeartEntity
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.CityEntity
+import com.pat.app.holidayplanner.data.local.RouteEntity
 import com.pat.app.holidayplanner.data.local.RouteStopEntity
 import com.pat.app.holidayplanner.data.local.SpotEntity
 import com.pat.app.holidayplanner.data.local.SyncMeta
@@ -14,7 +15,6 @@ import com.pat.app.holidayplanner.domain.LinkSource
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
-import com.pat.app.holidayplanner.domain.TravelMode
 import com.pat.app.holidayplanner.domain.TripItemType
 
 /**
@@ -116,7 +116,7 @@ fun cityFromRow(row: SheetRow): CityEntity? {
 fun spotToRow(entity: SpotEntity): Map<String, String> = buildRow(entity.meta) {
     put("parentCityId", entity.parentCityId)
     put("name", entity.name)
-    put("type", entity.type?.name.orEmpty())
+    put("type", entity.type.name)
     put("googlePlaceId", entity.googlePlaceId)
     put("lat", entity.lat.orBlank())
     put("lng", entity.lng.orBlank())
@@ -189,10 +189,9 @@ fun heartFromRow(row: SheetRow): HeartEntity? {
 
 fun tripToRow(entity: TripEntity): Map<String, String> = buildRow(entity.meta) {
     put("name", entity.name)
-    put("cityId", entity.cityId)
+    put("countryId", entity.countryId)
     put("startDate", entity.startDate)
     put("endDate", entity.endDate)
-    put("countryIds", entity.countryIds.joinToString(","))
     put("notes", entity.notes)
 }
 
@@ -201,10 +200,9 @@ fun tripFromRow(row: SheetRow): TripEntity? {
     return TripEntity(
         meta = meta,
         name = row.str("name"),
-        cityId = row.str("cityId").trim(),
+        countryId = row.str("countryId").trim(),
         startDate = row.str("startDate").trim(),
         endDate = row.str("endDate").trim(),
-        countryIds = row.list("countryIds"),
         notes = row.str("notes"),
     )
 }
@@ -221,13 +219,8 @@ fun tripItemToRow(entity: TripItemEntity): Map<String, String> = buildRow(entity
     put("startTimeZone", entity.startTimeZone)
     put("endLocal", entity.endLocal)
     put("endTimeZone", entity.endTimeZone)
-    put("address", entity.address)
-    put("googlePlaceId", entity.googlePlaceId)
-    put("lat", entity.lat.orBlank())
-    put("lng", entity.lng.orBlank())
     put("spotId", entity.spotId)
-    put("cityId", entity.cityId)
-    put("travelMode", entity.travelMode?.name.orEmpty())
+    put("routeId", entity.routeId)
     put("bookingRef", entity.bookingRef)
     put("costMinor", entity.costMinor.orBlank())
     put("currency", entity.currency)
@@ -235,12 +228,14 @@ fun tripItemToRow(entity: TripItemEntity): Map<String, String> = buildRow(entity
     put("notes", entity.notes)
 }
 
+/** Rows of the item kinds that no longer exist are dropped rather than reshaped into something else. */
 fun tripItemFromRow(row: SheetRow): TripItemEntity? {
     val meta = row.meta() ?: return null
+    val type = TripItemType.fromSheetOrNull(row.str("type")) ?: return null
     return TripItemEntity(
         meta = meta,
         tripId = row.str("tripId").trim(),
-        type = TripItemType.fromSheet(row.str("type")),
+        type = type,
         title = row.str("title"),
         origin = row.str("origin"),
         destination = row.str("destination"),
@@ -248,13 +243,8 @@ fun tripItemFromRow(row: SheetRow): TripItemEntity? {
         startTimeZone = row.str("startTimeZone").trim(),
         endLocal = row.str("endLocal").trim(),
         endTimeZone = row.str("endTimeZone").trim(),
-        address = row.str("address"),
-        googlePlaceId = row.str("googlePlaceId").trim(),
-        lat = row.doubleOrNull("lat"),
-        lng = row.doubleOrNull("lng"),
         spotId = row.str("spotId").trim(),
-        cityId = row.str("cityId").trim(),
-        travelMode = TravelMode.fromSheetOrNull(row.str("travelMode")),
+        routeId = row.str("routeId").trim(),
         bookingRef = row.str("bookingRef").trim(),
         costMinor = row.longOrNull("costMinor"),
         currency = row.str("currency").trim().uppercase(),
@@ -263,10 +253,30 @@ fun tripItemFromRow(row: SheetRow): TripItemEntity? {
     )
 }
 
+// Routes ----------------------------------------------------------------------------------------
+
+fun routeToRow(entity: RouteEntity): Map<String, String> = buildRow(entity.meta) {
+    put("cityId", entity.cityId)
+    put("name", entity.name)
+    put("completed", entity.completed.toString())
+    put("notes", entity.notes)
+}
+
+fun routeFromRow(row: SheetRow): RouteEntity? {
+    val meta = row.meta() ?: return null
+    return RouteEntity(
+        meta = meta,
+        cityId = row.str("cityId").trim(),
+        name = row.str("name"),
+        completed = row.bool("completed"),
+        notes = row.str("notes"),
+    )
+}
+
 // Route stops -----------------------------------------------------------------------------------
 
 fun routeStopToRow(entity: RouteStopEntity): Map<String, String> = buildRow(entity.meta) {
-    put("tripItemId", entity.tripItemId)
+    put("routeId", entity.routeId)
     put("spotId", entity.spotId)
     put("sortKey", entity.sortKey)
 }
@@ -275,7 +285,7 @@ fun routeStopFromRow(row: SheetRow): RouteStopEntity? {
     val meta = row.meta() ?: return null
     return RouteStopEntity(
         meta = meta,
-        tripItemId = row.str("tripItemId").trim(),
+        routeId = row.str("routeId").trim(),
         spotId = row.str("spotId").trim(),
         sortKey = row.str("sortKey").trim(),
     )

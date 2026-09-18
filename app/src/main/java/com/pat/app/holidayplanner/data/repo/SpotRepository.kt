@@ -56,7 +56,7 @@ class SpotRepository(
         lng: Double? = null,
         address: String = "",
         mapsUrl: String = "",
-        type: SpotType? = null,
+        type: SpotType = SpotType.POI,
     ): String {
         val stamp = writer.stamp()
         val id = newId()
@@ -74,7 +74,7 @@ class SpotRepository(
             tags = emptyList(),
             status = SpotStatus.UNVISITED,
             sortKey = SortKey.after(dao.lastSortKey(cityId)),
-            priority = Priority.MAYBE,
+            priority = Priority.NORMAL,
         )
         dao.upsert(listOf(spot))
         writer.requestSync()
@@ -96,7 +96,7 @@ class SpotRepository(
     suspend fun setStatus(id: String, status: SpotStatus) = edit(id) { it.copy(status = status) }
 
     /** Null clears the type, since saying nothing is a valid answer. */
-    suspend fun setType(id: String, type: SpotType?) = edit(id) { it.copy(type = type) }
+    suspend fun setType(id: String, type: SpotType) = edit(id) { it.copy(type = type) }
 
     suspend fun setPriority(id: String, priority: Priority) = edit(id) { it.copy(priority = priority) }
 

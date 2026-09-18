@@ -100,3 +100,12 @@ data class SpotPin(
     val countryId: String,
     val countryName: String,
 )
+
+/** A route as the Routes tab lists it. */
+data class RouteRow(
+    @Embedded val route: RouteEntity,
+    val cityName: String,
+    val countryName: String,
+    val countryId: String,
+    val stopCount: Int,
+)

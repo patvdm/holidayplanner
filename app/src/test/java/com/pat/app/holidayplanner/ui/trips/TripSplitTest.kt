@@ -66,10 +66,9 @@ class TripSplitTest {
     private fun trip(name: String, start: String, end: String) = TripEntity(
         meta = SyncMeta(name, 1, "u1", 1, "u1", 0, deleted = false, dirty = false),
         name = name,
-        cityId = "",
+        countryId = "",
         startDate = start,
         endDate = end,
-        countryIds = emptyList(),
         notes = "",
     )
 }

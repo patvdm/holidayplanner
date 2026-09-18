@@ -4,6 +4,7 @@ import com.pat.app.holidayplanner.data.local.CountryEntity
 import com.pat.app.holidayplanner.data.local.HeartEntity
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.CityEntity
+import com.pat.app.holidayplanner.data.local.RouteEntity
 import com.pat.app.holidayplanner.data.local.RouteStopEntity
 import com.pat.app.holidayplanner.data.local.SpotEntity
 import com.pat.app.holidayplanner.data.local.SyncMeta
@@ -14,7 +15,6 @@ import com.pat.app.holidayplanner.domain.LinkSource
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
-import com.pat.app.holidayplanner.domain.TravelMode
 import com.pat.app.holidayplanner.domain.TripItemType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -45,7 +45,7 @@ class SheetMappingTest {
 
     @Test
     fun `country round trips`() {
-        val entity = CountryEntity(meta, name = "Netherlands", isoCode = "NL", sortKey = "V", priority = Priority.MUST)
+        val entity = CountryEntity(meta, name = "Netherlands", isoCode = "NL", sortKey = "V", priority = Priority.HIGH)
         assertEquals(entity, countryFromRow(SheetRow(countryToRow(entity))))
     }
 
@@ -59,7 +59,7 @@ class SheetMappingTest {
             lat = 52.0705,
             lng = 4.3007,
             sortKey = "V",
-            priority = Priority.LIKE,
+            priority = Priority.NORMAL,
         )
         assertEquals(entity, cityFromRow(SheetRow(cityToRow(entity))))
     }
@@ -80,7 +80,7 @@ class SheetMappingTest {
             tags = listOf("museum", "indoor"),
             status = SpotStatus.VISITED,
             sortKey = "G",
-            priority = Priority.MUST,
+            priority = Priority.HIGH,
         )
         assertEquals(entity, spotFromRow(SheetRow(spotToRow(entity))))
     }
@@ -102,10 +102,9 @@ class SheetMappingTest {
         val entity = TripEntity(
             meta = meta,
             name = "Lisbon",
-            cityId = "city-1",
+            countryId = "c1",
             startDate = "2026-04-01",
             endDate = "2026-04-08",
-            countryIds = listOf("c1", "c2"),
             notes = "with the bikes",
         )
         assertEquals(entity, tripFromRow(SheetRow(tripToRow(entity))))
@@ -124,13 +123,8 @@ class SheetMappingTest {
             startTimeZone = "Europe/Amsterdam",
             endLocal = "2026-04-01T12:40",
             endTimeZone = "Europe/Lisbon",
-            address = "",
-            googlePlaceId = "",
-            lat = null,
-            lng = null,
             spotId = "",
-            cityId = "city-7",
-            travelMode = null,
+            routeId = "",
             bookingRef = "0012AB",
             costMinor = 24_950,
             currency = "EUR",
@@ -145,7 +139,7 @@ class SheetMappingTest {
         val entity = TripItemEntity(
             meta = meta,
             tripId = "t1",
-            type = TripItemType.DAY_ROUTE,
+            type = TripItemType.ROUTE,
             title = "Old town walk",
             origin = "",
             destination = "",
@@ -153,13 +147,8 @@ class SheetMappingTest {
             startTimeZone = "Europe/Lisbon",
             endLocal = "",
             endTimeZone = "",
-            address = "",
-            googlePlaceId = "",
-            lat = null,
-            lng = null,
             spotId = "",
-            cityId = "city-3",
-            travelMode = TravelMode.WALKING,
+            routeId = "",
             bookingRef = "",
             costMinor = null,
             currency = "",
@@ -171,7 +160,7 @@ class SheetMappingTest {
 
     @Test
     fun `route stop round trips`() {
-        val entity = RouteStopEntity(meta, tripItemId = "i1", spotId = "s1", sortKey = "V")
+        val entity = RouteStopEntity(meta, routeId = "r1", spotId = "s1", sortKey = "V")
         assertEquals(entity, routeStopFromRow(SheetRow(routeStopToRow(entity))))
     }
 
@@ -181,7 +170,7 @@ class SheetMappingTest {
             TripItemEntity(
                 meta = meta,
                 tripId = "t1",
-                type = TripItemType.STAY,
+                type = TripItemType.SPOT,
                 title = "Hotel",
                 origin = "",
                 destination = "",
@@ -189,13 +178,8 @@ class SheetMappingTest {
                 startTimeZone = "",
                 endLocal = "",
                 endTimeZone = "",
-                address = "",
-                googlePlaceId = "",
-                lat = null,
-                lng = null,
                 spotId = "",
-                cityId = "",
-                travelMode = null,
+            routeId = "",
                 bookingRef = "000742",
                 costMinor = null,
                 currency = "",
@@ -212,7 +196,7 @@ class SheetMappingTest {
         val row = mapOf("id" to "s1", "updatedAt" to "1", "status" to "TELEPORTED", "priority" to "URGENT")
         val spot = spotFromRow(SheetRow(row))
         assertEquals(SpotStatus.UNVISITED, spot?.status)
-        assertEquals(Priority.MAYBE, spot?.priority)
+        assertEquals(Priority.NORMAL, spot?.priority)
     }
 
     @Test
@@ -226,16 +210,16 @@ class SheetMappingTest {
     }
 
     @Test
-    fun `a spot with no type stays without one`() {
+    fun `a spot with no type reads as a place of interest`() {
         val row = mapOf("id" to "s1", "updatedAt" to "1", "type" to "")
-        assertNull(spotFromRow(SheetRow(row))?.type)
-        assertNull(spotFromRow(SheetRow(mapOf("id" to "s1", "updatedAt" to "1")))?.type)
+        assertEquals(SpotType.POI, spotFromRow(SheetRow(row))?.type)
+        assertEquals(SpotType.POI, spotFromRow(SheetRow(mapOf("id" to "s1", "updatedAt" to "1")))?.type)
     }
 
     @Test
-    fun `an unknown type is treated as none rather than guessed`() {
+    fun `an unknown type reads as a place of interest rather than being guessed at`() {
         val row = mapOf("id" to "s1", "updatedAt" to "1", "type" to "CASTLE")
-        assertNull(spotFromRow(SheetRow(row))?.type)
+        assertEquals(SpotType.POI, spotFromRow(SheetRow(row))?.type)
     }
 
     @Test
@@ -257,5 +241,38 @@ class SheetMappingTest {
     @Test
     fun `a row without an id is not a record`() {
         assertNull(userFromRow(SheetRow(mapOf("name" to "Ghost"))))
+    }
+
+    @Test
+    fun `the old three priorities read as the new two`() {
+        assertEquals(Priority.HIGH, Priority.fromSheet("MUST"))
+        assertEquals(Priority.NORMAL, Priority.fromSheet("LIKE"))
+        assertEquals(Priority.NORMAL, Priority.fromSheet("MAYBE"))
+        assertEquals(Priority.NORMAL, Priority.fromSheet(""))
+    }
+
+    @Test
+    fun `a route round trips`() {
+        val entity = RouteEntity(
+            meta,
+            cityId = "city-3",
+            name = "Old town loop",
+            completed = true,
+            notes = "start early",
+        )
+
+        assertEquals(entity, routeFromRow(SheetRow(routeToRow(entity))))
+    }
+
+    @Test
+    fun `a trip item of a kind that no longer exists is dropped rather than reshaped`() {
+        val row = SheetRow(
+            mapOf(
+                "id" to "old-1", "createdAt" to "1", "createdBy" to "u1", "updatedAt" to "2", "updatedBy" to "u1",
+                "syncedAt" to "3", "deleted" to "false", "tripId" to "t1", "type" to "ACTIVITY", "title" to "Church",
+            ),
+        )
+
+        assertNull(tripItemFromRow(row))
     }
 }

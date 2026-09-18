@@ -8,7 +8,6 @@ import com.pat.app.holidayplanner.domain.LinkSource
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
-import com.pat.app.holidayplanner.domain.TravelMode
 import com.pat.app.holidayplanner.domain.TripItemType
 
 /**
@@ -59,8 +58,8 @@ data class SpotEntity(
     @Embedded override val meta: SyncMeta,
     val parentCityId: String,
     val name: String,
-    /** Null when nobody has said what kind of place this is. */
-    val type: SpotType?,
+    /** POI unless somebody said otherwise. */
+    val type: SpotType,
     val googlePlaceId: String,
     val lat: Double?,
     val lng: Double?,
@@ -91,24 +90,27 @@ data class HeartEntity(
     val userId: String,
 ) : SyncEntity
 
-@Entity(tableName = "trips", primaryKeys = ["id"], indices = [Index("startDate")])
+@Entity(tableName = "trips", primaryKeys = ["id"], indices = [Index("startDate"), Index("countryId")])
 data class TripEntity(
     @Embedded override val meta: SyncMeta,
     val name: String,
-    /** The city this trip is to. Everything on the trip is picked from its spots. */
-    val cityId: String,
+    /** The country this trip is to. Its spots and routes are picked from there. */
+    val countryId: String,
     /** yyyy-MM-dd. */
     val startDate: String,
     /** yyyy-MM-dd. */
     val endDate: String,
-    val countryIds: List<String>,
     val notes: String,
 ) : SyncEntity
 
+/**
+ * One thing on one day of a trip. A FLIGHT carries its own details; a SPOT points at [spotId] and a
+ * ROUTE at [routeId], both of which have screens of their own.
+ */
 @Entity(
     tableName = "trip_items",
     primaryKeys = ["id"],
-    indices = [Index("tripId"), Index("spotId")],
+    indices = [Index("tripId"), Index("spotId"), Index("routeId")],
 )
 data class TripItemEntity(
     @Embedded override val meta: SyncMeta,
@@ -122,14 +124,8 @@ data class TripItemEntity(
     val startTimeZone: String,
     val endLocal: String,
     val endTimeZone: String,
-    val address: String,
-    val googlePlaceId: String,
-    val lat: Double?,
-    val lng: Double?,
     val spotId: String,
-    /** Only a DAY_ROUTE uses this: the one city its walk stays inside. */
-    val cityId: String,
-    val travelMode: TravelMode?,
+    val routeId: String,
     val bookingRef: String,
     /** Integer minor units, paired with [currency]. Never a float. */
     val costMinor: Long?,
@@ -138,14 +134,28 @@ data class TripItemEntity(
     val notes: String,
 ) : SyncEntity
 
+/**
+ * A walk through one city's spots, planned in the app and opened in Google Maps. It stands on its
+ * own; a trip may point at it from a day.
+ */
+@Entity(tableName = "routes", primaryKeys = ["id"], indices = [Index("cityId")])
+data class RouteEntity(
+    @Embedded override val meta: SyncMeta,
+    val cityId: String,
+    val name: String,
+    /** Ticked by hand once the walk has been walked. */
+    val completed: Boolean,
+    val notes: String,
+) : SyncEntity
+
 @Entity(
     tableName = "route_stops",
     primaryKeys = ["id"],
-    indices = [Index("tripItemId"), Index("spotId")],
+    indices = [Index("routeId"), Index("spotId")],
 )
 data class RouteStopEntity(
     @Embedded override val meta: SyncMeta,
-    val tripItemId: String,
+    val routeId: String,
     val spotId: String,
     val sortKey: String,
 ) : SyncEntity

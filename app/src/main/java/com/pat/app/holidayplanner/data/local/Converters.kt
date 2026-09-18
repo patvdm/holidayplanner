@@ -5,7 +5,6 @@ import com.pat.app.holidayplanner.domain.LinkSource
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
-import com.pat.app.holidayplanner.domain.TravelMode
 import com.pat.app.holidayplanner.domain.TripItemType
 
 /** Lists are comma separated and enums are uppercase names, exactly as the sheet stores them. */
@@ -31,10 +30,10 @@ class Converters {
     fun toSpotStatus(value: String): SpotStatus = SpotStatus.fromSheet(value)
 
     @TypeConverter
-    fun fromSpotType(value: SpotType?): String? = value?.name
+    fun fromSpotType(value: SpotType): String = value.name
 
     @TypeConverter
-    fun toSpotType(value: String?): SpotType? = SpotType.fromSheet(value)
+    fun toSpotType(value: String): SpotType = SpotType.fromSheet(value)
 
     @TypeConverter
     fun fromLinkSource(value: LinkSource): String = value.name
@@ -45,12 +44,7 @@ class Converters {
     @TypeConverter
     fun fromTripItemType(value: TripItemType): String = value.name
 
+    /** Rows in this database were written by this app, so the type is always one it knows. */
     @TypeConverter
-    fun toTripItemType(value: String): TripItemType = TripItemType.fromSheet(value)
-
-    @TypeConverter
-    fun fromTravelMode(value: TravelMode?): String? = value?.name
-
-    @TypeConverter
-    fun toTravelMode(value: String?): TravelMode? = TravelMode.fromSheetOrNull(value)
+    fun toTripItemType(value: String): TripItemType = TripItemType.fromSheetOrNull(value) ?: TripItemType.SPOT
 }

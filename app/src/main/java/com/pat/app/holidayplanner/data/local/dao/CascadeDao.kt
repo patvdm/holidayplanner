@@ -129,18 +129,52 @@ interface CascadeDao {
     @Query(
         """
         UPDATE route_stops SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
-        WHERE deleted = 0 AND tripItemId IN (SELECT id FROM trip_items WHERE tripId = :tripId)
+        WHERE routeId = :routeId AND deleted = 0
         """,
     )
-    suspend fun deleteStopsOfTrip(tripId: String, now: Long, userId: String)
+    suspend fun deleteStopsOfRoute(routeId: String, now: Long, userId: String)
+
+    @Query(
+        """
+        UPDATE routes SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
+        WHERE id = :routeId AND deleted = 0
+        """,
+    )
+    suspend fun deleteRoute(routeId: String, now: Long, userId: String)
 
     @Query(
         """
         UPDATE route_stops SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
-        WHERE tripItemId = :tripItemId AND deleted = 0
+        WHERE deleted = 0 AND routeId IN (SELECT id FROM routes WHERE cityId = :cityId)
         """,
     )
-    suspend fun deleteStopsOfItem(tripItemId: String, now: Long, userId: String)
+    suspend fun deleteStopsOfCityRoutes(cityId: String, now: Long, userId: String)
+
+    @Query(
+        """
+        UPDATE routes SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
+        WHERE cityId = :cityId AND deleted = 0
+        """,
+    )
+    suspend fun deleteRoutesOfCity(cityId: String, now: Long, userId: String)
+
+    @Query(
+        """
+        UPDATE route_stops SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
+        WHERE deleted = 0 AND routeId IN (
+            SELECT id FROM routes WHERE cityId IN (SELECT id FROM cities WHERE countryId = :countryId)
+        )
+        """,
+    )
+    suspend fun deleteStopsOfCountryRoutes(countryId: String, now: Long, userId: String)
+
+    @Query(
+        """
+        UPDATE routes SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
+        WHERE deleted = 0 AND cityId IN (SELECT id FROM cities WHERE countryId = :countryId)
+        """,
+    )
+    suspend fun deleteRoutesOfCountry(countryId: String, now: Long, userId: String)
 
     @Query(
         """

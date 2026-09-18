@@ -1,36 +1,91 @@
 package com.pat.app.holidayplanner.data.repo
 
+import com.pat.app.holidayplanner.data.local.RouteEntity
+import com.pat.app.holidayplanner.data.local.RouteRow
 import com.pat.app.holidayplanner.data.local.RouteStopEntity
 import com.pat.app.holidayplanner.data.local.RouteStopRow
 import com.pat.app.holidayplanner.data.local.SyncMeta
+import com.pat.app.holidayplanner.data.local.dao.CascadeDao
+import com.pat.app.holidayplanner.data.local.dao.RouteDao
 import com.pat.app.holidayplanner.data.local.dao.RouteStopDao
+import com.pat.app.holidayplanner.data.sync.Transactor
 import com.pat.app.holidayplanner.domain.SortKey
 import com.pat.app.holidayplanner.domain.newId
 import kotlinx.coroutines.flow.Flow
 
-/** The stops of a day route: what is on it, in what order. */
+/** Routes and the stops on them: a walk through one city's spots, in order. */
 class RouteRepository(
-    private val dao: RouteStopDao,
+    private val dao: RouteDao,
+    private val stopDao: RouteStopDao,
+    private val cascadeDao: CascadeDao,
+    private val transactor: Transactor,
     private val writer: LocalWriter,
 ) {
 
-    fun observeStops(tripItemId: String): Flow<List<RouteStopRow>> = dao.observeRows(tripItemId)
+    fun observeRoutes(): Flow<List<RouteRow>> = dao.observeRows()
+
+    fun observeRoutesInCountry(countryId: String): Flow<List<RouteRow>> = dao.observeRowsInCountry(countryId)
+
+    fun observeRoute(id: String): Flow<RouteEntity?> = dao.observeById(id)
+
+    fun observeStops(routeId: String): Flow<List<RouteStopRow>> = stopDao.observeRows(routeId)
+
+    suspend fun findRoute(id: String): RouteEntity? = dao.find(id)
 
     /**
-     * Puts a spot on the end of a route, or does nothing if it is already on it. A day where the
-     * same place appears twice is nearly always a double tap rather than a plan to go back.
+     * A new route through [cityId], with [spotIds] already on it in the order given. Every entry
+     * point creates a route this way, whether the spots were preselected or the list is empty.
      */
-    suspend fun addStop(tripItemId: String, spotId: String): String? {
-        if (dao.findBySpot(tripItemId, spotId) != null) return null
+    suspend fun create(cityId: String, name: String, spotIds: List<String> = emptyList()): String {
         val stamp = writer.stamp()
         val id = newId()
         dao.upsert(
             listOf(
+                RouteEntity(
+                    meta = SyncMeta.created(id, stamp.now, stamp.userId),
+                    cityId = cityId,
+                    name = name.trim(),
+                    completed = false,
+                    notes = "",
+                ),
+            ),
+        )
+        spotIds.forEach { addStop(id, it) }
+        writer.requestSync()
+        return id
+    }
+
+    suspend fun rename(id: String, name: String) = editRoute(id) { it.copy(name = name.trim()) }
+
+    suspend fun setCompleted(id: String, completed: Boolean) = editRoute(id) { it.copy(completed = completed) }
+
+    suspend fun setNotes(id: String, notes: String) = editRoute(id) { it.copy(notes = notes) }
+
+    /** Removes the route and its stops. The spots themselves are untouched. */
+    suspend fun delete(id: String) {
+        val stamp = writer.stamp()
+        transactor.transaction {
+            cascadeDao.deleteStopsOfRoute(id, stamp.now, stamp.userId)
+            cascadeDao.deleteRoute(id, stamp.now, stamp.userId)
+        }
+        writer.requestSync()
+    }
+
+    /**
+     * Puts a spot on the end of a route, or does nothing if it is already on it. A walk where the
+     * same place appears twice is nearly always a double tap rather than a plan to go back.
+     */
+    suspend fun addStop(routeId: String, spotId: String): String? {
+        if (stopDao.findBySpot(routeId, spotId) != null) return null
+        val stamp = writer.stamp()
+        val id = newId()
+        stopDao.upsert(
+            listOf(
                 RouteStopEntity(
                     meta = SyncMeta.created(id, stamp.now, stamp.userId),
-                    tripItemId = tripItemId,
+                    routeId = routeId,
                     spotId = spotId,
-                    sortKey = SortKey.after(dao.lastSortKey(tripItemId)),
+                    sortKey = SortKey.after(stopDao.lastSortKey(routeId)),
                 ),
             ),
         )
@@ -38,20 +93,15 @@ class RouteRepository(
         return id
     }
 
-    /** Adds several spots at once, keeping the order they were given in. */
-    suspend fun addStops(tripItemId: String, spotIds: List<String>) {
-        spotIds.forEach { addStop(tripItemId, it) }
-    }
-
     suspend fun removeStop(id: String) {
-        val current = dao.find(id) ?: return
+        val current = stopDao.find(id) ?: return
         val stamp = writer.stamp()
-        dao.upsert(listOf(current.copy(meta = current.meta.touched(stamp.now, stamp.userId, deleted = true))))
+        stopDao.upsert(listOf(current.copy(meta = current.meta.touched(stamp.now, stamp.userId, deleted = true))))
         writer.requestSync()
     }
 
     suspend fun move(id: String, previousKey: String?, nextKey: String?) =
-        edit(id) { it.copy(sortKey = SortKey.between(previousKey, nextKey)) }
+        editStop(id) { it.copy(sortKey = SortKey.between(previousKey, nextKey)) }
 
     /**
      * Rewrites the order of a whole route, which is what sorting by proximity does. Every stop gets
@@ -61,21 +111,29 @@ class RouteRepository(
         val stamp = writer.stamp()
         var previous: String? = null
         val updated = stopIdsInOrder.mapNotNull { id ->
-            val stop = dao.find(id) ?: return@mapNotNull null
+            val stop = stopDao.find(id) ?: return@mapNotNull null
             val key = SortKey.after(previous)
             previous = key
             stop.copy(sortKey = key, meta = stop.meta.touched(stamp.now, stamp.userId))
         }
         if (updated.isEmpty()) return
-        dao.upsert(updated)
+        stopDao.upsert(updated)
         writer.requestSync()
     }
 
-    private suspend fun edit(id: String, change: (RouteStopEntity) -> RouteStopEntity) {
+    private suspend fun editRoute(id: String, change: (RouteEntity) -> RouteEntity) {
         val current = dao.find(id) ?: return
         val stamp = writer.stamp()
         val changed = change(current)
         dao.upsert(listOf(changed.copy(meta = changed.meta.touched(stamp.now, stamp.userId))))
+        writer.requestSync()
+    }
+
+    private suspend fun editStop(id: String, change: (RouteStopEntity) -> RouteStopEntity) {
+        val current = stopDao.find(id) ?: return
+        val stamp = writer.stamp()
+        val changed = change(current)
+        stopDao.upsert(listOf(changed.copy(meta = changed.meta.touched(stamp.now, stamp.userId))))
         writer.requestSync()
     }
 }

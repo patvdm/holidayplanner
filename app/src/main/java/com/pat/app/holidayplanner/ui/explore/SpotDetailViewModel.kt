@@ -112,7 +112,7 @@ class SpotDetailViewModel(
     }
 
     /** Null clears it, because "no type" is a real answer rather than a missing one. */
-    fun setType(type: SpotType?) {
+    fun setType(type: SpotType) {
         viewModelScope.launch { spotRepository.setType(spotId, type) }
     }
 

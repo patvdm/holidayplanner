@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface RouteStopDao : SyncDao<RouteStopEntity> {
 
-    @Query("SELECT * FROM route_stops WHERE tripItemId = :tripItemId AND deleted = 0 ORDER BY sortKey, id")
-    fun observeByTripItem(tripItemId: String): Flow<List<RouteStopEntity>>
+    @Query("SELECT * FROM route_stops WHERE routeId = :routeId AND deleted = 0 ORDER BY sortKey, id")
+    fun observeByRoute(routeId: String): Flow<List<RouteStopEntity>>
 
     /** The stops of one route in order, each carrying the spot it stands for. */
     @Query(
@@ -23,28 +23,28 @@ interface RouteStopDao : SyncDao<RouteStopEntity> {
         FROM route_stops r
         JOIN spots s ON s.id = r.spotId
         JOIN cities c ON c.id = s.parentCityId
-        WHERE r.tripItemId = :tripItemId AND r.deleted = 0 AND s.deleted = 0
+        WHERE r.routeId = :routeId AND r.deleted = 0 AND s.deleted = 0
         ORDER BY r.sortKey, r.id
         """,
     )
-    fun observeRows(tripItemId: String): Flow<List<RouteStopRow>>
+    fun observeRows(routeId: String): Flow<List<RouteStopRow>>
 
     @Query(
         """
         SELECT id FROM route_stops
-        WHERE tripItemId = :tripItemId AND spotId = :spotId AND deleted = 0 LIMIT 1
+        WHERE routeId = :routeId AND spotId = :spotId AND deleted = 0 LIMIT 1
         """,
     )
-    suspend fun findBySpot(tripItemId: String, spotId: String): String?
+    suspend fun findBySpot(routeId: String, spotId: String): String?
 
     @Query(
         """
         SELECT sortKey FROM route_stops
-        WHERE tripItemId = :tripItemId AND deleted = 0
+        WHERE routeId = :routeId AND deleted = 0
         ORDER BY sortKey DESC, id DESC LIMIT 1
         """,
     )
-    suspend fun lastSortKey(tripItemId: String): String?
+    suspend fun lastSortKey(routeId: String): String?
 
     @Query("SELECT * FROM route_stops WHERE dirty = 1 ORDER BY updatedAt LIMIT :limit")
     override suspend fun dirty(limit: Int): List<RouteStopEntity>

@@ -5,6 +5,7 @@ import com.pat.app.holidayplanner.data.local.SpotEntity
 import com.pat.app.holidayplanner.data.local.SpotRow
 import com.pat.app.holidayplanner.data.local.SyncMeta
 import com.pat.app.holidayplanner.domain.Priority
+import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.domain.SortMode
 import com.pat.app.holidayplanner.domain.SpotStatus
 import org.junit.Assert.assertEquals
@@ -30,7 +31,7 @@ class ExploreSortingTest {
             meta = meta(id, 1),
             parentCityId = "p1",
             name = name,
-            type = null,
+            type = SpotType.POI,
             googlePlaceId = "",
             lat = null,
             lng = null,
@@ -40,7 +41,7 @@ class ExploreSortingTest {
             tags = emptyList(),
             status = SpotStatus.UNVISITED,
             sortKey = sortKey,
-            priority = Priority.MAYBE,
+            priority = Priority.NORMAL,
         ),
         heartCount = hearts,
         linkCount = 0,

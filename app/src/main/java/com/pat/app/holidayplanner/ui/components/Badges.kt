@@ -24,34 +24,42 @@ import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 
-/** How badly we want to go. Colour carries the same meaning as the label, never on its own. */
+/** Only a High priority is worth a tag; Normal is the absence of one. */
 @Composable
 fun PriorityBadge(priority: Priority, modifier: Modifier = Modifier) {
-    val (label, color) = when (priority) {
-        Priority.MUST -> R.string.priority_must to MaterialTheme.colorScheme.errorContainer
-        Priority.LIKE -> R.string.priority_like to MaterialTheme.colorScheme.tertiaryContainer
-        Priority.MAYBE -> R.string.priority_maybe to MaterialTheme.colorScheme.surfaceVariant
-    }
-    SmallBadge(text = stringResource(label), background = color, modifier = modifier)
+    if (priority != Priority.HIGH) return
+    SmallBadge(
+        text = stringResource(R.string.priority_high),
+        background = MaterialTheme.colorScheme.errorContainer,
+        foreground = MaterialTheme.colorScheme.onErrorContainer,
+        modifier = modifier,
+    )
 }
 
-/** Where a spot stands: still a wish, planned into a trip, or already seen. */
+/** Visited earns a green tag; unvisited is the default and shows nothing. */
 @Composable
 fun StatusChip(status: SpotStatus, modifier: Modifier = Modifier) {
-    val (label, color) = when (status) {
-        SpotStatus.UNVISITED -> R.string.status_unvisited to MaterialTheme.colorScheme.surfaceVariant
-        SpotStatus.VISITED -> R.string.status_visited to MaterialTheme.colorScheme.secondaryContainer
-    }
-    SmallBadge(text = stringResource(label), background = color, modifier = modifier)
+    if (status != SpotStatus.VISITED) return
+    SmallBadge(
+        text = stringResource(R.string.status_visited),
+        background = VISITED_GREEN,
+        foreground = DARK_TEXT,
+        modifier = modifier,
+    )
 }
 
-/** What kind of place this is, shown only when somebody said. */
+/** Restaurants and accommodation are tagged so they stand out; a plain place of interest is not. */
 @Composable
-fun TypeBadge(type: SpotType?, modifier: Modifier = Modifier) {
-    if (type == null) return
+fun TypeBadge(type: SpotType, modifier: Modifier = Modifier) {
+    val background = when (type) {
+        SpotType.POI -> return
+        SpotType.RESTAURANT -> RESTAURANT_ORANGE
+        SpotType.ACCOMMODATION -> ACCOMMODATION_BLUE
+    }
     SmallBadge(
         text = stringResource(type.label()),
-        background = MaterialTheme.colorScheme.tertiaryContainer,
+        background = background,
+        foreground = DARK_TEXT,
         modifier = modifier,
     )
 }
@@ -61,6 +69,12 @@ fun SpotType.label(): Int = when (this) {
     SpotType.ACCOMMODATION -> R.string.type_accommodation
     SpotType.RESTAURANT -> R.string.type_restaurant
 }
+
+/** Fixed tag colours, the same in both themes so a tag means the same thing everywhere. */
+private val VISITED_GREEN = Color(0xFFB9E4C0)
+private val RESTAURANT_ORANGE = Color(0xFFFFD199)
+private val ACCOMMODATION_BLUE = Color(0xFFB7D4F5)
+private val DARK_TEXT = Color(0xFF1B1B1B)
 
 /**
  * Heart count. A filled heart means the signed-in person hearted it, and the count is emphasised
@@ -92,10 +106,16 @@ fun HeartCount(count: Int, heartedByMe: Boolean, everyone: Boolean, modifier: Mo
 }
 
 @Composable
-private fun SmallBadge(text: String, background: Color, modifier: Modifier = Modifier) {
+private fun SmallBadge(
+    text: String,
+    background: Color,
+    foreground: Color,
+    modifier: Modifier = Modifier,
+) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelSmall,
+        color = foreground,
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))
             .background(background)

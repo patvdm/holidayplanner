@@ -46,7 +46,7 @@ class CityRepository(
             lat = lat,
             lng = lng,
             sortKey = SortKey.after(dao.lastSortKey(countryId)),
-            priority = Priority.MAYBE,
+            priority = Priority.NORMAL,
         )
         dao.upsert(listOf(place))
         writer.requestSync()
@@ -72,6 +72,8 @@ class CityRepository(
         val stamp = writer.stamp()
         transactor.transaction {
             cascadeDao.deleteStopsOfCity(id, stamp.now, stamp.userId)
+            cascadeDao.deleteStopsOfCityRoutes(id, stamp.now, stamp.userId)
+            cascadeDao.deleteRoutesOfCity(id, stamp.now, stamp.userId)
             cascadeDao.deleteHeartsOfCity(id, stamp.now, stamp.userId)
             cascadeDao.deleteLinksOfCity(id, stamp.now, stamp.userId)
             cascadeDao.deleteSpotsOfCity(id, stamp.now, stamp.userId)

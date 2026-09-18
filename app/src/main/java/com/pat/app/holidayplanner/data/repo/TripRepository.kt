@@ -7,15 +7,9 @@ import com.pat.app.holidayplanner.data.local.dao.CascadeDao
 import com.pat.app.holidayplanner.data.local.dao.TripDao
 import com.pat.app.holidayplanner.data.local.dao.TripItemDao
 import com.pat.app.holidayplanner.data.sync.Transactor
-import com.pat.app.holidayplanner.domain.LocalTimes
-import com.pat.app.holidayplanner.domain.TravelMode
 import com.pat.app.holidayplanner.domain.TripItemType
 import com.pat.app.holidayplanner.domain.newId
-import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
-
-/** A day starts in the morning, which is when someone planning one is likely to set off. */
-private const val DAY_ROUTE_START_HOUR = 9
 
 class TripRepository(
     private val dao: TripDao,
@@ -31,22 +25,15 @@ class TripRepository(
 
     fun observeItems(tripId: String): Flow<List<TripItemEntity>> = itemDao.observeByTrip(tripId)
 
-    suspend fun add(
-        name: String,
-        cityId: String,
-        countryIds: List<String>,
-        startDate: String = "",
-        endDate: String = "",
-    ): String {
+    suspend fun add(name: String, countryId: String, startDate: String, endDate: String): String {
         val stamp = writer.stamp()
         val id = newId()
         val trip = TripEntity(
             meta = SyncMeta.created(id, stamp.now, stamp.userId),
             name = name.trim(),
-            cityId = cityId,
+            countryId = countryId,
             startDate = startDate,
             endDate = endDate,
-            countryIds = countryIds,
             notes = "",
         )
         dao.upsert(listOf(trip))
@@ -63,18 +50,16 @@ class TripRepository(
     suspend fun findItem(id: String): TripItemEntity? = itemDao.find(id)
 
     /**
-     * A new item on a trip. Everything beyond the type is optional, because a flight number often
-     * arrives before the times do, and a half-filled item is more useful than none.
+     * A new item on a day of a trip. A spot or route item points at the thing it is; a flight
+     * starts empty and is filled in on its own screen.
      */
     suspend fun addItem(
         tripId: String,
         type: TripItemType,
         title: String = "",
         spotId: String = "",
-        cityId: String = "",
-        address: String = "",
-        lat: Double? = null,
-        lng: Double? = null,
+        routeId: String = "",
+        startLocal: String = "",
     ): String {
         val stamp = writer.stamp()
         val id = newId()
@@ -85,17 +70,12 @@ class TripRepository(
             title = title.trim(),
             origin = "",
             destination = "",
-            startLocal = "",
+            startLocal = startLocal,
             startTimeZone = "",
             endLocal = "",
             endTimeZone = "",
-            address = address,
-            googlePlaceId = "",
-            lat = lat,
-            lng = lng,
             spotId = spotId,
-            cityId = cityId,
-            travelMode = null,
+            routeId = routeId,
             bookingRef = "",
             costMinor = null,
             currency = "",
@@ -104,25 +84,6 @@ class TripRepository(
         )
         itemDao.upsert(listOf(item))
         writer.requestSync()
-        return id
-    }
-
-    /**
-     * A day route dated and ready for stops, as "Plan a day" creates it. Written as two updates to
-     * the same row rather than a wider [addItem], so the row still syncs once.
-     */
-    suspend fun addDayRoute(tripId: String, title: String, cityId: String, date: LocalDate?): String {
-        val id = addItem(tripId = tripId, type = TripItemType.DAY_ROUTE, title = title, cityId = cityId)
-        val item = itemDao.find(id) ?: return id
-        val zone = suggestedTimeZone(tripId).ifBlank { LocalTimes.deviceZone() }
-        updateItem(
-            item.copy(
-                startLocal = date?.let { LocalTimes.write(it.atTime(DAY_ROUTE_START_HOUR, 0)) }.orEmpty(),
-                startTimeZone = zone,
-                endTimeZone = zone,
-                travelMode = TravelMode.WALKING,
-            ),
-        )
         return id
     }
 
@@ -135,12 +96,7 @@ class TripRepository(
     suspend fun deleteItem(id: String) {
         val current = itemDao.find(id) ?: return
         val stamp = writer.stamp()
-        transactor.transaction {
-            cascadeDao.deleteStopsOfItem(id, stamp.now, stamp.userId)
-            itemDao.upsert(
-                listOf(current.copy(meta = current.meta.touched(stamp.now, stamp.userId, deleted = true))),
-            )
-        }
+        itemDao.upsert(listOf(current.copy(meta = current.meta.touched(stamp.now, stamp.userId, deleted = true))))
         writer.requestSync()
     }
 
@@ -155,7 +111,6 @@ class TripRepository(
     suspend fun delete(id: String) {
         val stamp = writer.stamp()
         transactor.transaction {
-            cascadeDao.deleteStopsOfTrip(id, stamp.now, stamp.userId)
             cascadeDao.deleteItemsOfTrip(id, stamp.now, stamp.userId)
             cascadeDao.deleteTrip(id, stamp.now, stamp.userId)
         }

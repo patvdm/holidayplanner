@@ -23,32 +23,33 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.data.local.CityOption
+import com.pat.app.holidayplanner.data.local.CountryEntity
+import com.pat.app.holidayplanner.domain.CountryCatalog
 
-private const val CITY_LIST_MAX_HEIGHT_DP = 300
+private const val COUNTRY_LIST_MAX_HEIGHT_DP = 300
 
 /**
- * A new trip: a name and the city it is to.
+ * A new trip: a name and the country it is to.
  *
- * Only cities you have already saved are offered, because a trip exists to plan days out of the
- * spots in one place. Somewhere with nothing saved yet has nothing to plan with.
+ * Only countries you have spots in are offered, because a trip exists to plan days out of them.
+ * Somewhere with nothing saved yet has nothing to plan with.
  */
 @Composable
 fun NewTripDialog(
-    cities: List<CityOption>,
-    onConfirm: (name: String, city: CityOption) -> Unit,
+    countries: List<CountryEntity>,
+    onConfirm: (name: String, country: CountryEntity) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf<CityOption?>(null) }
-    val chosen = city
+    var country by remember { mutableStateOf<CountryEntity?>(null) }
+    val chosen = country
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.trips_add)) },
         text = {
-            if (cities.isEmpty()) {
-                Text(stringResource(R.string.trips_no_cities))
+            if (countries.isEmpty()) {
+                Text(stringResource(R.string.trips_no_countries))
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
@@ -59,20 +60,19 @@ fun NewTripDialog(
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Text(stringResource(R.string.trips_city))
+                    Text(stringResource(R.string.trips_country))
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = CITY_LIST_MAX_HEIGHT_DP.dp),
+                            .heightIn(max = COUNTRY_LIST_MAX_HEIGHT_DP.dp),
                     ) {
-                        items(cities, key = { it.cityId }) { option ->
+                        items(countries, key = { it.meta.id }) { option ->
                             ListItem(
-                                headlineContent = { Text(option.cityName) },
-                                supportingContent = { Text(option.countryName) },
+                                headlineContent = { Text("${CountryCatalog.flag(option.isoCode)} ${option.name}") },
                                 trailingContent = {
-                                    if (option.cityId == chosen?.cityId) Text("✓")
+                                    if (option.meta.id == chosen?.meta?.id) Text("\u2713")
                                 },
-                                modifier = Modifier.clickable { city = option },
+                                modifier = Modifier.clickable { country = option },
                             )
                         }
                     }

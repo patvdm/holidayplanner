@@ -31,7 +31,7 @@ data class TripEditorKey(val tripId: String) : NavKey
 data class TripItemKey(val itemId: String) : NavKey
 
 @Serializable
-data class RouteKey(val itemId: String) : NavKey
+data class RouteKey(val routeId: String) : NavKey
 
 /** A full screen map. The ids do not filter anything; they say where to point the camera. */
 @Serializable

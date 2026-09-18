@@ -103,12 +103,12 @@ fun TripsScreen(
     }
 
     if (adding) {
-        val cities by viewModel.cityOptions.collectAsStateWithLifecycle(initialValue = emptyList())
+        val countries by viewModel.countryOptions.collectAsStateWithLifecycle(initialValue = emptyList())
         NewTripDialog(
-            cities = cities,
-            onConfirm = { name, city ->
+            countries = countries,
+            onConfirm = { name, country ->
                 adding = false
-                viewModel.addTrip(name, city, onOpenTrip)
+                viewModel.addTrip(name, country, onOpenTrip)
             },
             onDismiss = { adding = false },
         )

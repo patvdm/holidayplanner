@@ -5,11 +5,19 @@ package com.pat.app.holidayplanner.domain
  * default instead of failing, so a newer app version can add values without breaking older ones.
  */
 
+/**
+ * Whether something is a must. Two values on purpose: a three-way scale was never used as more than
+ * "yes, this one" versus everything else, so that is what it became.
+ */
 enum class Priority {
-    MUST, LIKE, MAYBE;
+    HIGH, NORMAL;
 
     companion object {
-        fun fromSheet(value: String?): Priority = parseEnum(value, MAYBE)
+        /** The old MUST reads as HIGH; LIKE and MAYBE, and anything unknown, read as NORMAL. */
+        fun fromSheet(value: String?): Priority {
+            val name = value?.trim().orEmpty()
+            return if (name.equals(HIGH.name, true) || name.equals("MUST", true)) HIGH else NORMAL
+        }
     }
 }
 
@@ -27,17 +35,14 @@ enum class SpotStatus {
 }
 
 /**
- * What kind of place a spot is. Optional: plenty of spots are just somewhere to go, and forcing a
- * choice would be busywork, so null means nobody said.
+ * What kind of place a spot is. POI is the default, so a spot nobody classified is simply somewhere
+ * to go rather than a spot with a missing field.
  */
 enum class SpotType {
     POI, ACCOMMODATION, RESTAURANT;
 
     companion object {
-        fun fromSheet(value: String?): SpotType? {
-            val name = value?.trim()?.takeIf(String::isNotEmpty) ?: return null
-            return entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
-        }
+        fun fromSheet(value: String?): SpotType = parseEnum(value, POI)
     }
 }
 
@@ -49,24 +54,28 @@ enum class LinkSource {
     }
 }
 
+/**
+ * What can sit on a day of a trip. A stay is a spot of type accommodation, and a walk is a route,
+ * so three kinds cover it.
+ */
 enum class TripItemType {
-    FLIGHT, STAY, TRANSPORT, ACTIVITY, DAY_ROUTE;
+    FLIGHT, SPOT, ROUTE;
 
     companion object {
-        fun fromSheet(value: String?): TripItemType = parseEnum(value, ACTIVITY)
+        /**
+         * Null for anything not in the list, so rows of the kinds that used to exist are dropped on
+         * pull rather than quietly turned into something else.
+         */
+        fun fromSheetOrNull(value: String?): TripItemType? {
+            val name = value?.trim()?.takeIf(String::isNotEmpty) ?: return null
+            return entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+        }
     }
 }
 
+/** How Google Maps is asked to get between stops. Routes in this app are always walked. */
 enum class TravelMode {
-    WALKING, TRANSIT, BICYCLING, DRIVING;
-
-    companion object {
-        fun fromSheet(value: String?): TravelMode = parseEnum(value, WALKING)
-
-        /** Travel mode only applies to day routes, so a blank cell stays null. */
-        fun fromSheetOrNull(value: String?): TravelMode? =
-            value?.takeIf { it.isNotBlank() }?.let { fromSheet(it) }
-    }
+    WALKING, TRANSIT, BICYCLING, DRIVING,
 }
 
 private inline fun <reified E : Enum<E>> parseEnum(value: String?, default: E): E {

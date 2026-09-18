@@ -92,7 +92,7 @@ fun TripItemEditorScreen(
                 capitalize = true,
             ) { text -> viewModel.edit { it.copy(title = text) } }
 
-            if (item.type == TripItemType.FLIGHT || item.type == TripItemType.TRANSPORT) {
+            if (item.type == TripItemType.FLIGHT) {
                 TextField(stringResource(R.string.item_origin), item.origin, capitalize = true) { text ->
                     viewModel.edit { it.copy(origin = text) }
                 }
@@ -101,13 +101,7 @@ fun TripItemEditorScreen(
                 }
             }
 
-            if (item.type == TripItemType.STAY || item.type == TripItemType.ACTIVITY) {
-                TextField(stringResource(R.string.item_address), item.address, capitalize = true) { text ->
-                    viewModel.edit { it.copy(address = text) }
-                }
-            }
-
-            if (item.type == TripItemType.ACTIVITY) {
+            if (item.type == TripItemType.SPOT) {
                 OutlinedButton(onClick = { pickingSpot = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         if (item.spotId.isBlank()) {
@@ -126,12 +120,15 @@ fun TripItemEditorScreen(
                 zone = item.startTimeZone,
                 onChange = viewModel::setStart,
             )
-            DateTimeField(
-                label = stringResource(endLabelFor(item.type)),
-                local = item.endLocal,
-                zone = item.endTimeZone,
-                onChange = viewModel::setEnd,
-            )
+            // Only a flight has a second clock; a spot or a route simply belongs to a day.
+            if (item.type == TripItemType.FLIGHT) {
+                DateTimeField(
+                    label = stringResource(R.string.item_arrives),
+                    local = item.endLocal,
+                    zone = item.endTimeZone,
+                    onChange = viewModel::setEnd,
+                )
+            }
 
 
             HorizontalDivider()
@@ -210,12 +207,7 @@ private fun titleLabelFor(type: TripItemType): Int = when (type) {
 }
 
 private fun startLabelFor(type: TripItemType): Int = when (type) {
-    TripItemType.STAY -> R.string.item_check_in
-    else -> R.string.item_departs
-}
-
-private fun endLabelFor(type: TripItemType): Int = when (type) {
-    TripItemType.STAY -> R.string.item_check_out
-    else -> R.string.item_arrives
+    TripItemType.FLIGHT -> R.string.item_departs
+    else -> R.string.item_date
 }
 

@@ -106,7 +106,6 @@ fun AppNavigation() {
                         tripId = key.tripId,
                         onBack = nav::back,
                         onOpenItem = { nav.push(TripItemKey(it)) },
-                        onOpenRoute = { nav.push(RouteKey(it)) },
                         onEditTrip = { nav.push(TripEditorKey(key.tripId)) },
                     )
                 }
@@ -122,7 +121,7 @@ fun AppNavigation() {
                     TripItemEditorScreen(itemId = key.itemId, onBack = nav::back)
                 }
                 entry<RouteKey> { key ->
-                    RouteBuilderScreen(itemId = key.itemId, onBack = nav::back, onDeleted = nav::back)
+                    RouteBuilderScreen(routeId = key.routeId, onBack = nav::back, onDeleted = nav::back)
                 }
                 entry<MapKey> { key ->
                     MapScreen(

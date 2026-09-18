@@ -33,7 +33,7 @@ class CountryRepository(
             name = name.trim(),
             isoCode = isoCode.trim().uppercase(),
             sortKey = SortKey.after(dao.lastSortKey()),
-            priority = Priority.MAYBE,
+            priority = Priority.NORMAL,
         )
         dao.upsert(listOf(country))
         writer.requestSync()
@@ -60,6 +60,8 @@ class CountryRepository(
         val stamp = writer.stamp()
         transactor.transaction {
             cascadeDao.deleteStopsOfCountry(id, stamp.now, stamp.userId)
+            cascadeDao.deleteStopsOfCountryRoutes(id, stamp.now, stamp.userId)
+            cascadeDao.deleteRoutesOfCountry(id, stamp.now, stamp.userId)
             cascadeDao.deleteHeartsOfCountry(id, stamp.now, stamp.userId)
             cascadeDao.deleteLinksOfCountry(id, stamp.now, stamp.userId)
             cascadeDao.deleteSpotsOfCountry(id, stamp.now, stamp.userId)

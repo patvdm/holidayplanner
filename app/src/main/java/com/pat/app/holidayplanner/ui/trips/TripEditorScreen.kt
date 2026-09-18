@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
@@ -47,7 +48,7 @@ fun TripEditorScreen(
     var pickingStart by remember { mutableStateOf(false) }
     var pickingEnd by remember { mutableStateOf(false) }
     var confirmingDelete by remember { mutableStateOf(false) }
-    var changingCity by remember { mutableStateOf(false) }
+    var changingCountry by remember { mutableStateOf(false) }
     val trip = state.trip
 
     Scaffold(
@@ -85,9 +86,12 @@ fun TripEditorScreen(
             }
 
             HorizontalDivider()
-            Text(stringResource(R.string.trips_city), style = MaterialTheme.typography.labelLarge)
-            OutlinedButton(onClick = { changingCity = true }) {
-                Text(state.city?.let { "${it.countryName} › ${it.cityName}" } ?: stringResource(R.string.trips_city))
+            Text(stringResource(R.string.trips_country), style = MaterialTheme.typography.labelLarge)
+            OutlinedButton(onClick = { changingCountry = true }) {
+                Text(
+                    state.country?.let { "${CountryCatalog.flag(it.isoCode)} ${it.name}" }
+                        ?: stringResource(R.string.trips_country),
+                )
             }
 
             HorizontalDivider()
@@ -136,15 +140,15 @@ fun TripEditorScreen(
         )
     }
 
-    if (changingCity) {
+    if (changingCountry) {
         PickFromListDialog(
-            title = stringResource(R.string.trips_city),
-            options = state.cities.map { it.cityId to "${it.countryName} › ${it.cityName}" },
-            onPick = { cityId ->
-                changingCity = false
-                state.cities.firstOrNull { it.cityId == cityId }?.let(viewModel::setCity)
+            title = stringResource(R.string.trips_country),
+            options = state.countries.map { it.meta.id to "${CountryCatalog.flag(it.isoCode)} ${it.name}" },
+            onPick = { countryId ->
+                changingCountry = false
+                state.countries.firstOrNull { it.meta.id == countryId }?.let(viewModel::setCountry)
             },
-            onDismiss = { changingCity = false },
+            onDismiss = { changingCountry = false },
         )
     }
 

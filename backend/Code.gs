@@ -23,14 +23,13 @@ var SCHEMA = {
   ]),
   Links: COMMON_COLUMNS.concat(['spotId', 'url', 'source', 'note']),
   Hearts: COMMON_COLUMNS.concat(['spotId', 'userId']),
-  Trips: COMMON_COLUMNS.concat(['name', 'cityId', 'startDate', 'endDate', 'countryIds', 'notes']),
+  Trips: COMMON_COLUMNS.concat(['name', 'countryId', 'startDate', 'endDate', 'notes']),
   TripItems: COMMON_COLUMNS.concat([
     'tripId', 'type', 'title', 'origin', 'destination', 'startLocal', 'startTimeZone', 'endLocal', 'endTimeZone',
-    'address', 'googlePlaceId', 'lat', 'lng', 'spotId', 'cityId', 'travelMode', 'bookingRef', 'costMinor',
-    'currency',
-    'docUrl', 'notes',
+    'spotId', 'routeId', 'bookingRef', 'costMinor', 'currency', 'docUrl', 'notes',
   ]),
-  RouteStops: COMMON_COLUMNS.concat(['tripItemId', 'spotId', 'sortKey']),
+  Routes: COMMON_COLUMNS.concat(['cityId', 'name', 'completed', 'notes']),
+  RouteStops: COMMON_COLUMNS.concat(['routeId', 'spotId', 'sortKey']),
 };
 
 /** Whitelist of tabs the API touches. Any other tab in the spreadsheet is ignored. */

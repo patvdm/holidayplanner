@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.TripEntity
 import com.pat.app.holidayplanner.data.local.TripItemEntity
-import com.pat.app.holidayplanner.data.local.CityOption
-import com.pat.app.holidayplanner.data.repo.CityRepository
+import com.pat.app.holidayplanner.data.local.CountryEntity
+import com.pat.app.holidayplanner.data.repo.CountryRepository
 import com.pat.app.holidayplanner.data.repo.TripRepository
 import com.pat.app.holidayplanner.domain.Cost
 import com.pat.app.holidayplanner.domain.Costs
@@ -24,51 +24,34 @@ data class TripUiState(
     val timeline: Timeline = Timeline(emptyList(), emptyList()),
     val totals: List<CurrencyTotal> = emptyList(),
     val totalsByType: List<Pair<TripItemType, List<CurrencyTotal>>> = emptyList(),
-    val cities: List<CityOption> = emptyList(),
+    val countries: List<CountryEntity> = emptyList(),
 ) {
-    /** The city this trip is to, which is where its spots and its day routes come from. */
-    val city: CityOption? get() = cities.firstOrNull { it.cityId == trip?.cityId }
-
-    val cityName: String get() = city?.cityName.orEmpty()
+    /** The country this trip is to, which is where its spots and routes come from. */
+    val country: CountryEntity? get() = countries.firstOrNull { it.meta.id == trip?.countryId }
 }
 
 class TripViewModel(
     private val tripId: String,
     private val repository: TripRepository,
-    cityRepository: CityRepository,
+    countryRepository: CountryRepository,
 ) : ViewModel() {
 
     val uiState: StateFlow<TripUiState> = combine(
         repository.observeTrip(tripId),
         repository.observeItems(tripId),
-        cityRepository.observeOptions(),
-    ) { trip, items, cities ->
+        countryRepository.observeCountries(),
+    ) { trip, items, countries ->
         TripUiState(
             trip = trip,
             timeline = items.toTimeline(),
             totals = Costs.byCurrency(items.mapNotNull(::costOf)),
             totalsByType = totalsByType(items),
-            cities = cities,
+            countries = countries,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TripUiState())
 
     fun addItem(type: TripItemType, onCreated: (String) -> Unit) {
         viewModelScope.launch { onCreated(repository.addItem(tripId = tripId, type = type)) }
-    }
-
-    /** A day route walks the trip's own city, so there is nothing to ask before making one. */
-    fun addDayRoute(onCreated: (String) -> Unit) {
-        val trip = uiState.value.trip ?: return
-        viewModelScope.launch {
-            onCreated(
-                repository.addDayRoute(
-                    tripId = tripId,
-                    title = uiState.value.cityName,
-                    cityId = trip.cityId,
-                    date = null,
-                ),
-            )
-        }
     }
 
     fun deleteItem(itemId: String) {
@@ -82,8 +65,7 @@ class TripViewModel(
 
     fun setNotes(notes: String) = edit { it.copy(notes = notes) }
 
-    /** Moving a trip to another city takes its country with it, so the two never disagree. */
-    fun setCity(city: CityOption) = edit { it.copy(cityId = city.cityId, countryIds = listOf(city.countryId)) }
+    fun setCountry(country: CountryEntity) = edit { it.copy(countryId = country.meta.id) }
 
     fun delete(onDeleted: () -> Unit) {
         viewModelScope.launch {

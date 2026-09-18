@@ -20,9 +20,8 @@
     <string name="label_url">Link</string>
     <string name="label_note">Note</string>
 
-    <string name="priority_must">Must</string>
-    <string name="priority_like">Like</string>
-    <string name="priority_maybe">Maybe</string>
+    <string name="priority_high">Priority</string>
+    <string name="priority_normal">Normal</string>
 
     <string name="status_unvisited">Not visited</string>
     <string name="status_visited">Visited</string>
@@ -149,19 +148,14 @@
     <string name="trip_search_zone">Search time zones</string>
     <string name="delete_trip_message">Everything planned on it goes too.</string>
 
+    <string name="item_spot">Spot</string>
+    <string name="item_route">Route</string>
     <string name="item_flight">Flight</string>
-    <string name="item_stay">Stay</string>
-    <string name="item_transport">Transport</string>
-    <string name="item_activity">Activity</string>
-    <string name="item_day_route">Day route</string>
     <string name="item_flight_number">Flight number</string>
     <string name="item_origin">From</string>
     <string name="item_destination">To</string>
-    <string name="item_address">Address</string>
     <string name="item_departs">Departs</string>
     <string name="item_arrives">Arrives</string>
-    <string name="item_check_in">Check in</string>
-    <string name="item_check_out">Check out</string>
     <string name="item_date">Date</string>
     <string name="item_booking_ref">Booking reference</string>
     <string name="item_cost">Cost</string>
@@ -202,7 +196,9 @@
     <string name="settings_version">Version %1$s (%2$d)</string>
 
     <!-- Day routes -->
-    <string name="route_title">Day route</string>
+    <string name="route_title">Route</string>
+    <string name="route_new">New route</string>
+    <string name="route_completed">Walked</string>
     <string name="route_pick_city">Which city is this walk in?</string>
     <string name="route_sort_proximity">Shortest walk</string>
     <string name="route_sort_from_here">Start from here</string>
@@ -219,10 +215,6 @@
     </plurals>
 
     <!-- Plan a day -->
-    <string name="plan_day">Plan a day</string>
-    <string name="plan_day_pick_trip">Which trip is this day part of?</string>
-    <string name="plan_day_no_trips">Make a trip first, then plan a day inside it.</string>
-    <string name="plan_day_route_name">%1$s day</string>
 
     <!-- Search -->
     <string name="search_hint">Search spots, trips, notes</string>
@@ -241,9 +233,8 @@
     <string name="countries_add_place">Add a spot</string>
     <string name="countries_add_country">Add a country</string>
     <string name="trips_name_optional">Trip name (optional)</string>
-    <string name="trips_city">Which city?</string>
-    <string name="trips_no_cities">Save a city first. A trip is planned out of the spots in one place.</string>
-    <string name="trip_add_spot">Add a spot to %1$s</string>
+    <string name="trips_country">Which country?</string>
+    <string name="trips_no_countries">Save a spot somewhere first. A trip is planned out of the spots in one country.</string>
 
     <!-- Map -->
 

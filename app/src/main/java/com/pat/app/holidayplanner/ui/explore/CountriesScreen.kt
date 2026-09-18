@@ -278,9 +278,8 @@ fun RowMenu(
 }
 
 fun Priority.label(): Int = when (this) {
-    Priority.MUST -> R.string.priority_must
-    Priority.LIKE -> R.string.priority_like
-    Priority.MAYBE -> R.string.priority_maybe
+    Priority.HIGH -> R.string.priority_high
+    Priority.NORMAL -> R.string.priority_normal
 }
 
 /**

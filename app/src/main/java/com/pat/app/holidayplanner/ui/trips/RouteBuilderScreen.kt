@@ -16,12 +16,12 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -42,7 +42,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
@@ -54,7 +53,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * A day route: a name, a date, and which of the city's spots are on the walk.
+ * A route: a name, whether it has been walked, and which of the city's spots are on it.
  *
  * Every spot in the city is listed and ticking one puts it on the walk, so choosing a day is a
  * matter of looking at what is nearby rather than searching for things one at a time. Everything
@@ -62,16 +61,15 @@ import org.koin.core.parameter.parametersOf
  */
 @Composable
 fun RouteBuilderScreen(
-    itemId: String,
+    routeId: String,
     onBack: () -> Unit,
     onDeleted: () -> Unit,
-    viewModel: RouteViewModel = koinViewModel { parametersOf(itemId) },
+    viewModel: RouteViewModel = koinViewModel { parametersOf(routeId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbars = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var pickingDate by remember { mutableStateOf(false) }
     var confirmingDelete by remember { mutableStateOf(false) }
 
     val noMapsApp = stringResource(R.string.route_no_maps_app)
@@ -104,7 +102,7 @@ fun RouteBuilderScreen(
             RouteHeader(
                 state = state,
                 onRename = viewModel::rename,
-                onPickDate = { pickingDate = true },
+                onCompleted = viewModel::setCompleted,
                 onSortByProximity = viewModel::sortByProximity,
             )
             HorizontalDivider()
@@ -119,20 +117,9 @@ fun RouteBuilderScreen(
         }
     }
 
-    if (pickingDate) {
-        DatePickerSheet(
-            initial = state.date,
-            onPick = {
-                pickingDate = false
-                viewModel.setDate(it)
-            },
-            onDismiss = { pickingDate = false },
-        )
-    }
-
     if (confirmingDelete) {
         ConfirmDeleteDialog(
-            title = stringResource(R.string.delete_title, state.title),
+            title = stringResource(R.string.delete_title, state.name),
             message = stringResource(R.string.route_delete_message),
             onConfirm = {
                 confirmingDelete = false
@@ -147,14 +134,14 @@ fun RouteBuilderScreen(
 private fun RouteHeader(
     state: RouteUiState,
     onRename: (String) -> Unit,
-    onPickDate: () -> Unit,
+    onCompleted: (Boolean) -> Unit,
     onSortByProximity: (fromHere: Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        var name by remember(state.item?.meta?.id) { mutableStateOf(state.title) }
+        var name by remember(state.route?.meta?.id) { mutableStateOf(state.name) }
         OutlinedTextField(
             value = name,
             onValueChange = {
@@ -171,9 +158,11 @@ private fun RouteHeader(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedButton(onClick = onPickDate) {
-                Text(state.date?.let(LocalTimes::formatDay) ?: stringResource(R.string.trip_pick_date))
-            }
+            FilterChip(
+                selected = state.completed,
+                onClick = { onCompleted(!state.completed) },
+                label = { Text(stringResource(R.string.route_completed)) },
+            )
             if (state.stops.size > 1) {
                 AssistChip(
                     enabled = !state.sorting,

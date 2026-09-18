@@ -4,11 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.CityEntity
 import com.pat.app.holidayplanner.data.local.SpotRow
-import com.pat.app.holidayplanner.data.local.TripEntity
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.repo.DeleteImpact
 import com.pat.app.holidayplanner.data.repo.CityRepository
-import com.pat.app.holidayplanner.data.repo.DayPlanner
+import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
 import com.pat.app.holidayplanner.domain.GeoPoint
@@ -19,7 +18,6 @@ import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -56,7 +54,6 @@ data class CityUiState(
     val sortMode: SortMode = SortMode.MANUAL,
     val userCount: Int = 0,
     val pendingDelete: PendingDelete? = null,
-    val trips: List<TripEntity> = emptyList(),
 ) {
     /** Dragging only makes sense in manual order and with nothing filtered out. */
     val canReorder: Boolean get() = sortMode == SortMode.MANUAL && !filters.any
@@ -74,7 +71,7 @@ class CityViewModel(
     private val cityRepository: CityRepository,
     private val spotRepository: SpotRepository,
     userRepository: UserRepository,
-    private val dayPlanner: DayPlanner,
+    private val routes: RouteRepository,
     private val prefs: AppPreferences,
 ) : ViewModel() {
 
@@ -94,8 +91,7 @@ class CityViewModel(
         listState,
         userRepository.observeUserCount(),
         pendingDelete,
-        dayPlanner.observeTrips(),
-    ) { place, list, userCount, pending, trips ->
+    ) { place, list, userCount, pending ->
         CityUiState(
             place = place,
             rows = list.rows.filter(list.filters::matches).sortedSpots(list.sortMode),
@@ -104,7 +100,6 @@ class CityViewModel(
             sortMode = list.sortMode,
             userCount = userCount,
             pendingDelete = pending,
-            trips = trips,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CityUiState())
 
@@ -158,10 +153,10 @@ class CityViewModel(
     }
 
     /**
-     * Starts a day route on [tripId] for [date], carrying over every spot here nobody has visited
-     * yet. They arrive in the order the list is already in, which is the order Pat arranged them in.
+     * Starts a route through this city with every spot nobody has visited yet already on it,
+     * ordered so it opens as a sensible walk with no extra tap.
      */
-    fun planDay(tripId: String, date: LocalDate, title: String, onCreated: (String) -> Unit) {
+    fun createRoute(title: String, onCreated: (String) -> Unit) {
         // Ordered before it is handed over, so the route opens as a sensible walk with no extra tap.
         val unvisited = Proximity
             .orderByProximity(uiState.value.rows.filter { it.spot.status == SpotStatus.UNVISITED }) { row ->
@@ -170,7 +165,7 @@ class CityViewModel(
                 if (lat != null && lng != null) GeoPoint(lat, lng) else null
             }
             .map { it.spot.meta.id }
-        viewModelScope.launch { onCreated(dayPlanner.planDay(tripId, title, cityId, date, unvisited)) }
+        viewModelScope.launch { onCreated(routes.create(cityId, title, unvisited)) }
     }
 
     fun confirmDelete() {

@@ -14,27 +14,26 @@ class TripTimelineTest {
     fun `items land on the day they start`() {
         val timeline = listOf(
             item("f1", TripItemType.FLIGHT, "KL1691", start = "2026-04-01T10:15"),
-            item("a1", TripItemType.ACTIVITY, "Castle", start = "2026-04-02T09:00"),
+            item("a1", TripItemType.SPOT, "Castle", start = "2026-04-02T09:00"),
         ).toTimeline()
 
         assertEquals(listOf(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 2)), timeline.days.map { it.date })
     }
 
     @Test
-    fun `a stay shows on both the day in and the day out`() {
+    fun `a spot with an end days later still sits only on the day it starts`() {
         val timeline = listOf(
-            item("s1", TripItemType.STAY, "Hotel", start = "2026-04-01T15:00", end = "2026-04-04T10:00"),
+            item("s1", TripItemType.SPOT, "Hotel", start = "2026-04-01T15:00", end = "2026-04-04T10:00"),
         ).toTimeline()
 
-        assertEquals(2, timeline.days.size)
-        assertEquals(ItemRole.START, timeline.days.first().entries.single().role)
-        assertEquals(ItemRole.END, timeline.days.last().entries.single().role)
+        assertEquals(listOf(LocalDate.of(2026, 4, 1)), timeline.days.map { it.date })
+        assertEquals(ItemRole.START, timeline.days.single().entries.single().role)
     }
 
     @Test
-    fun `a one night stay that starts and ends the same day shows once`() {
+    fun `a spot that starts and ends the same day shows once`() {
         val timeline = listOf(
-            item("s1", TripItemType.STAY, "Hotel", start = "2026-04-01T15:00", end = "2026-04-01T23:00"),
+            item("s1", TripItemType.SPOT, "Hotel", start = "2026-04-01T15:00", end = "2026-04-01T23:00"),
         ).toTimeline()
 
         assertEquals(1, timeline.days.size)
@@ -55,18 +54,19 @@ class TripTimelineTest {
     fun `a day is ordered by the time each card shows`() {
         val timeline = listOf(
             item("f1", TripItemType.FLIGHT, "Flight", start = "2026-04-04T13:00"),
-            item("s1", TripItemType.STAY, "Hotel", start = "2026-04-01T15:00", end = "2026-04-04T10:00"),
-            item("a1", TripItemType.ACTIVITY, "Lunch", start = "2026-04-04T12:00"),
+            item("s1", TripItemType.SPOT, "Hotel", start = "2026-04-01T15:00", end = "2026-04-04T10:00"),
+            item("a1", TripItemType.SPOT, "Lunch", start = "2026-04-04T12:00"),
         ).toTimeline()
 
+        // The hotel belongs to the day it starts, so the last day holds only what begins on it.
         val lastDay = timeline.days.last { it.date == LocalDate.of(2026, 4, 4) }
-        assertEquals(listOf("Hotel", "Lunch", "Flight"), lastDay.entries.map { it.item.title })
+        assertEquals(listOf("Lunch", "Flight"), lastDay.entries.map { it.item.title })
     }
 
     @Test
     fun `an item with no times waits to be finished rather than disappearing`() {
         val timeline = listOf(
-            item("a1", TripItemType.ACTIVITY, "Something we should book"),
+            item("a1", TripItemType.SPOT, "Something we should book"),
             item("f1", TripItemType.FLIGHT, "Flight", start = "2026-04-01T10:15"),
         ).toTimeline()
 
@@ -77,7 +77,7 @@ class TripTimelineTest {
     @Test
     fun `an item with only an end time lands on that day`() {
         val timeline = listOf(
-            item("s1", TripItemType.STAY, "Hotel", end = "2026-04-04T10:00"),
+            item("s1", TripItemType.SPOT, "Hotel", end = "2026-04-04T10:00"),
         ).toTimeline()
 
         assertEquals(LocalDate.of(2026, 4, 4), timeline.days.single().date)
@@ -87,9 +87,9 @@ class TripTimelineTest {
     @Test
     fun `days come back in order whatever order the items arrived in`() {
         val timeline = listOf(
-            item("c", TripItemType.ACTIVITY, "Third", start = "2026-04-09T09:00"),
-            item("a", TripItemType.ACTIVITY, "First", start = "2026-04-01T09:00"),
-            item("b", TripItemType.ACTIVITY, "Second", start = "2026-04-05T09:00"),
+            item("c", TripItemType.SPOT, "Third", start = "2026-04-09T09:00"),
+            item("a", TripItemType.SPOT, "First", start = "2026-04-01T09:00"),
+            item("b", TripItemType.SPOT, "Second", start = "2026-04-05T09:00"),
         ).toTimeline()
 
         assertEquals(listOf("First", "Second", "Third"), timeline.days.map { it.entries.single().item.title })
@@ -120,13 +120,8 @@ class TripTimelineTest {
         startTimeZone = "Europe/Amsterdam",
         endLocal = end,
         endTimeZone = "Europe/Amsterdam",
-        address = "",
-        googlePlaceId = "",
-        lat = null,
-        lng = null,
         spotId = "",
-        cityId = "",
-        travelMode = null,
+        routeId = "",
         bookingRef = "",
         costMinor = null,
         currency = "",

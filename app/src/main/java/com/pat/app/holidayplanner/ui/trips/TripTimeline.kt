@@ -2,7 +2,6 @@ package com.pat.app.holidayplanner.ui.trips
 
 import com.pat.app.holidayplanner.data.local.TripItemEntity
 import com.pat.app.holidayplanner.domain.LocalTimes
-import com.pat.app.holidayplanner.domain.TripItemType
 import java.time.LocalDate
 
 /** Why an item shows on a given day, which decides what its card says. */
@@ -37,13 +36,8 @@ fun List<TripItemEntity>.toTimeline(): Timeline {
         val startDate = LocalTimes.dateOf(item.startLocal)
         val endDate = LocalTimes.dateOf(item.endLocal)
         when {
-            startDate != null -> {
-                entries += startDate to TimelineEntry(item, ItemRole.START)
-                // Only a stay earns a second appearance; a flight that lands next day does not.
-                if (item.type == TripItemType.STAY && endDate != null && endDate != startDate) {
-                    entries += endDate to TimelineEntry(item, ItemRole.END)
-                }
-            }
+            // An item sits on the day it starts; a flight that lands next day does not appear twice.
+            startDate != null -> entries += startDate to TimelineEntry(item, ItemRole.START)
 
             endDate != null -> entries += endDate to TimelineEntry(item, ItemRole.END)
             else -> undated += item

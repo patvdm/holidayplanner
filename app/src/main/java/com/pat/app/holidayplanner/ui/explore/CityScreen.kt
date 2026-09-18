@@ -56,7 +56,6 @@ import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.TypeBadge
 import com.pat.app.holidayplanner.ui.components.label
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
-import com.pat.app.holidayplanner.ui.trips.PlanDayDialog
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -73,10 +72,9 @@ fun CityScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var adding by remember { mutableStateOf(false) }
     var renamingPlace by remember { mutableStateOf(false) }
-    var planningDay by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     val putKeyboardAway = rememberKeyboardDismiss()
-    val dayTitle = stringResource(R.string.plan_day_route_name, state.place?.name.orEmpty())
+    val routeTitle = state.place?.name.orEmpty()
 
     Scaffold(
         topBar = {
@@ -117,10 +115,10 @@ fun CityScreen(
                         properties = PopupProperties(focusable = false),
                     ) {
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.plan_day)) },
+                            text = { Text(stringResource(R.string.route_new)) },
                             onClick = {
                                 menuOpen = false
-                                planningDay = true
+                                viewModel.createRoute(routeTitle, onOpenRoute)
                             },
                         )
                     }
@@ -173,17 +171,6 @@ fun CityScreen(
             cityId = cityId,
             onDismiss = { adding = false },
             onSaved = { adding = false },
-        )
-    }
-
-    if (planningDay) {
-        PlanDayDialog(
-            trips = state.trips,
-            onPlan = { tripId, date ->
-                planningDay = false
-                viewModel.planDay(tripId, date, dayTitle, onOpenRoute)
-            },
-            onDismiss = { planningDay = false },
         )
     }
 
