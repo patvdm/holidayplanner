@@ -7,7 +7,9 @@ import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.CityOption
 import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.local.SpotEntity
+import android.net.Uri
 import com.pat.app.holidayplanner.data.repo.LinkRepository
+import com.pat.app.holidayplanner.data.repo.PhotoRepository
 import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
@@ -18,6 +20,7 @@ import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -33,7 +36,14 @@ data class SpotDetailUiState(
     val links: List<LinkEntity> = emptyList(),
     val cities: List<CityOption> = emptyList(),
     val currentUserId: String = "",
+    /** True while a picture is on its way to the backend, which is the one thing here that waits. */
+    val savingPhoto: Boolean = false,
 ) {
+    /** Photos are links too, but they belong in the roll at the top rather than the list below. */
+    val photos: List<LinkEntity> get() = links.filter { it.source.isPhoto }
+
+    val references: List<LinkEntity> get() = links.filterNot { it.source.isPhoto }
+
     val heartedByMe: Boolean get() = hearts.any { it.userId == currentUserId }
 
     /**
@@ -68,9 +78,12 @@ class SpotDetailViewModel(
     private val spotId: String,
     private val spotRepository: SpotRepository,
     private val linkRepository: LinkRepository,
+    private val photoRepository: PhotoRepository,
     cityRepository: CityRepository,
     userRepository: UserRepository,
 ) : ViewModel() {
+
+    private val savingPhoto = MutableStateFlow(false)
 
     private val bundle: Flow<SpotBundle> = combine(
         spotRepository.observeHeartNames(spotId),
@@ -84,7 +97,8 @@ class SpotDetailViewModel(
         spotRepository.observeContext(spotId),
         bundle,
         userRepository.currentUserId,
-    ) { spot, context, parts, userId ->
+        savingPhoto,
+    ) { spot, context, parts, userId, saving ->
         SpotDetailUiState(
             spot = spot,
             context = context,
@@ -92,6 +106,7 @@ class SpotDetailViewModel(
             links = parts.links,
             cities = parts.cities,
             currentUserId = userId.orEmpty(),
+            savingPhoto = saving,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SpotDetailUiState())
 
@@ -152,6 +167,19 @@ class SpotDetailViewModel(
 
     fun deleteLink(linkId: String) {
         viewModelScope.launch { linkRepository.delete(linkId) }
+    }
+
+    /** A picture from the gallery. Unlike every other edit this one needs the network. */
+    fun addPhoto(uri: Uri) {
+        viewModelScope.launch {
+            savingPhoto.value = true
+            photoRepository.attach(spotId, uri)
+            savingPhoto.value = false
+        }
+    }
+
+    fun deletePhoto(photo: LinkEntity) {
+        viewModelScope.launch { photoRepository.remove(photo) }
     }
 
 

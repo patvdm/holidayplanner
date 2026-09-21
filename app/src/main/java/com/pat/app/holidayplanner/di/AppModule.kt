@@ -7,7 +7,9 @@ import com.pat.app.holidayplanner.data.location.FusedDeviceLocation
 import com.pat.app.holidayplanner.data.location.ReverseGeocoder
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.remote.GooglePlacesSearch
+import com.pat.app.holidayplanner.data.image.PhotoScaler
 import com.pat.app.holidayplanner.data.remote.HttpLinkResolver
+import com.pat.app.holidayplanner.data.remote.ImageStore
 import com.pat.app.holidayplanner.data.remote.LinkResolver
 import com.pat.app.holidayplanner.data.remote.PictureSource
 import com.pat.app.holidayplanner.data.remote.PlacesSearch
@@ -17,6 +19,7 @@ import com.pat.app.holidayplanner.data.remote.SheetsBackend
 import com.pat.app.holidayplanner.data.repo.CountryRepository
 import com.pat.app.holidayplanner.data.repo.HierarchyResolver
 import com.pat.app.holidayplanner.data.repo.LinkRepository
+import com.pat.app.holidayplanner.data.repo.PhotoRepository
 import com.pat.app.holidayplanner.data.repo.LocalWriter
 import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
@@ -38,6 +41,7 @@ import com.pat.app.holidayplanner.domain.AppClock
 import com.pat.app.holidayplanner.ui.SessionViewModel
 import com.pat.app.holidayplanner.ui.explore.CountriesViewModel
 import com.pat.app.holidayplanner.ui.explore.CountryViewModel
+import com.pat.app.holidayplanner.ui.explore.CityRepositories
 import com.pat.app.holidayplanner.ui.explore.CityViewModel
 import com.pat.app.holidayplanner.ui.components.PlaceSearchTarget
 import com.pat.app.holidayplanner.ui.components.PlaceSearchViewModel
@@ -90,6 +94,8 @@ val appModule = module {
     single<DeviceLocation> { FusedDeviceLocation(androidContext()) }
     single { SheetsApi(get()) }
     single<SheetsBackend> { get<SheetsApi>() }
+    single<ImageStore> { get<SheetsApi>() }
+    single { PhotoScaler(androidContext()) }
     single { syncTables(get()) }
     single { SyncRepository(get(), get(), get(), get(), get(), get()) }
     single { SyncStatusRepository(get(), get(), get()) }
@@ -100,6 +106,8 @@ val appModule = module {
     single { CityRepository(get(), get(), get(), get()) }
     single { SpotRepository(get(), get(), get(), get(), get()) }
     single { LinkRepository(get(), get()) }
+    single { PhotoRepository(get(), get(), get()) }
+    single { CityRepositories(get(), get(), get(), get(), get()) }
     single { HierarchyResolver(get(), get()) }
     single { TripRepository(get(), get(), get(), get(), get()) }
     single { RouteRepository(get(), get(), get(), get(), get()) }
@@ -121,8 +129,8 @@ val appModule = module {
 
     // These three are scoped to one row, so the id comes from the screen that opened them.
     viewModel { (countryId: String) -> CountryViewModel(countryId, get(), get(), get()) }
-    viewModel { (cityId: String) -> CityViewModel(cityId, get(), get(), get(), get(), get()) }
-    viewModel { (spotId: String) -> SpotDetailViewModel(spotId, get(), get(), get(), get()) }
+    viewModel { (cityId: String) -> CityViewModel(cityId, get(), get()) }
+    viewModel { (spotId: String) -> SpotDetailViewModel(spotId, get(), get(), get(), get(), get()) }
     viewModel { (tripId: String) -> TripViewModel(tripId, get(), get(), get(), get()) }
     viewModel { (itemId: String) -> TripItemViewModel(itemId, get()) }
     viewModel { (routeId: String) -> RouteViewModel(routeId, get(), get(), get(), get()) }

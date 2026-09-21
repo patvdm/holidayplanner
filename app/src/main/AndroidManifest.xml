@@ -49,6 +49,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
 
                 <data android:mimeType="text/plain" />
+                <!-- A photo of a place is one more thing worth keeping against it. -->
+                <data android:mimeType="image/*" />
             </intent-filter>
         </activity>
     </application>

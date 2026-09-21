@@ -42,6 +42,15 @@ var TABLES = Object.keys(SCHEMA);
  * timestamps. importInbox() turns each row into a country, a city and a spot, geocoding as it goes.
  * `result` is written back per row: "done", "exists", or why it failed. Not part of the sync.
  */
+/**
+ * Where photos shared to the app are kept. The sheet holds only their addresses: a cell cannot
+ * hold a picture, and Drive can serve one to both phones without another account or key.
+ */
+var PICTURE_FOLDER = 'Holiday Planner pictures';
+
+/** The form of Drive address that serves the image bytes themselves rather than a viewer page. */
+var PICTURE_URL = 'https://lh3.googleusercontent.com/d/';
+
 var INBOX = 'Inbox';
 var INBOX_COLUMNS = ['country', 'city', 'spot', 'type', 'priority', 'notes', 'link', 'result'];
 var INBOX_AUTHOR = 'sheet';
@@ -145,6 +154,10 @@ function doPost(e) {
         return json(push(body));
       case 'inbox':
         return json(inbox(body));
+      case 'image':
+        return json(saveImage(body));
+      case 'deleteImage':
+        return json(trashImage(body));
       default:
         return json({ ok: false, error: 'unknown_action' });
     }
@@ -263,6 +276,59 @@ function push(body) {
   });
 
   return { ok: true, serverTime: now, accepted: accepted, skipped: skipped, errors: errors };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Pictures shared to the app
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Stores one picture in Drive and returns the address that serves it.
+ *
+ * The phone sends it already scaled down: a full-size photo as base64 is tens of megabytes and
+ * would be refused long before it arrived. The file is readable by anyone holding its address,
+ * because the phones fetch it without signing in; the address itself is the secret.
+ */
+function saveImage(body) {
+  var data = body.data;
+  if (!data) return { ok: false, error: 'no_data' };
+  var blob = Utilities.newBlob(
+    Utilities.base64Decode(data),
+    body.mimeType || 'image/jpeg',
+    body.name || 'photo-' + Date.now() + '.jpg'
+  );
+  var file = pictureFolder().createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return { ok: true, serverTime: Date.now(), fileId: file.getId(), url: PICTURE_URL + file.getId() };
+}
+
+/** Moves a picture to the Drive bin once nothing points at it. A missing file is already gone. */
+function trashImage(body) {
+  var fileId = body.fileId;
+  if (!fileId) return { ok: false, error: 'no_file_id' };
+  try {
+    DriveApp.getFileById(fileId).setTrashed(true);
+  } catch (err) {
+    return { ok: true, serverTime: Date.now(), trashed: false };
+  }
+  return { ok: true, serverTime: Date.now(), trashed: true };
+}
+
+/** The folder, remembered by id so renaming it in Drive does not start a second one. */
+function pictureFolder() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('PICTURE_FOLDER_ID');
+  if (id) {
+    try {
+      return DriveApp.getFolderById(id);
+    } catch (err) {
+      // Deleted by hand; fall through and make another.
+    }
+  }
+  var existing = DriveApp.getFoldersByName(PICTURE_FOLDER);
+  var folder = existing.hasNext() ? existing.next() : DriveApp.createFolder(PICTURE_FOLDER);
+  props.setProperty('PICTURE_FOLDER_ID', folder.getId());
+  return folder;
 }
 
 // ---------------------------------------------------------------------------------------------

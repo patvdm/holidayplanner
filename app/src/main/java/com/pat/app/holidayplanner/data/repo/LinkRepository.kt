@@ -15,6 +15,9 @@ class LinkRepository(
     /** Links that have not been attached to a spot yet. */
     fun observeLinks(spotId: String): Flow<List<LinkEntity>> = dao.observeBySpot(spotId)
 
+    /** Everything hanging on the spots of one city, ready to be grouped by spot. */
+    fun observeInCity(cityId: String): Flow<List<LinkEntity>> = dao.observeByCity(cityId)
+
     suspend fun findByUrl(url: String): LinkEntity? = dao.findByUrl(url)
 
     /** Every link belongs to a spot: one with nowhere to live is not worth keeping. */

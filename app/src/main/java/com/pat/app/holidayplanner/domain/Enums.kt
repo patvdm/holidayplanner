@@ -46,8 +46,15 @@ enum class SpotType {
     }
 }
 
+/**
+ * Where a reference attached to a spot came from. [PHOTO] is one we took and shared to the app
+ * rather than one that lives somewhere else, but it is still a reference to the spot, so it is
+ * kept beside the others rather than in a table of its own.
+ */
 enum class LinkSource {
-    INSTAGRAM, TIKTOK, YOUTUBE, MAPS, WEB;
+    INSTAGRAM, TIKTOK, YOUTUBE, MAPS, WEB, PHOTO;
+
+    val isPhoto: Boolean get() = this == PHOTO
 
     companion object {
         fun fromSheet(value: String?): LinkSource = parseEnum(value, WEB)

@@ -31,12 +31,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.SpotRow
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SortScope
@@ -45,6 +47,10 @@ import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import com.pat.app.holidayplanner.ui.components.HeartCount
+import com.pat.app.holidayplanner.ui.components.LinkChips
+import com.pat.app.holidayplanner.ui.components.PhotoRoll
+import com.pat.app.holidayplanner.ui.components.PhotoViewer
+import com.pat.app.holidayplanner.ui.components.openExternalUrl
 import com.pat.app.holidayplanner.ui.components.HeroImage
 import com.pat.app.holidayplanner.ui.components.PictureDialog
 import com.pat.app.holidayplanner.ui.components.Thumbnail
@@ -72,6 +78,9 @@ fun CityScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var renamingPlace by remember { mutableStateOf(false) }
     var changingPicture by remember { mutableStateOf(false) }
+    var viewingPhoto by remember { mutableStateOf<String?>(null) }
+    var deletingPhoto by remember { mutableStateOf<LinkEntity?>(null) }
+    val context = LocalContext.current
     var menuOpen by remember { mutableStateOf(false) }
     val putKeyboardAway = rememberKeyboardDismiss()
     val routeTitle = state.place?.name.orEmpty()
@@ -155,7 +164,11 @@ fun CityScreen(
                     SpotRowItem(
                         row = row,
                         everyone = state.userCount > 0 && row.heartCount >= state.userCount,
+                        attachments = state.attachments[row.spot.meta.id].orEmpty(),
                         handle = handle,
+                        onOpenPhoto = { viewingPhoto = it.url },
+                        onDeletePhoto = { deletingPhoto = it },
+                        onOpenLink = { context.openExternalUrl(it.url) },
                         onClick = { onOpenSpot(row.spot.meta.id) },
                         onHeart = { viewModel.toggleHeart(row.spot.meta.id) },
                         onPriority = { viewModel.setPriority(row.spot.meta.id, it) },
@@ -165,6 +178,22 @@ fun CityScreen(
                 }
             }
         }
+    }
+
+    viewingPhoto?.let { url ->
+        PhotoViewer(url = url, onDismiss = { viewingPhoto = null })
+    }
+
+    deletingPhoto?.let { photo ->
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.photo_delete_title),
+            message = stringResource(R.string.photo_delete_message),
+            onConfirm = {
+                viewModel.deletePhoto(photo)
+                deletingPhoto = null
+            },
+            onDismiss = { deletingPhoto = null },
+        )
     }
 
     if (changingPicture) {
@@ -248,7 +277,11 @@ private fun FilterRow(state: CityUiState, viewModel: CityViewModel) {
 private fun SpotRowItem(
     row: SpotRow,
     everyone: Boolean,
+    attachments: List<LinkEntity>,
     handle: (@Composable () -> Unit)?,
+    onOpenPhoto: (LinkEntity) -> Unit,
+    onDeletePhoto: (LinkEntity) -> Unit,
+    onOpenLink: (LinkEntity) -> Unit,
     onClick: () -> Unit,
     onHeart: () -> Unit,
     onPriority: (Priority) -> Unit,
@@ -274,13 +307,6 @@ private fun SpotRowItem(
                     PriorityBadge(row.spot.priority)
                     StatusChip(row.spot.status)
                     TypeBadge(row.spot.type)
-                    if (row.linkCount > 0) {
-                        Text(
-                            text = stringResource(R.string.city_link_count, row.linkCount),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                 }
                 // The reason a place was saved is usually the first thing written about it.
                 row.spot.notes.firstLine()?.let { note ->
@@ -291,6 +317,14 @@ private fun SpotRowItem(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                // Everything saved about the place, without opening it.
+                PhotoRoll(
+                    photos = attachments.filter { it.source.isPhoto },
+                    onOpen = onOpenPhoto,
+                    onDelete = onDeletePhoto,
+                    size = ROW_PHOTO_SIZE_DP.dp,
+                )
+                LinkChips(links = attachments.filterNot { it.source.isPhoto }, onOpen = onOpenLink)
             }
             IconButton(onClick = onHeart) {
                 HeartCount(count = row.heartCount, heartedByMe = row.heartedByMe, everyone = everyone)
@@ -301,6 +335,9 @@ private fun SpotRowItem(
         HorizontalDivider()
     }
 }
+
+/** Small enough that a row with photos is still a row rather than a card. */
+private const val ROW_PHOTO_SIZE_DP = 64
 
 @Composable
 private fun SpotRowMenu(

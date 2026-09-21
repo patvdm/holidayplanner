@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.remote
 
+import android.util.Base64
 import android.util.Log
 import com.pat.app.holidayplanner.BuildConfig
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
@@ -46,7 +47,7 @@ class SheetsException(message: String, cause: Throwable? = null) : Exception(mes
 class SheetsApi(
     prefs: AppPreferences,
     private val client: HttpClient = defaultClient(),
-) : SheetsBackend {
+) : SheetsBackend, ImageStore {
 
     val config: Flow<BackendConfig> = prefs.backendOverride.map { override ->
         BackendConfig(
@@ -72,6 +73,19 @@ class SheetsApi(
                 errors = (body["errors"] as? JsonArray)?.size ?: 0,
             )
         }
+
+    override suspend fun upload(bytes: ByteArray, mimeType: String, name: String): Result<StoredImage> =
+        call("image") {
+            // Base64 because the body is JSON; the phone has already made the picture small enough.
+            put("data", Base64.encodeToString(bytes, Base64.NO_WRAP))
+            put("mimeType", mimeType)
+            put("name", name)
+        }.map { body ->
+            StoredImage(url = body.str("url"), fileId = body.str("fileId"))
+        }
+
+    override suspend fun remove(fileId: String): Result<Unit> =
+        call("deleteImage") { put("fileId", fileId) }.map { }
 
     private suspend fun call(action: String, extra: JsonObjectBuilder.() -> Unit = {}): Result<JsonObject> {
         val cfg = config.first()
@@ -159,6 +173,8 @@ private fun JsonObject.readChanges(): SheetRows {
         }
     }.toMap()
 }
+
+private fun JsonObject.str(key: String): String = this[key]?.text().orEmpty()
 
 private fun JsonObject.long(key: String): Long = this[key]?.text()?.toLongOrNull() ?: 0L
 

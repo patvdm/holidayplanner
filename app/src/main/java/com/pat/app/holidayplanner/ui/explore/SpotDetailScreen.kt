@@ -57,10 +57,18 @@ import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.HeroImage
+import com.pat.app.holidayplanner.ui.components.LinkChips
+import com.pat.app.holidayplanner.ui.components.PhotoRoll
+import com.pat.app.holidayplanner.ui.components.PhotoViewer
 import com.pat.app.holidayplanner.ui.components.PictureDialog
 import com.pat.app.holidayplanner.ui.components.PickFromListDialog
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import com.pat.app.holidayplanner.ui.components.label
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
+import androidx.compose.material3.CircularProgressIndicator
 import com.pat.app.holidayplanner.ui.components.openExternalUrl
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
@@ -76,6 +84,9 @@ fun SpotDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val dialogs = remember { SpotDialogs() }
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let(viewModel::addPhoto)
+    }
 
     Scaffold(
         // The tab bar below already keeps clear of the system bar; padding for it again left a dead strip.
@@ -129,14 +140,21 @@ fun SpotDetailScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { dialogs.renaming = true }) {
-                        Text(stringResource(R.string.action_rename))
-                    }
-                    OutlinedButton(onClick = { dialogs.changingPicture = true }) {
-                        Text(stringResource(R.string.picture_change))
-                    }
-                }
+                PhotosSection(
+                    state = state,
+                    onAdd = { photoPicker.launch(PickVisualMediaRequest(ImageOnly)) },
+                    onOpen = { dialogs.viewing = it.url },
+                    onDelete = { dialogs.deletingPhoto = it },
+                )
+
+                HorizontalDivider()
+                LinksSection(
+                    links = state.references,
+                    onOpen = { context.openExternalUrl(it) },
+                    onDelete = viewModel::deleteLink,
+                    onAdd = { dialogs.addingLink = true },
+                )
+
                 HorizontalDivider()
                 SectionLabel(stringResource(R.string.spot_location))
                 state.spot?.address?.takeIf { it.isNotBlank() }?.let {
@@ -202,14 +220,14 @@ fun SpotDetailScreen(
                 NotesField(initial = state.spot?.notes.orEmpty(), onSave = viewModel::setNotes)
 
                 HorizontalDivider()
-                LinksSection(
-                    links = state.links,
-                    onOpen = { context.openExternalUrl(it) },
-                    onDelete = viewModel::deleteLink,
-                    onAdd = { dialogs.addingLink = true },
-                )
-
-                HorizontalDivider()
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { dialogs.renaming = true }) {
+                        Text(stringResource(R.string.action_rename))
+                    }
+                    OutlinedButton(onClick = { dialogs.changingPicture = true }) {
+                        Text(stringResource(R.string.picture_change))
+                    }
+                }
                 OutlinedButton(onClick = { dialogs.movingSpot = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.spot_move))
                 }
@@ -227,6 +245,39 @@ private class SpotDialogs {
     var movingSpot by mutableStateOf(false)
     var changingPicture by mutableStateOf(false)
     var confirmingDelete by mutableStateOf(false)
+    var viewing by mutableStateOf<String?>(null)
+    var deletingPhoto by mutableStateOf<LinkEntity?>(null)
+}
+
+/** The photos of this spot, with the way to add another. */
+@Composable
+private fun PhotosSection(
+    state: SpotDetailUiState,
+    onAdd: () -> Unit,
+    onOpen: (LinkEntity) -> Unit,
+    onDelete: (LinkEntity) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        SectionLabel(stringResource(R.string.spot_photos))
+        if (state.savingPhoto) {
+            CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+        } else {
+            TextButton(onClick = onAdd) { Text(stringResource(R.string.spot_add_photo)) }
+        }
+    }
+    if (state.photos.isEmpty()) {
+        Text(
+            text = stringResource(R.string.spot_photos_none),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    } else {
+        PhotoRoll(photos = state.photos, onOpen = onOpen, onDelete = onDelete)
+    }
 }
 
 @Composable
@@ -246,6 +297,22 @@ private fun SpotDialogs(
                 dialogs.renaming = false
             },
             onDismiss = { dialogs.renaming = false },
+        )
+    }
+
+    dialogs.viewing?.let { url ->
+        PhotoViewer(url = url, onDismiss = { dialogs.viewing = null })
+    }
+
+    dialogs.deletingPhoto?.let { photo ->
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.photo_delete_title),
+            message = stringResource(R.string.photo_delete_message),
+            onConfirm = {
+                viewModel.deletePhoto(photo)
+                dialogs.deletingPhoto = null
+            },
+            onDismiss = { dialogs.deletingPhoto = null },
         )
     }
 
@@ -380,10 +447,7 @@ private fun LinksSection(
                     )
                     .padding(vertical = 8.dp),
             ) {
-                Text(
-                    text = link.note.ifBlank { link.source.name },
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Text(text = link.label(), style = MaterialTheme.typography.bodyMedium)
                 Text(
                     text = link.url,
                     style = MaterialTheme.typography.bodySmall,

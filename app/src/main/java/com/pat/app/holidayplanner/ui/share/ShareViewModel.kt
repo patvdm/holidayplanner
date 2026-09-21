@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.share
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,7 @@ import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.location.ReverseGeocoder
 import com.pat.app.holidayplanner.data.remote.LinkResolver
 import com.pat.app.holidayplanner.data.repo.LinkRepository
+import com.pat.app.holidayplanner.data.repo.PhotoRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.AddressText
 import com.pat.app.holidayplanner.domain.MapsLinkParser
@@ -56,6 +58,15 @@ sealed interface ShareState {
     /** A Maps link becomes a spot, named after the place, holding the link and the address. */
     data class CreatingSpot(val spot: SharedSpot) : ShareState
 
+    /** A photo waiting to be hung on a spot. Nothing is stored until one is chosen. */
+    data class FilingPhoto(val uri: Uri) : ShareState
+
+    /** The one thing here that cannot be done offline: the picture itself has to reach Drive. */
+    data object Uploading : ShareState
+
+    /** Something went wrong that is worth saying out loud rather than closing over. */
+    data class Problem(val message: String) : ShareState
+
     /**
      * Asking which spot the link belongs to, without leaving the other app. This is the first and
      * only question for anything that is not a Maps link: pick a spot, or find a new one.
@@ -76,6 +87,7 @@ sealed interface ShareState {
  */
 class ShareViewModel(
     private val linkRepository: LinkRepository,
+    private val photoRepository: PhotoRepository,
     private val spotRepository: SpotRepository,
     private val linkResolver: LinkResolver,
     private val reverseGeocoder: ReverseGeocoder,
@@ -86,8 +98,12 @@ class ShareViewModel(
 
     private var sharedText: String? = null
 
-    fun onShared(text: String?) {
+    fun onShared(text: String?, imageUri: Uri? = null) {
         sharedText = text
+        if (imageUri != null) {
+            state.value = ShareState.FilingPhoto(imageUri)
+            return
+        }
         val shared = ShareParser.parse(text)
         if (shared == null) {
             state.value = ShareState.NoLink
@@ -163,6 +179,17 @@ class ShareViewModel(
     /** The spot made from a Maps link needs nothing else saved, so the dialog is done. */
     fun spotCreated() {
         state.value = ShareState.Saved
+    }
+
+    /** Sends the shared photo to the backend and hangs it on the spot that was chosen. */
+    fun attachPhoto(spotId: String) {
+        val filing = state.value as? ShareState.FilingPhoto ?: return
+        state.value = ShareState.Uploading
+        viewModelScope.launch {
+            photoRepository.attach(spotId, filing.uri)
+                .onSuccess { state.value = ShareState.Saved }
+                .onFailure { state.value = ShareState.Problem(it.message.orEmpty()) }
+        }
     }
 
     /** Writes the link against the spot it belongs to, which is the only way it gets written. */

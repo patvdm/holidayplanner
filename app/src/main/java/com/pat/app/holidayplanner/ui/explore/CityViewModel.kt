@@ -3,10 +3,12 @@ package com.pat.app.holidayplanner.ui.explore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.CityEntity
+import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.SpotRow
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.repo.DeleteImpact
 import com.pat.app.holidayplanner.data.repo.CityRepository
+import com.pat.app.holidayplanner.data.repo.PhotoRepository
 import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
@@ -47,6 +49,8 @@ data class SpotFilters(
 data class CityUiState(
     val place: CityEntity? = null,
     val rows: List<SpotRow> = emptyList(),
+    /** The photos and links of each spot, so a row can show them without a query of its own. */
+    val attachments: Map<String, List<LinkEntity>> = emptyMap(),
     val filters: SpotFilters = SpotFilters(),
     val sortMode: SortMode = SortMode.MANUAL,
     val userCount: Int = 0,
@@ -61,14 +65,24 @@ private data class SpotListState(
     val rows: List<SpotRow>,
     val sortMode: SortMode,
     val filters: SpotFilters,
+    val attachments: Map<String, List<LinkEntity>>,
+)
+
+/**
+ * What the city screen reads and writes. Grouped because a city row shows a spot, its hearts, its
+ * photos and its links at once, and a constructor listing all of them says nothing useful.
+ */
+class CityRepositories(
+    val cities: CityRepository,
+    val spots: SpotRepository,
+    val users: UserRepository,
+    val routes: RouteRepository,
+    val photos: PhotoRepository,
 )
 
 class CityViewModel(
     private val cityId: String,
-    private val cityRepository: CityRepository,
-    private val spotRepository: SpotRepository,
-    userRepository: UserRepository,
-    private val routes: RouteRepository,
+    private val repos: CityRepositories,
     private val prefs: AppPreferences,
 ) : ViewModel() {
 
@@ -76,22 +90,28 @@ class CityViewModel(
     private val pendingDelete = MutableStateFlow<PendingDelete?>(null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val spots: Flow<List<SpotRow>> = userRepository.currentUserId.flatMapLatest { userId ->
-        spotRepository.observeRows(cityId, userId.orEmpty())
+    private val spots: Flow<List<SpotRow>> = repos.users.currentUserId.flatMapLatest { userId ->
+        repos.spots.observeRows(cityId, userId.orEmpty())
     }
 
-    private val listState: Flow<SpotListState> =
-        combine(spots, prefs.sortMode(SortScope.SPOTS), filters, ::SpotListState)
+    private val listState: Flow<SpotListState> = combine(
+        spots,
+        prefs.sortMode(SortScope.SPOTS),
+        filters,
+        repos.photos.observeByCity(cityId),
+        ::SpotListState,
+    )
 
     val uiState: StateFlow<CityUiState> = combine(
-        cityRepository.observeCity(cityId),
+        repos.cities.observeCity(cityId),
         listState,
-        userRepository.observeUserCount(),
+        repos.users.observeUserCount(),
         pendingDelete,
     ) { place, list, userCount, pending ->
         CityUiState(
             place = place,
             rows = list.rows.filter(list.filters::matches).sortedSpots(list.sortMode),
+            attachments = list.attachments,
             filters = list.filters,
             sortMode = list.sortMode,
             userCount = userCount,
@@ -113,29 +133,33 @@ class CityViewModel(
         viewModelScope.launch { prefs.setSortMode(SortScope.SPOTS, mode) }
     }
 
+    fun deletePhoto(photo: LinkEntity) {
+        viewModelScope.launch { repos.photos.remove(photo) }
+    }
+
     fun toggleHeart(spotId: String) {
-        viewModelScope.launch { spotRepository.toggleHeart(spotId) }
+        viewModelScope.launch { repos.spots.toggleHeart(spotId) }
     }
 
     fun setPriority(id: String, priority: Priority) {
-        viewModelScope.launch { spotRepository.setPriority(id, priority) }
+        viewModelScope.launch { repos.spots.setPriority(id, priority) }
     }
 
     fun setStatus(id: String, status: SpotStatus) {
-        viewModelScope.launch { spotRepository.setStatus(id, status) }
+        viewModelScope.launch { repos.spots.setStatus(id, status) }
     }
 
     fun move(id: String, previousKey: String?, nextKey: String?) {
-        viewModelScope.launch { spotRepository.move(id, previousKey, nextKey) }
+        viewModelScope.launch { repos.spots.move(id, previousKey, nextKey) }
     }
 
     fun renamePlace(name: String) {
-        viewModelScope.launch { cityRepository.rename(cityId, name) }
+        viewModelScope.launch { repos.cities.rename(cityId, name) }
     }
 
     /** Blank lets the automatic search have another go. */
     fun setImageUrl(url: String) {
-        viewModelScope.launch { cityRepository.setImageUrl(cityId, url) }
+        viewModelScope.launch { repos.cities.setImageUrl(cityId, url) }
     }
 
     /** The row already carries the counts, so confirming a delete needs no extra query. */
@@ -164,12 +188,12 @@ class CityViewModel(
                 if (lat != null && lng != null) GeoPoint(lat, lng) else null
             }
             .map { it.spot.meta.id }
-        viewModelScope.launch { onCreated(routes.create(cityId, title, unvisited)) }
+        viewModelScope.launch { onCreated(repos.routes.create(cityId, title, unvisited)) }
     }
 
     fun confirmDelete() {
         val target = pendingDelete.value ?: return
         pendingDelete.value = null
-        viewModelScope.launch { spotRepository.delete(target.id) }
+        viewModelScope.launch { repos.spots.delete(target.id) }
     }
 }

@@ -1,7 +1,10 @@
 package com.pat.app.holidayplanner.ui.share
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,13 +27,14 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ShareDialog(
     sharedText: String?,
+    sharedImage: android.net.Uri? = null,
     onClose: () -> Unit,
     onOpenLink: (String) -> Unit,
     viewModel: ShareViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(sharedText) { viewModel.onShared(sharedText) }
+    LaunchedEffect(sharedText, sharedImage) { viewModel.onShared(sharedText, sharedImage) }
     LaunchedEffect(state) { if (state is ShareState.Saved) onClose() }
 
     when (val current = state) {
@@ -53,6 +57,25 @@ fun ShareDialog(
             knownIsoCode = current.spot.isoCode,
             onDismiss = onClose,
             onSaved = { viewModel.spotCreated() },
+        )
+
+        // A photo asks the same one question a link does, in the same sheet.
+        is ShareState.FilingPhoto -> PlaceSearchSheet(
+            title = stringResource(R.string.share_pick_spot_photo),
+            onPickExisting = { viewModel.attachPhoto(it.spotId) },
+            onDismiss = viewModel::cancelFiling,
+            onSaved = viewModel::attachPhoto,
+        )
+
+        ShareState.Uploading -> BusyDialog(
+            title = stringResource(R.string.share_uploading_title),
+            message = stringResource(R.string.share_uploading_message),
+        )
+
+        is ShareState.Problem -> MessageDialog(
+            title = stringResource(R.string.share_photo_failed_title),
+            message = current.message.ifBlank { stringResource(R.string.share_photo_failed_message) },
+            onClose = onClose,
         )
 
         ShareState.NoLink -> MessageDialog(
@@ -87,6 +110,22 @@ fun ShareDialog(
             onSaved = viewModel::fileUnder,
         )
     }
+}
+
+/** Waiting on the network, with nothing useful to offer until it answers. */
+@Composable
+private fun BusyDialog(title: String, message: String) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(title) },
+        text = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(modifier = Modifier.padding(end = 16.dp))
+                Text(message)
+            }
+        },
+        confirmButton = {},
+    )
 }
 
 @Composable
