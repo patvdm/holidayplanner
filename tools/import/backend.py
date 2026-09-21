@@ -3,6 +3,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -18,7 +19,30 @@ def secrets():
     return props["SHEETS_URL"], props["SHEETS_SECRET"]
 
 
-def call(body):
+# What an answer to each action must carry, so a reply meant for an earlier call is spotted.
+ANSWERS = {"pull": "changes", "push": "accepted", "inbox": "results", "image": "url",
+           "deleteImage": "trashed", "ping": "serverTime"}
+
+
+def call(body, attempts=3):
+    """Calls the backend and insists on an answer to the call actually made.
+
+    Apps Script redirects each POST to a single-use URL, and asking twice in quick succession can
+    hand back the previous call's body; a pull answered by a push reads as an empty database.
+    """
+    expected = ANSWERS.get(body.get("action"))
+    last = None
+    for attempt in range(attempts):
+        last = call_once(body)
+        stale = (not last.get("ok") and last.get("error") == "not json") or (
+            last.get("ok") and expected and expected not in last)
+        if not stale:
+            return last
+        time.sleep(0.4 * (attempt + 1))
+    return last
+
+
+def call_once(body):
     """One request. Apps Script answers with a redirect that needs the cookies it set, so curl
     keeps a jar, and a fresh one each time: a stale jar gets a Google sign-in page instead."""
     JAR.unlink(missing_ok=True)
