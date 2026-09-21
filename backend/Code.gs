@@ -23,7 +23,7 @@ var SCHEMA = {
     'parentCityId', 'name', 'type', 'googlePlaceId', 'lat', 'lng', 'address', 'mapsUrl', 'notes', 'status',
     'sortKey', 'priority', 'imageUrl',
   ]),
-  Links: COMMON_COLUMNS.concat(['spotId', 'url', 'source', 'note']),
+  Links: COMMON_COLUMNS.concat(['spotId', 'cityId', 'url', 'source', 'note']),
   Hearts: COMMON_COLUMNS.concat(['spotId', 'userId']),
   Trips: COMMON_COLUMNS.concat(['name', 'countryId', 'startDate', 'endDate', 'notes']),
   TripItems: COMMON_COLUMNS.concat([
@@ -38,11 +38,6 @@ var SCHEMA = {
 var TABLES = Object.keys(SCHEMA);
 
 /**
- * The Inbox tab: a place to type or paste places in plain words, from any device, without ids or
- * timestamps. importInbox() turns each row into a country, a city and a spot, geocoding as it goes.
- * `result` is written back per row: "done", "exists", or why it failed. Not part of the sync.
- */
-/**
  * Where photos shared to the app are kept. The sheet holds only their addresses: a cell cannot
  * hold a picture, and Drive can serve one to both phones without another account or key.
  */
@@ -51,6 +46,11 @@ var PICTURE_FOLDER = 'Holiday Planner pictures';
 /** The form of Drive address that serves the image bytes themselves rather than a viewer page. */
 var PICTURE_URL = 'https://lh3.googleusercontent.com/d/';
 
+/**
+ * The Inbox tab: a place to type or paste places in plain words, from any device, without ids or
+ * timestamps. importInbox() turns each row into a country, a city and a spot, geocoding as it goes.
+ * `result` is written back per row: "done", "exists", or why it failed. Not part of the sync.
+ */
 var INBOX = 'Inbox';
 var INBOX_COLUMNS = ['country', 'city', 'spot', 'type', 'priority', 'notes', 'link', 'result'];
 var INBOX_AUTHOR = 'sheet';
@@ -139,32 +139,35 @@ function doPost(e) {
     return json({ ok: false, error: 'unauthorized' });
   }
 
-  // One lock around pull and push so every request sees a consistent sheet.
-  var lock = LockService.getScriptLock();
-  if (!lock.tryLock(LOCK_TIMEOUT_MS)) {
-    return json({ ok: false, error: 'busy' });
-  }
   try {
-    switch (body.action) {
-      case 'ping':
-        return json({ ok: true, serverTime: Date.now() });
-      case 'pull':
-        return json(pull(body));
-      case 'push':
-        return json(push(body));
-      case 'inbox':
-        return json(inbox(body));
-      case 'image':
-        return json(saveImage(body));
-      case 'deleteImage':
-        return json(trashImage(body));
-      default:
-        return json({ ok: false, error: 'unknown_action' });
+    // Pictures go to Drive and never touch the sheet, so they take no lock: holding it while a
+    // file uploads would stall every sync on both phones, and stall the upload behind them.
+    if (body.action === 'image') return json(saveImage(body));
+    if (body.action === 'deleteImage') return json(trashImage(body));
+
+    // One lock around the rest, so every request sees a consistent sheet.
+    var lock = LockService.getScriptLock();
+    if (!lock.tryLock(LOCK_TIMEOUT_MS)) {
+      return json({ ok: false, error: 'busy' });
+    }
+    try {
+      switch (body.action) {
+        case 'ping':
+          return json({ ok: true, serverTime: Date.now() });
+        case 'pull':
+          return json(pull(body));
+        case 'push':
+          return json(push(body));
+        case 'inbox':
+          return json(inbox(body));
+        default:
+          return json({ ok: false, error: 'unknown_action' });
+      }
+    } finally {
+      lock.releaseLock();
     }
   } catch (err) {
     return json({ ok: false, error: String(err && err.message ? err.message : err) });
-  } finally {
-    lock.releaseLock();
   }
 }
 

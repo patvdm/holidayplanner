@@ -38,7 +38,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.data.local.SpotPickerRow
+import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.GENERAL_CITY_NAME
@@ -51,23 +51,30 @@ import org.koin.core.parameter.parametersOf
 private const val LIST_MAX_HEIGHT_DP = 360
 private const val SHEET_SETTLE_MS = 250L
 
-/** Enough of your own spots to spot the one you meant, without pushing Google's off the screen. */
-private const val MAX_EXISTING_MATCHES = 5
+/** Enough of your own places to find the one you meant, without pushing Google's off the screen. */
+private const val MAX_EXISTING_MATCHES = 6
+
+/** Somewhere already saved that a share can be filed under: a spot, or a city itself. */
+data class PlacePick(val id: String, val isCity: Boolean)
+
+/** One of those, with the two lines its row shows. */
+private data class Match(val pick: PlacePick, val primary: String, val secondary: String)
 
 /**
  * Adds a spot by searching Google, or picks one that already exists.
  *
- * With [onPickExisting] set, the one search field looks through your own spots as well, and they
- * are listed above Google's suggestions: a link about somewhere you already saved is filed with one
- * tap, and somewhere new is one tap further. The search is the fast path, but it is never the only
- * path: with no API key, no connection, or a spent quota, the same sheet lets the name be typed and
- * saves a row without coordinates.
+ * With [onPickExisting] set, the one search field looks through what is already saved as well,
+ * spots and cities alike, and those are listed above Google's suggestions: a photo of somewhere
+ * you already have is filed with one tap, and somewhere new is one tap further.
+ *
+ * The search is the fast path, but it is never the only path: with no API key, no connection, or a
+ * spent quota, the same sheet lets the name be typed and saves a row without coordinates.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaceSearchSheet(
     title: String = stringResource(R.string.place_search_title),
-    onPickExisting: ((SpotPickerRow) -> Unit)? = null,
+    onPickExisting: ((PlacePick) -> Unit)? = null,
     cityId: String = "",
     prefillName: String = "",
     knownLat: Double? = null,
@@ -120,7 +127,7 @@ private fun SearchStep(
     state: PlaceSearchUiState,
     viewModel: PlaceSearchViewModel,
     focusRequester: FocusRequester,
-    onPickExisting: ((SpotPickerRow) -> Unit)?,
+    onPickExisting: ((PlacePick) -> Unit)?,
     onSaved: (String) -> Unit,
 ) {
     Text(title, style = MaterialTheme.typography.titleMedium)
@@ -192,14 +199,16 @@ private fun ManualNotice(state: PlaceSearchUiState) {
 private fun Results(
     state: PlaceSearchUiState,
     viewModel: PlaceSearchViewModel,
-    onPickExisting: ((SpotPickerRow) -> Unit)?,
+    onPickExisting: ((PlacePick) -> Unit)?,
 ) {
     val existing = if (onPickExisting == null) emptyList() else rememberExistingMatches(state.query)
     LazyColumn(modifier = Modifier.heightIn(max = LIST_MAX_HEIGHT_DP.dp)) {
         if (existing.isNotEmpty()) {
             item(key = "yours") { ListHeader(stringResource(R.string.place_search_yours)) }
-            items(existing, key = { "spot-${it.spotId}" }) { row ->
-                ResultRow(primary = row.spotName, secondary = row.group) { onPickExisting?.invoke(row) }
+            items(existing, key = { "saved-${it.pick.id}" }) { match ->
+                ResultRow(primary = match.primary, secondary = match.secondary) {
+                    onPickExisting?.invoke(match.pick)
+                }
             }
         }
         if (existing.isNotEmpty() && state.predictions.isNotEmpty()) {
@@ -213,22 +222,37 @@ private fun Results(
     }
 }
 
-/** Your own spots whose name or whereabouts contain what was typed, a few at most. */
+/**
+ * The saved places whose name or whereabouts contain what was typed, a few at most. Spots lead,
+ * because most things are about one; a city follows for the things that are about the place itself.
+ */
 @Composable
-private fun rememberExistingMatches(query: String, repository: SpotRepository = koinInject()): List<SpotPickerRow> {
-    val rows by remember(repository) { repository.observePickerRows() }
+private fun rememberExistingMatches(
+    query: String,
+    spots: SpotRepository = koinInject(),
+    cities: CityRepository = koinInject(),
+): List<Match> {
+    val spotRows by remember(spots) { spots.observePickerRows() }
         .collectAsStateWithLifecycle(initialValue = emptyList())
-    return remember(rows, query) {
+    val cityRows by remember(cities) { cities.observeOptions() }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    return remember(spotRows, cityRows, query) {
         val needle = query.trim()
-        if (needle.isEmpty()) {
-            emptyList()
-        } else {
-            rows.filter { row ->
+        if (needle.isEmpty()) return@remember emptyList()
+        val matchedSpots = spotRows
+            .filter { row ->
                 row.spotName.contains(needle, ignoreCase = true) ||
                     row.cityName.contains(needle, ignoreCase = true) ||
                     row.countryName.contains(needle, ignoreCase = true)
-            }.take(MAX_EXISTING_MATCHES)
-        }
+            }
+            .map { Match(PlacePick(it.spotId, isCity = false), it.spotName, it.group) }
+        val matchedCities = cityRows
+            .filter { row ->
+                row.cityName.contains(needle, ignoreCase = true) ||
+                    row.countryName.contains(needle, ignoreCase = true)
+            }
+            .map { Match(PlacePick(it.cityId, isCity = true), it.cityName, it.countryName) }
+        (matchedSpots + matchedCities).take(MAX_EXISTING_MATCHES)
     }
 }
 

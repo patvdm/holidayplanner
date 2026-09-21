@@ -60,7 +60,7 @@
 
     <string name="place_search_title">Add a spot</string>
     <string name="place_search_label">Search</string>
-    <string name="place_search_yours">Your spots</string>
+    <string name="place_search_yours">Already saved</string>
     <string name="place_search_new">Add a new spot</string>
     <string name="place_search_no_key">No Places key is set up yet, so type the name instead.</string>
     <string name="place_search_failed">Search is unavailable right now, so type the name instead.</string>
@@ -87,6 +87,8 @@
     <string name="spot_add_photo">Add photo</string>
     <string name="spot_photos_none">No photos yet. Share one to Holiday Planner, or add one here.</string>
     <string name="photo_open">Open photo</string>
+    <string name="link_delete_title">Remove this link?</string>
+    <string name="link_delete_message">It goes from both phones.</string>
     <string name="photo_delete_title">Remove this photo?</string>
     <string name="photo_delete_message">It goes from both phones and from the backend folder.</string>
     <string name="link_instagram">Instagram</string>
@@ -117,8 +119,8 @@
 
 
     <string name="share_open">Open it</string>
-    <string name="share_pick_spot">Which spot is this about?</string>
-    <string name="share_pick_spot_photo">Which spot is this a photo of?</string>
+    <string name="share_pick_spot">Which place is this about?</string>
+    <string name="share_pick_spot_photo">Which place is this a photo of?</string>
     <string name="share_uploading_title">Saving the photo</string>
     <string name="share_uploading_message">Making it smaller and sending it…</string>
     <string name="share_photo_failed_title">Could not save the photo</string>

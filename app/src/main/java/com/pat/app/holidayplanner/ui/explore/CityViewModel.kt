@@ -2,13 +2,14 @@ package com.pat.app.holidayplanner.ui.explore
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
 import com.pat.app.holidayplanner.data.local.CityEntity
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.SpotRow
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.repo.DeleteImpact
 import com.pat.app.holidayplanner.data.repo.CityRepository
-import com.pat.app.holidayplanner.data.repo.PhotoRepository
+import com.pat.app.holidayplanner.data.repo.AttachmentRepository
 import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
@@ -51,16 +52,25 @@ data class CityUiState(
     val rows: List<SpotRow> = emptyList(),
     /** The photos and links of each spot, so a row can show them without a query of its own. */
     val attachments: Map<String, List<LinkEntity>> = emptyMap(),
+    /** What was shared to the city itself rather than to any one spot in it. */
+    val own: List<LinkEntity> = emptyList(),
+    val savingPhoto: Boolean = false,
     val filters: SpotFilters = SpotFilters(),
     val sortMode: SortMode = SortMode.MANUAL,
     val userCount: Int = 0,
     val pendingDelete: PendingDelete? = null,
 ) {
+    val ownPhotos: List<LinkEntity> get() = own.filter { it.source.isPhoto }
+
+    val ownLinks: List<LinkEntity> get() = own.filterNot { it.source.isPhoto }
+
     /** Dragging only makes sense in manual order and with nothing filtered out. */
     val canReorder: Boolean get() = sortMode == SortMode.MANUAL && !filters.any
 }
 
 /** The spot list plus the two things that shape it, combined separately to stay within combine's arity. */
+private data class CityOwn(val attachments: List<LinkEntity>, val savingPhoto: Boolean)
+
 private data class SpotListState(
     val rows: List<SpotRow>,
     val sortMode: SortMode,
@@ -77,7 +87,7 @@ class CityRepositories(
     val spots: SpotRepository,
     val users: UserRepository,
     val routes: RouteRepository,
-    val photos: PhotoRepository,
+    val attachments: AttachmentRepository,
 )
 
 class CityViewModel(
@@ -88,6 +98,10 @@ class CityViewModel(
 
     private val filters = MutableStateFlow(SpotFilters())
     private val pendingDelete = MutableStateFlow<PendingDelete?>(null)
+    private val savingPhoto = MutableStateFlow(false)
+
+    /** What hangs on the city itself, and whether a picture is on its way up. */
+    private val own: Flow<CityOwn> = combine(repos.attachments.observeForCity(cityId), savingPhoto, ::CityOwn)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val spots: Flow<List<SpotRow>> = repos.users.currentUserId.flatMapLatest { userId ->
@@ -98,7 +112,7 @@ class CityViewModel(
         spots,
         prefs.sortMode(SortScope.SPOTS),
         filters,
-        repos.photos.observeByCity(cityId),
+        repos.attachments.observeForSpotsIn(cityId),
         ::SpotListState,
     )
 
@@ -107,7 +121,8 @@ class CityViewModel(
         listState,
         repos.users.observeUserCount(),
         pendingDelete,
-    ) { place, list, userCount, pending ->
+        own,
+    ) { place, list, userCount, pending, city ->
         CityUiState(
             place = place,
             rows = list.rows.filter(list.filters::matches).sortedSpots(list.sortMode),
@@ -116,6 +131,8 @@ class CityViewModel(
             sortMode = list.sortMode,
             userCount = userCount,
             pendingDelete = pending,
+            own = city.attachments,
+            savingPhoto = city.savingPhoto,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CityUiState())
 
@@ -133,8 +150,22 @@ class CityViewModel(
         viewModelScope.launch { prefs.setSortMode(SortScope.SPOTS, mode) }
     }
 
-    fun deletePhoto(photo: LinkEntity) {
-        viewModelScope.launch { repos.photos.remove(photo) }
+    /** A photo of the city itself. Unlike every other edit here, this one needs the network. */
+    fun addPhoto(uri: Uri) {
+        viewModelScope.launch {
+            savingPhoto.value = true
+            repos.attachments.attach(uri, cityId = cityId)
+            savingPhoto.value = false
+        }
+    }
+
+    fun addLink(url: String) {
+        viewModelScope.launch { repos.attachments.attachLink(url.trim(), cityId = cityId) }
+    }
+
+    /** A photo or a link, of the city or of one of its spots. */
+    fun deleteAttachment(attachment: LinkEntity) {
+        viewModelScope.launch { repos.attachments.remove(attachment) }
     }
 
     fun toggleHeart(spotId: String) {

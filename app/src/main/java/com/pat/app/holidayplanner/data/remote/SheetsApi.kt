@@ -7,6 +7,7 @@ import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -26,23 +27,40 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
 
 private const val TAG = "SheetsApi"
 private const val TIMEOUT_MS = 30_000L
+
+/** A picture is far more to send than a row, over whatever connection the phone happens to have. */
+private const val UPLOAD_TIMEOUT_MS = 120_000L
+
 private const val BODY_PREVIEW_CHARS = 120
+
+/** Once more is enough: a one-shot address that has already been spent answers on the next ask. */
+private const val ATTEMPTS = 2
 
 /** The backend the app talks to: BuildConfig values unless overridden in Settings → Advanced. */
 data class BackendConfig(val url: String, val secret: String, val overridden: Boolean)
 
-class SheetsException(message: String, cause: Throwable? = null) : Exception(message, cause)
+/** [worthRetrying] is set for the answers that are not really answers, such as a sign-in page. */
+class SheetsException(
+    message: String,
+    cause: Throwable? = null,
+    val worthRetrying: Boolean = false,
+) : Exception(message, cause)
 
 /**
  * HTTP client for the Apps Script web app. Every call is a JSON POST to the /exec URL.
  *
  * Apps Script answers a POST with a 302 to script.googleusercontent.com that must be fetched with
  * GET. OkHttp does exactly that when it follows redirects itself, so redirects are left to the
- * engine; Ktor's own redirect plugin would repeat the POST instead. Responses are always HTTP 200,
- * so the `ok` field in the body is what decides success.
+ * engine; Ktor's own redirect plugin would repeat the POST instead. That address is single use and
+ * only answers to the cookies the redirect set, which is why the engine keeps a cookie jar;
+ * without one it sometimes serves a Drive error page instead of the answer. Responses are always
+ * HTTP 200, so the `ok` field in the body is what decides success.
  */
 class SheetsApi(
     prefs: AppPreferences,
@@ -75,7 +93,7 @@ class SheetsApi(
         }
 
     override suspend fun upload(bytes: ByteArray, mimeType: String, name: String): Result<StoredImage> =
-        call("image") {
+        call("image", timeoutMs = UPLOAD_TIMEOUT_MS) {
             // Base64 because the body is JSON; the phone has already made the picture small enough.
             put("data", Base64.encodeToString(bytes, Base64.NO_WRAP))
             put("mimeType", mimeType)
@@ -87,7 +105,11 @@ class SheetsApi(
     override suspend fun remove(fileId: String): Result<Unit> =
         call("deleteImage") { put("fileId", fileId) }.map { }
 
-    private suspend fun call(action: String, extra: JsonObjectBuilder.() -> Unit = {}): Result<JsonObject> {
+    private suspend fun call(
+        action: String,
+        timeoutMs: Long = TIMEOUT_MS,
+        extra: JsonObjectBuilder.() -> Unit = {},
+    ): Result<JsonObject> {
         val cfg = config.first()
         if (cfg.url.isBlank()) return Result.failure(SheetsException("Backend URL is not configured"))
         val payload = buildJsonObject {
@@ -95,13 +117,27 @@ class SheetsApi(
             put("action", action)
             extra()
         }
-        return runCatchingNetwork(action) {
-            val response = client.post(cfg.url) {
+        return runCatchingNetwork(action) { send(cfg.url, payload.toString(), timeoutMs) }
+    }
+
+    /** Sends the call, and asks again when what came back was not an answer at all. */
+    private suspend fun send(url: String, body: String, timeoutMs: Long): JsonObject {
+        var last: SheetsException? = null
+        repeat(ATTEMPTS) {
+            val response = client.post(url) {
                 contentType(ContentType.Application.Json)
-                setBody(payload.toString())
+                setBody(body)
+                timeout { requestTimeoutMillis = timeoutMs }
             }
-            parse(response.bodyAsText())
+            try {
+                return parse(response.bodyAsText())
+            } catch (e: SheetsException) {
+                if (!e.worthRetrying) throw e
+                Log.w(TAG, "asking again: ${e.message}")
+                last = e
+            }
         }
+        throw last ?: SheetsException("No answer from the backend")
     }
 
     private inline fun runCatchingNetwork(action: String, block: () -> JsonObject): Result<JsonObject> = try {
@@ -125,7 +161,8 @@ class SheetsApi(
         val element = try {
             json.parseToJsonElement(body)
         } catch (e: SerializationException) {
-            throw SheetsException("Non-JSON response: ${body.take(BODY_PREVIEW_CHARS)}", e)
+            // A sign-in or error page where JSON was expected: the address was spent, so ask again.
+            throw SheetsException("Non-JSON response: ${body.take(BODY_PREVIEW_CHARS)}", e, worthRetrying = true)
         }
         val parsed = element as? JsonObject
         if (parsed == null || parsed["ok"]?.text() != "true") {
@@ -141,6 +178,24 @@ private val json = Json {
     isLenient = true
 }
 
+/**
+ * Keeps the cookies of one redirect so the hop after it is allowed to read the answer. Apps Script
+ * sets them on the 302 and the address they unlock is good for a single fetch, so there is nothing
+ * here worth persisting between runs.
+ */
+private class HopCookieJar : CookieJar {
+    private val jar = mutableListOf<Cookie>()
+
+    @Synchronized
+    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+        jar.removeAll { old -> cookies.any { it.name == old.name && it.domain == old.domain } }
+        jar += cookies
+    }
+
+    @Synchronized
+    override fun loadForRequest(url: HttpUrl): List<Cookie> = jar.filter { it.matches(url) }
+}
+
 private fun defaultClient(): HttpClient = HttpClient(OkHttp) {
     followRedirects = false
     expectSuccess = false
@@ -148,6 +203,7 @@ private fun defaultClient(): HttpClient = HttpClient(OkHttp) {
         config {
             followRedirects(true)
             followSslRedirects(true)
+            cookieJar(HopCookieJar())
         }
     }
     install(HttpTimeout) {

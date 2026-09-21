@@ -1,10 +1,7 @@
 package com.pat.app.holidayplanner.ui.explore
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,9 +17,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -57,7 +51,7 @@ import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.HeroImage
-import com.pat.app.holidayplanner.ui.components.LinkChips
+import com.pat.app.holidayplanner.ui.components.LinkList
 import com.pat.app.holidayplanner.ui.components.PhotoRoll
 import com.pat.app.holidayplanner.ui.components.PhotoViewer
 import com.pat.app.holidayplanner.ui.components.PictureDialog
@@ -68,6 +62,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
+import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material3.CircularProgressIndicator
 import com.pat.app.holidayplanner.ui.components.openExternalUrl
 import kotlinx.coroutines.delay
@@ -103,6 +98,16 @@ fun SpotDetailScreen(
                     }
                 },
                 actions = {
+                    if (state.savingPhoto) {
+                        CircularProgressIndicator(modifier = Modifier.padding(horizontal = 16.dp))
+                    } else {
+                        IconButton(onClick = { photoPicker.launch(PickVisualMediaRequest(ImageOnly)) }) {
+                            Icon(
+                                Icons.Outlined.AddPhotoAlternate,
+                                contentDescription = stringResource(R.string.spot_add_photo),
+                            )
+                        }
+                    }
                     IconButton(onClick = viewModel::toggleHeart) {
                         Icon(
                             imageVector = if (state.heartedByMe) {
@@ -142,7 +147,6 @@ fun SpotDetailScreen(
             ) {
                 PhotosSection(
                     state = state,
-                    onAdd = { photoPicker.launch(PickVisualMediaRequest(ImageOnly)) },
                     onOpen = { dialogs.viewing = it.url },
                     onDelete = { dialogs.deletingPhoto = it },
                 )
@@ -150,8 +154,8 @@ fun SpotDetailScreen(
                 HorizontalDivider()
                 LinksSection(
                     links = state.references,
-                    onOpen = { context.openExternalUrl(it) },
-                    onDelete = viewModel::deleteLink,
+                    onOpen = { context.openExternalUrl(it.url) },
+                    onDelete = viewModel::deleteAttachment,
                     onAdd = { dialogs.addingLink = true },
                 )
 
@@ -249,26 +253,14 @@ private class SpotDialogs {
     var deletingPhoto by mutableStateOf<LinkEntity?>(null)
 }
 
-/** The photos of this spot, with the way to add another. */
+/** The photos of this spot. They are added from the button in the top bar. */
 @Composable
 private fun PhotosSection(
     state: SpotDetailUiState,
-    onAdd: () -> Unit,
     onOpen: (LinkEntity) -> Unit,
     onDelete: (LinkEntity) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        SectionLabel(stringResource(R.string.spot_photos))
-        if (state.savingPhoto) {
-            CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
-        } else {
-            TextButton(onClick = onAdd) { Text(stringResource(R.string.spot_add_photo)) }
-        }
-    }
+    SectionLabel(stringResource(R.string.spot_photos))
     if (state.photos.isEmpty()) {
         Text(
             text = stringResource(R.string.spot_photos_none),
@@ -309,7 +301,7 @@ private fun SpotDialogs(
             title = stringResource(R.string.photo_delete_title),
             message = stringResource(R.string.photo_delete_message),
             onConfirm = {
-                viewModel.deletePhoto(photo)
+                viewModel.deleteAttachment(photo)
                 dialogs.deletingPhoto = null
             },
             onDismiss = { dialogs.deletingPhoto = null },
@@ -327,9 +319,12 @@ private fun SpotDialogs(
     }
 
     if (dialogs.addingLink) {
-        AddLinkDialog(
-            onConfirm = { url, note ->
-                viewModel.addLink(url, note)
+        TextInputDialog(
+            title = stringResource(R.string.spot_add_link),
+            label = stringResource(R.string.label_url),
+            confirmLabel = stringResource(R.string.action_add),
+            onConfirm = {
+                viewModel.addLink(it)
                 dialogs.addingLink = false
             },
             onDismiss = { dialogs.addingLink = false },
@@ -410,12 +405,11 @@ private fun SaveIfChanged(value: String, initial: String, onSave: (String) -> Un
 
 private const val SAVE_DELAY_MS = 800L
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LinksSection(
     links: List<LinkEntity>,
-    onOpen: (String) -> Unit,
-    onDelete: (String) -> Unit,
+    onOpen: (LinkEntity) -> Unit,
+    onDelete: (LinkEntity) -> Unit,
     onAdd: () -> Unit,
 ) {
     Row(
@@ -435,68 +429,7 @@ private fun LinksSection(
         )
     }
 
-    links.forEach { link ->
-        var expanded by remember(link.meta.id) { mutableStateOf(false) }
-        Box {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .combinedClickable(
-                        onClick = { onOpen(link.url) },
-                        onLongClick = { expanded = true },
-                    )
-                    .padding(vertical = 8.dp),
-            ) {
-                Text(text = link.label(), style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    text = link.url,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.action_delete)) },
-                    onClick = {
-                        expanded = false
-                        onDelete(link.meta.id)
-                    },
-                )
-            }
-        }
-    }
+    LinkList(links = links, onOpen = onOpen, onDelete = onDelete)
 }
 
-@Composable
-private fun AddLinkDialog(onConfirm: (String, String) -> Unit, onDismiss: () -> Unit) {
-    var url by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.spot_add_link)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = url,
-                    onValueChange = { url = it },
-                    label = { Text(stringResource(R.string.label_url)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    label = { Text(stringResource(R.string.label_note)) },
-                    singleLine = true,
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(url, note) }, enabled = url.isNotBlank()) {
-                Text(stringResource(R.string.action_add))
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
-}
 

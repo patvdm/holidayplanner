@@ -13,10 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +38,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.LinkEntity
@@ -47,7 +53,7 @@ import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import com.pat.app.holidayplanner.ui.components.HeartCount
-import com.pat.app.holidayplanner.ui.components.LinkChips
+import com.pat.app.holidayplanner.ui.components.LinkList
 import com.pat.app.holidayplanner.ui.components.PhotoRoll
 import com.pat.app.holidayplanner.ui.components.PhotoViewer
 import com.pat.app.holidayplanner.ui.components.openExternalUrl
@@ -80,6 +86,10 @@ fun CityScreen(
     var changingPicture by remember { mutableStateOf(false) }
     var viewingPhoto by remember { mutableStateOf<String?>(null) }
     var deletingPhoto by remember { mutableStateOf<LinkEntity?>(null) }
+    var addingLink by remember { mutableStateOf(false) }
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let(viewModel::addPhoto)
+    }
     val context = LocalContext.current
     var menuOpen by remember { mutableStateOf(false) }
     val putKeyboardAway = rememberKeyboardDismiss()
@@ -105,6 +115,16 @@ fun CityScreen(
                     }
                 },
                 actions = {
+                    if (state.savingPhoto) {
+                        CircularProgressIndicator(modifier = Modifier.padding(horizontal = 16.dp))
+                    } else {
+                        IconButton(onClick = { photoPicker.launch(PickVisualMediaRequest(ImageOnly)) }) {
+                            Icon(
+                                Icons.Outlined.AddPhotoAlternate,
+                                contentDescription = stringResource(R.string.spot_add_photo),
+                            )
+                        }
+                    }
                     SortMenu(SortScope.SPOTS, state.sortMode, viewModel::setSortMode)
                     IconButton(
                         onClick = {
@@ -130,6 +150,13 @@ fun CityScreen(
                             },
                         )
                         DropdownMenuItem(
+                            text = { Text(stringResource(R.string.spot_add_link)) },
+                            onClick = {
+                                menuOpen = false
+                                addingLink = true
+                            },
+                        )
+                        DropdownMenuItem(
                             text = { Text(stringResource(R.string.picture_change)) },
                             onClick = {
                                 menuOpen = false
@@ -143,6 +170,12 @@ fun CityScreen(
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
             state.place?.let { HeroImage(imageUrl = it.imageUrl, title = it.name) }
+            CityAttachments(
+                state = state,
+                onOpenPhoto = { viewingPhoto = it.url },
+                onOpenLink = { context.openExternalUrl(it.url) },
+                onDelete = { deletingPhoto = it },
+            )
             FilterRow(state, viewModel)
             if (state.rows.isEmpty()) {
                 EmptyListMessage(
@@ -186,13 +219,30 @@ fun CityScreen(
 
     deletingPhoto?.let { photo ->
         ConfirmDeleteDialog(
-            title = stringResource(R.string.photo_delete_title),
-            message = stringResource(R.string.photo_delete_message),
+            title = stringResource(
+                if (photo.source.isPhoto) R.string.photo_delete_title else R.string.link_delete_title,
+            ),
+            message = stringResource(
+                if (photo.source.isPhoto) R.string.photo_delete_message else R.string.link_delete_message,
+            ),
             onConfirm = {
-                viewModel.deletePhoto(photo)
+                viewModel.deleteAttachment(photo)
                 deletingPhoto = null
             },
             onDismiss = { deletingPhoto = null },
+        )
+    }
+
+    if (addingLink) {
+        TextInputDialog(
+            title = stringResource(R.string.spot_add_link),
+            label = stringResource(R.string.label_url),
+            confirmLabel = stringResource(R.string.action_add),
+            onConfirm = {
+                viewModel.addLink(it)
+                addingLink = false
+            },
+            onDismiss = { addingLink = false },
         )
     }
 
@@ -317,14 +367,6 @@ private fun SpotRowItem(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                // Everything saved about the place, without opening it.
-                PhotoRoll(
-                    photos = attachments.filter { it.source.isPhoto },
-                    onOpen = onOpenPhoto,
-                    onDelete = onDeletePhoto,
-                    size = ROW_PHOTO_SIZE_DP.dp,
-                )
-                LinkChips(links = attachments.filterNot { it.source.isPhoto }, onOpen = onOpenLink)
             }
             IconButton(onClick = onHeart) {
                 HeartCount(count = row.heartCount, heartedByMe = row.heartedByMe, everyone = everyone)
@@ -332,12 +374,62 @@ private fun SpotRowItem(
             SpotRowMenu(row = row, onPriority = onPriority, onStatus = onStatus, onDelete = onDelete)
             handle?.invoke()
         }
+        // Everything saved about the place, on lines of their own so the row above stays readable.
+        Attachments(
+            attachments = attachments,
+            onOpenPhoto = onOpenPhoto,
+            onOpenLink = onOpenLink,
+            onDelete = onDeletePhoto,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+        )
         HorizontalDivider()
     }
 }
 
 /** Small enough that a row with photos is still a row rather than a card. */
 private const val ROW_PHOTO_SIZE_DP = 64
+
+/** The photos of a place, then its links: the same shape whether they hang on a spot or a city. */
+@Composable
+private fun Attachments(
+    attachments: List<LinkEntity>,
+    onOpenPhoto: (LinkEntity) -> Unit,
+    onOpenLink: (LinkEntity) -> Unit,
+    onDelete: (LinkEntity) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (attachments.isEmpty()) return
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        PhotoRoll(
+            photos = attachments.filter { it.source.isPhoto },
+            onOpen = onOpenPhoto,
+            onDelete = onDelete,
+            size = ROW_PHOTO_SIZE_DP.dp,
+        )
+        LinkList(
+            links = attachments.filterNot { it.source.isPhoto },
+            onOpen = onOpenLink,
+            onDelete = onDelete,
+        )
+    }
+}
+
+/** What was shared to the city itself, above everything that is only about one spot in it. */
+@Composable
+private fun CityAttachments(
+    state: CityUiState,
+    onOpenPhoto: (LinkEntity) -> Unit,
+    onOpenLink: (LinkEntity) -> Unit,
+    onDelete: (LinkEntity) -> Unit,
+) {
+    Attachments(
+        attachments = state.own,
+        onOpenPhoto = onOpenPhoto,
+        onOpenLink = onOpenLink,
+        onDelete = onDelete,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
+}
 
 @Composable
 private fun SpotRowMenu(

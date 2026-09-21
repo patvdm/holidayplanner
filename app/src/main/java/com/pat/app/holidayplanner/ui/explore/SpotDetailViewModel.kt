@@ -9,7 +9,7 @@ import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.local.SpotEntity
 import android.net.Uri
 import com.pat.app.holidayplanner.data.repo.LinkRepository
-import com.pat.app.holidayplanner.data.repo.PhotoRepository
+import com.pat.app.holidayplanner.data.repo.AttachmentRepository
 import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
@@ -78,7 +78,7 @@ class SpotDetailViewModel(
     private val spotId: String,
     private val spotRepository: SpotRepository,
     private val linkRepository: LinkRepository,
-    private val photoRepository: PhotoRepository,
+    private val attachments: AttachmentRepository,
     cityRepository: CityRepository,
     userRepository: UserRepository,
 ) : ViewModel() {
@@ -143,7 +143,7 @@ class SpotDetailViewModel(
      * Pasting a link attaches it to this spot. A Maps link is not a link in that sense: a spot has
      * one location, so it replaces the spot's Maps link rather than joining a list.
      */
-    fun addLink(url: String, note: String) {
+    fun addLink(url: String) {
         val trimmed = url.trim()
         if (trimmed.isEmpty()) return
         val source = ShareParser.sourceOf(trimmed)
@@ -151,7 +151,7 @@ class SpotDetailViewModel(
             if (source == LinkSource.MAPS) {
                 spotRepository.setMapsUrl(spotId, trimmed)
             } else {
-                linkRepository.add(url = trimmed, source = source, note = note, spotId = spotId)
+                linkRepository.add(url = trimmed, source = source, spotId = spotId)
             }
         }
     }
@@ -165,21 +165,18 @@ class SpotDetailViewModel(
         viewModelScope.launch { spotRepository.setAddress(spotId, address) }
     }
 
-    fun deleteLink(linkId: String) {
-        viewModelScope.launch { linkRepository.delete(linkId) }
-    }
-
     /** A picture from the gallery. Unlike every other edit this one needs the network. */
     fun addPhoto(uri: Uri) {
         viewModelScope.launch {
             savingPhoto.value = true
-            photoRepository.attach(spotId, uri)
+            attachments.attach(uri, spotId = spotId)
             savingPhoto.value = false
         }
     }
 
-    fun deletePhoto(photo: LinkEntity) {
-        viewModelScope.launch { photoRepository.remove(photo) }
+    /** A photo or a link: a photo goes from the backend's folder too. */
+    fun deleteAttachment(attachment: LinkEntity) {
+        viewModelScope.launch { attachments.remove(attachment) }
     }
 
 

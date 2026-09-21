@@ -155,6 +155,7 @@ fun spotFromRow(row: SheetRow): SpotEntity? {
 
 fun linkToRow(entity: LinkEntity): Map<String, String> = buildRow(entity.meta) {
     put("spotId", entity.spotId)
+    put("cityId", entity.cityId)
     put("url", entity.url)
     put("source", entity.source.name)
     put("note", entity.note)
@@ -165,6 +166,7 @@ fun linkFromRow(row: SheetRow): LinkEntity? {
     return LinkEntity(
         meta = meta,
         spotId = row.str("spotId").trim(),
+        cityId = row.str("cityId").trim(),
         url = row.str("url").trim(),
         source = LinkSource.fromSheet(row.str("source")),
         note = row.str("note"),

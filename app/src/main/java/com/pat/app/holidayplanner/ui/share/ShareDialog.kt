@@ -15,6 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.ui.components.PlacePick
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -62,9 +63,9 @@ fun ShareDialog(
         // A photo asks the same one question a link does, in the same sheet.
         is ShareState.FilingPhoto -> PlaceSearchSheet(
             title = stringResource(R.string.share_pick_spot_photo),
-            onPickExisting = { viewModel.attachPhoto(it.spotId) },
+            onPickExisting = viewModel::attachPhoto,
             onDismiss = viewModel::cancelFiling,
-            onSaved = viewModel::attachPhoto,
+            onSaved = { viewModel.attachPhoto(PlacePick(it, isCity = false)) },
         )
 
         ShareState.Uploading -> BusyDialog(
@@ -105,9 +106,9 @@ fun ShareDialog(
         // One sheet over the app that shared the link: your spots and Google's, in one search.
         is ShareState.Filing -> PlaceSearchSheet(
             title = stringResource(R.string.share_pick_spot),
-            onPickExisting = { viewModel.fileUnder(it.spotId) },
+            onPickExisting = viewModel::fileUnder,
             onDismiss = viewModel::cancelFiling,
-            onSaved = viewModel::fileUnder,
+            onSaved = { viewModel.fileUnder(PlacePick(it, isCity = false)) },
         )
     }
 }

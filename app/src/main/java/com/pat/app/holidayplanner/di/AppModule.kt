@@ -19,7 +19,7 @@ import com.pat.app.holidayplanner.data.remote.SheetsBackend
 import com.pat.app.holidayplanner.data.repo.CountryRepository
 import com.pat.app.holidayplanner.data.repo.HierarchyResolver
 import com.pat.app.holidayplanner.data.repo.LinkRepository
-import com.pat.app.holidayplanner.data.repo.PhotoRepository
+import com.pat.app.holidayplanner.data.repo.AttachmentRepository
 import com.pat.app.holidayplanner.data.repo.LocalWriter
 import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
@@ -106,7 +106,7 @@ val appModule = module {
     single { CityRepository(get(), get(), get(), get()) }
     single { SpotRepository(get(), get(), get(), get(), get()) }
     single { LinkRepository(get(), get()) }
-    single { PhotoRepository(get(), get(), get()) }
+    single { AttachmentRepository(get(), get(), get()) }
     single { CityRepositories(get(), get(), get(), get(), get()) }
     single { HierarchyResolver(get(), get()) }
     single { TripRepository(get(), get(), get(), get(), get()) }

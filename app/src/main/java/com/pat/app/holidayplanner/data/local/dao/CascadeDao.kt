@@ -61,8 +61,11 @@ interface CascadeDao {
     @Query(
         """
         UPDATE links SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
-        WHERE deleted = 0 AND spotId IN (
-            SELECT id FROM spots WHERE parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
+        WHERE deleted = 0 AND (
+            spotId IN (
+                SELECT id FROM spots WHERE parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
+            )
+            OR cityId IN (SELECT id FROM cities WHERE countryId = :countryId)
         )
         """,
     )
@@ -71,7 +74,9 @@ interface CascadeDao {
     @Query(
         """
         UPDATE links SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
-        WHERE deleted = 0 AND spotId IN (SELECT id FROM spots WHERE parentCityId = :cityId)
+        WHERE deleted = 0 AND (
+            spotId IN (SELECT id FROM spots WHERE parentCityId = :cityId) OR cityId = :cityId
+        )
         """,
     )
     suspend fun deleteLinksOfCity(cityId: String, now: Long, userId: String)

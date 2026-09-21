@@ -8,12 +8,13 @@ import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.location.ReverseGeocoder
 import com.pat.app.holidayplanner.data.remote.LinkResolver
 import com.pat.app.holidayplanner.data.repo.LinkRepository
-import com.pat.app.holidayplanner.data.repo.PhotoRepository
+import com.pat.app.holidayplanner.data.repo.AttachmentRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.AddressText
 import com.pat.app.holidayplanner.domain.MapsLinkParser
 import com.pat.app.holidayplanner.domain.ShareParser
 import com.pat.app.holidayplanner.domain.SharedLink
+import com.pat.app.holidayplanner.ui.components.PlacePick
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,6 +40,11 @@ data class SharedSpot(
     val lng: Double?,
     val mapsUrl: String,
 )
+
+/** A pick, as the two repositories want it: one id set, the other empty. */
+private val PlacePick.spotId: String get() = if (isCity) "" else id
+
+private val PlacePick.cityId: String get() = if (isCity) id else ""
 
 /** Where a link that was already shared ended up, so the dialog can say so. */
 data class ExistingLink(val linkId: String, val url: String, val where: String?)
@@ -87,7 +93,7 @@ sealed interface ShareState {
  */
 class ShareViewModel(
     private val linkRepository: LinkRepository,
-    private val photoRepository: PhotoRepository,
+    private val attachments: AttachmentRepository,
     private val spotRepository: SpotRepository,
     private val linkResolver: LinkResolver,
     private val reverseGeocoder: ReverseGeocoder,
@@ -182,26 +188,26 @@ class ShareViewModel(
     }
 
     /** Sends the shared photo to the backend and hangs it on the spot that was chosen. */
-    fun attachPhoto(spotId: String) {
+    fun attachPhoto(pick: PlacePick) {
         val filing = state.value as? ShareState.FilingPhoto ?: return
         state.value = ShareState.Uploading
         viewModelScope.launch {
-            photoRepository.attach(spotId, filing.uri)
+            attachments.attach(filing.uri, spotId = pick.spotId, cityId = pick.cityId)
                 .onSuccess { state.value = ShareState.Saved }
                 .onFailure { state.value = ShareState.Problem(it.message.orEmpty()) }
         }
     }
 
     /** Writes the link against the spot it belongs to, which is the only way it gets written. */
-    fun fileUnder(spotId: String) {
+    fun fileUnder(pick: PlacePick) {
         val filing = state.value as? ShareState.Filing ?: return
         state.value = ShareState.Saved
         viewModelScope.launch {
             linkRepository.add(
                 url = filing.link.url,
                 source = filing.link.source,
-                note = "",
-                spotId = spotId,
+                spotId = pick.spotId,
+                cityId = pick.cityId,
             )
         }
     }

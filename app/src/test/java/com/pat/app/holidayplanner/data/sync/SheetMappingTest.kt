@@ -95,7 +95,14 @@ class SheetMappingTest {
 
     @Test
     fun `link round trips`() {
-        val entity = LinkEntity(meta, spotId = "", url = "https://x/y", source = LinkSource.INSTAGRAM, note = "reel")
+        val entity = LinkEntity(
+            meta = meta,
+            spotId = "s1",
+            cityId = "",
+            url = "https://x/y",
+            source = LinkSource.INSTAGRAM,
+            note = "reel",
+        )
         assertEquals(entity, linkFromRow(SheetRow(linkToRow(entity))))
     }
 

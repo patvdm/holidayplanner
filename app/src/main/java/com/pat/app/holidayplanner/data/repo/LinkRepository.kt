@@ -12,44 +12,41 @@ class LinkRepository(
     private val writer: LocalWriter,
 ) {
 
-    /** Links that have not been attached to a spot yet. */
+    /** What hangs on one spot. */
     fun observeLinks(spotId: String): Flow<List<LinkEntity>> = dao.observeBySpot(spotId)
 
+    /** What hangs on the city itself. */
+    fun observeForCity(cityId: String): Flow<List<LinkEntity>> = dao.observeByCity(cityId)
+
     /** Everything hanging on the spots of one city, ready to be grouped by spot. */
-    fun observeInCity(cityId: String): Flow<List<LinkEntity>> = dao.observeByCity(cityId)
+    fun observeInCity(cityId: String): Flow<List<LinkEntity>> = dao.observeBySpotsIn(cityId)
 
     suspend fun findByUrl(url: String): LinkEntity? = dao.findByUrl(url)
 
-    /** Every link belongs to a spot: one with nowhere to live is not worth keeping. */
-    suspend fun add(url: String, source: LinkSource, spotId: String, note: String = ""): String {
+    /**
+     * Every link belongs to a spot or to a city: one with nowhere to live is not worth keeping,
+     * and would show up on nothing.
+     */
+    suspend fun add(url: String, source: LinkSource, spotId: String = "", cityId: String = ""): String {
         val stamp = writer.stamp()
         val id = newId()
         val link = LinkEntity(
             meta = SyncMeta.created(id, stamp.now, stamp.userId),
             spotId = spotId,
+            cityId = cityId,
             url = url.trim(),
             source = source,
-            note = note.trim(),
+            note = "",
         )
         dao.upsert(listOf(link))
         writer.requestSync()
         return id
     }
 
-    suspend fun setNote(linkId: String, note: String) = edit(linkId) { it.copy(note = note.trim()) }
-
     suspend fun delete(linkId: String) {
         val current = dao.find(linkId) ?: return
         val stamp = writer.stamp()
         dao.upsert(listOf(current.copy(meta = current.meta.touched(stamp.now, stamp.userId, deleted = true))))
-        writer.requestSync()
-    }
-
-    private suspend fun edit(id: String, change: (LinkEntity) -> LinkEntity) {
-        val current = dao.find(id) ?: return
-        val stamp = writer.stamp()
-        val updated = change(current)
-        dao.upsert(listOf(updated.copy(meta = updated.meta.touched(stamp.now, stamp.userId))))
         writer.requestSync()
     }
 }

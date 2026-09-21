@@ -4,43 +4,45 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.PopupProperties
 import coil3.compose.AsyncImage
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.LinkEntity
-import com.pat.app.holidayplanner.domain.LinkSource
 
 private val PHOTO_SHAPE = RoundedCornerShape(12.dp)
 private const val VIEWER_DIM = 0.95f
@@ -108,33 +110,53 @@ fun PhotoViewer(url: String, onDismiss: () -> Unit) {
     }
 }
 
-/** A spot's links as chips that open them, for a row with no space for a list. */
+/**
+ * A spot's or a city's links, one line each. A link is shown as itself: there is nothing to say
+ * about it that the address does not, and a row has space for one line.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun LinkChips(links: List<LinkEntity>, onOpen: (LinkEntity) -> Unit, modifier: Modifier = Modifier) {
+fun LinkList(
+    links: List<LinkEntity>,
+    onOpen: (LinkEntity) -> Unit,
+    modifier: Modifier = Modifier,
+    onDelete: ((LinkEntity) -> Unit)? = null,
+) {
     if (links.isEmpty()) return
-    Row(
-        modifier = modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
+    Column(modifier = modifier) {
         links.forEach { link ->
-            AssistChip(
-                onClick = { onOpen(link) },
-                label = { Text(link.label()) },
-                colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.primary),
-            )
+            var menuOpen by remember(link.meta.id) { mutableStateOf(false) }
+            Box {
+                Text(
+                    text = link.url,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = { onOpen(link) },
+                            onLongClick = { if (onDelete != null) menuOpen = true },
+                        )
+                        .padding(vertical = 6.dp),
+                )
+                if (onDelete != null) {
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false },
+                        properties = PopupProperties(focusable = false),
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.action_delete)) },
+                            onClick = {
+                                menuOpen = false
+                                onDelete(link)
+                            },
+                        )
+                    }
+                }
+            }
         }
     }
-}
-
-/** What a link is called: whatever was written about it, else where it came from. */
-@Composable
-fun LinkEntity.label(): String = note.ifBlank { stringResource(source.label()) }
-
-fun LinkSource.label(): Int = when (this) {
-    LinkSource.INSTAGRAM -> R.string.link_instagram
-    LinkSource.TIKTOK -> R.string.link_tiktok
-    LinkSource.YOUTUBE -> R.string.link_youtube
-    LinkSource.MAPS -> R.string.link_maps
-    LinkSource.WEB -> R.string.link_web
-    LinkSource.PHOTO -> R.string.link_photo
 }
