@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.pat.app.holidayplanner.data.sync.SyncOutcomeStore
 import com.pat.app.holidayplanner.domain.SortMode
 import com.pat.app.holidayplanner.domain.SortScope
+import com.pat.app.holidayplanner.domain.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -48,6 +49,13 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
     }
 
     /** The sort mode chosen for one list. Unknown or unset values fall back to manual order. */
+    /** Dark unless Light or Match phone was picked in Settings. */
+    val themeMode: Flow<ThemeMode> = store.data.map { prefs -> ThemeMode.fromPref(prefs[KEY_THEME_MODE]) }
+
+    suspend fun setThemeMode(mode: ThemeMode) {
+        store.edit { it[KEY_THEME_MODE] = mode.name }
+    }
+
     fun sortMode(scope: SortScope): Flow<SortMode> = store.data.map { prefs ->
         scope.parse(prefs[sortModeKey(scope)])
     }
@@ -86,6 +94,7 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
         fun sortModeKey(scope: SortScope) = stringPreferencesKey("sort_mode_${scope.prefKey}")
 
         val KEY_CURRENT_USER_ID = stringPreferencesKey("current_user_id")
+        val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_BACKEND_URL = stringPreferencesKey("backend_url")
         val KEY_BACKEND_SECRET = stringPreferencesKey("backend_secret")
         val KEY_LAST_SYNC_AT = longPreferencesKey("last_sync_at")

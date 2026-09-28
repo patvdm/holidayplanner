@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -28,7 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.BuildConfig
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.sync.SyncStatus
+import com.pat.app.holidayplanner.domain.ThemeMode
 import com.pat.app.holidayplanner.data.update.AppUpdater
 import com.pat.app.holidayplanner.data.update.UpdateCheck
 import com.pat.app.holidayplanner.ui.components.BackTopBar
@@ -69,6 +72,10 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewMo
 
             SectionTitle(stringResource(R.string.settings_section_advanced))
             AdvancedSection(state, viewModel)
+            HorizontalDivider()
+
+            SectionTitle(stringResource(R.string.settings_section_appearance))
+            ThemeChoice()
             HorizontalDivider()
 
             SectionTitle(stringResource(R.string.settings_section_about))
@@ -203,5 +210,31 @@ private fun UpdateCheckRow(updater: AppUpdater = koinInject()) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/** Dark, light, or whatever the phone is set to. Applies at once, on this phone only. */
+@Composable
+private fun ThemeChoice(prefs: AppPreferences = koinInject()) {
+    val mode by prefs.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.DEFAULT)
+    val scope = rememberCoroutineScope()
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ThemeMode.entries.forEach { option ->
+            FilterChip(
+                selected = mode == option,
+                onClick = { scope.launch { prefs.setThemeMode(option) } },
+                label = {
+                    Text(
+                        stringResource(
+                            when (option) {
+                                ThemeMode.DARK -> R.string.theme_dark
+                                ThemeMode.LIGHT -> R.string.theme_light
+                                ThemeMode.SYSTEM -> R.string.theme_system
+                            },
+                        ),
+                    )
+                },
+            )
+        }
     }
 }

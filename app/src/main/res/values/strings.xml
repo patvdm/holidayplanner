@@ -136,6 +136,11 @@
     <string name="share_uploading_message">Making it smaller. It uploads in the background.</string>
     <string name="photo_waiting">Uploading</string>
 
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_system">Match phone</string>
+
     <string name="update_title">Update ready</string>
     <string name="update_message">Version %1$s is downloaded. Installing closes the app for a moment; open it again afterwards.</string>
     <string name="update_install">Install</string>

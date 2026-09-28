@@ -5,6 +5,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pat.app.holidayplanner.data.prefs.AppPreferences
+import com.pat.app.holidayplanner.domain.ThemeMode
+import org.koin.compose.koinInject
 import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
@@ -58,12 +63,26 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 /**
+ * Whether the app is dark right now: dark by default, light or the phone's own setting when chosen
+ * in Settings. Starts dark while the saved choice is read, since that is what most launches want.
+ */
+@Composable
+fun rememberDarkTheme(prefs: AppPreferences = koinInject()): Boolean {
+    val mode by prefs.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.DEFAULT)
+    return when (mode) {
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+}
+
+/**
  * One palette rather than the phone's wallpaper colours, so the app looks the same on both phones
  * and the tag colours were chosen against a background that is known.
  */
 @Composable
 fun HolidayPlannerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = rememberDarkTheme(),
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(

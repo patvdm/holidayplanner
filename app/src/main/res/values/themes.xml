@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.HolidayPlanner" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Dark, so the window behind the app matches the default theme while it starts. -->
+    <style name="Theme.HolidayPlanner" parent="android:Theme.Material.NoActionBar" />
 
     <!-- Translucent so the app being shared from stays visible behind the dialog. -->
     <style name="Theme.HolidayPlanner.Share" parent="android:Theme.Material.Light.NoActionBar">
