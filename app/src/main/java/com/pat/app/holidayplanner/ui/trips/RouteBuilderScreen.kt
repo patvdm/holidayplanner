@@ -236,7 +236,7 @@ private fun CandidateRow(
                 modifier = Modifier.width(POSITION_WIDTH_DP.dp),
             )
             Thumbnail(candidate.imageUrl, size = 48.dp)
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(candidate.name, style = MaterialTheme.typography.titleMedium)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),

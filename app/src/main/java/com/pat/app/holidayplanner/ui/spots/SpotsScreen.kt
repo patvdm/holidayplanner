@@ -127,13 +127,7 @@ private fun FilterRow(state: SpotsUiState, viewModel: SpotsViewModel) {
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        state.countries.forEach { country ->
-            FilterChip(
-                selected = state.filters.countryId == country.id,
-                onClick = { viewModel.setCountryFilter(country.id.takeIf { it != state.filters.countryId }) },
-                label = { Text("${CountryCatalog.flag(country.isoCode)} ${country.name}") },
-            )
-        }
+        // The same order as a country's filters: type, then priority, then the rest.
         SpotType.entries.forEach { type ->
             FilterChip(
                 selected = state.filters.type == type,
@@ -141,6 +135,11 @@ private fun FilterRow(state: SpotsUiState, viewModel: SpotsViewModel) {
                 label = { Text(stringResource(type.label())) },
             )
         }
+        FilterChip(
+            selected = state.filters.priority == Priority.HIGH,
+            onClick = { viewModel.setPriorityFilter(Priority.HIGH.takeIf { it != state.filters.priority }) },
+            label = { Text(stringResource(R.string.priority_high)) },
+        )
         SpotStatus.entries.forEach { status ->
             FilterChip(
                 selected = state.filters.status == status,
@@ -148,11 +147,13 @@ private fun FilterRow(state: SpotsUiState, viewModel: SpotsViewModel) {
                 label = { Text(stringResource(status.label())) },
             )
         }
-        FilterChip(
-            selected = state.filters.priority == Priority.HIGH,
-            onClick = { viewModel.setPriorityFilter(Priority.HIGH.takeIf { it != state.filters.priority }) },
-            label = { Text(stringResource(R.string.priority_high)) },
-        )
+        state.countries.forEach { country ->
+            FilterChip(
+                selected = state.filters.countryId == country.id,
+                onClick = { viewModel.setCountryFilter(country.id.takeIf { it != state.filters.countryId }) },
+                label = { Text("${CountryCatalog.flag(country.isoCode)} ${country.name}") },
+            )
+        }
     }
 }
 

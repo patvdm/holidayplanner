@@ -289,7 +289,7 @@ private fun TripItemCard(row: TripItemRow, onClick: () -> Unit, onRemove: () -> 
             TripItemType.FLIGHT -> KindIcon(Icons.Outlined.Flight)
             TripItemType.ROUTE -> KindIcon(Icons.Outlined.Route)
         }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (row.item.type != TripItemType.SPOT) {
                 Text(
                     text = stringResource(row.item.type.label()).uppercase(),

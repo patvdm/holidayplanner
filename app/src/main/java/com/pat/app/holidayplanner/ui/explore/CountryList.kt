@@ -85,6 +85,10 @@ private sealed interface Entry {
         override val key = "no-cities"
     }
 
+    data object NoMatches : Entry {
+        override val key = "no-matches"
+    }
+
     data class City(val section: CitySection) : Entry {
         override val key = cityKey(section.city.meta.id)
     }
@@ -115,7 +119,10 @@ private fun buildEntries(
     if (state.isEmpty) add(Entry.NoCities) else add(Entry.Filters)
     // The country's own spots come first, above every city, with no heading of their own.
     orderOf("", state.countrySpots).forEach { add(Entry.Spot(it)) }
-    state.sections.forEach { section ->
+    // While filtering, a city with nothing that matches is left out rather than shown empty.
+    val shown = if (state.filters.any) state.sections.filter { it.spots.isNotEmpty() } else state.sections
+    if (state.filters.any && shown.isEmpty() && state.countrySpots.isEmpty()) add(Entry.NoMatches)
+    shown.forEach { section ->
         add(Entry.City(section))
         if (section.expanded) {
             val spots = orderOf(section.city.meta.id, section.spots)
@@ -212,9 +219,10 @@ private fun EntryContent(entry: Entry, state: CountryUiState, actions: CountryAc
         )
         Entry.Filters -> FilterRow(state.filters, actions.onFilters)
         Entry.NoCities -> EmptyListMessage(stringResource(R.string.country_empty))
+        Entry.NoMatches -> EmptyListMessage(stringResource(R.string.city_no_matches))
         is Entry.City -> CityHeader(section = entry.section, actions = actions)
         is Entry.NoSpots -> EmptyListMessage(
-            text = stringResource(if (state.filters.any) R.string.city_no_matches else R.string.city_empty),
+            text = stringResource(R.string.city_empty),
             modifier = Modifier.padding(start = SPOT_INDENT),
         )
         is Entry.Spot -> Unit
@@ -451,7 +459,8 @@ private fun SpotRowItem(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Thumbnail(row.spot.imageUrl, size = 48.dp)
-            Column(modifier = Modifier.weight(1f)) {
+            // A little air between the name and its badges, or they read as one block.
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(row.spot.name, style = MaterialTheme.typography.titleMedium)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
