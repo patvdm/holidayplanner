@@ -3,8 +3,8 @@ package com.pat.app.holidayplanner.domain
 import java.util.Locale
 
 /**
- * The city a spot falls back to when nobody knows exactly where it is, so a country can hold spots
- * before anyone has worked out the towns.
+ * The name a spot gets when it is saved with none typed, so it can always be filed and renamed
+ * later. (It once also named a catch-all city; a spot with no city now belongs to its country.)
  *
  * This is stored data rather than UI wording, and it goes into the shared sheet where both people
  * see the same row, so it is a plain constant rather than a string resource.

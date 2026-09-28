@@ -16,6 +16,7 @@ import com.pat.app.holidayplanner.domain.GENERAL_CITY_NAME
 import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.domain.countryOrDefault
 import com.pat.app.holidayplanner.domain.PlaceHierarchy
+import com.pat.app.holidayplanner.domain.SpotType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,6 +64,9 @@ data class PendingPick(
         .joinToString(" › ")
 }
 
+/** The city a new spot goes in, or the country when there is no city. */
+private data class SpotHomeIds(val cityId: String = "", val countryId: String = "")
+
 /** Why the sheet dropped to typing a name. The screen turns this into wording. */
 enum class ManualReason {
     NO_KEY,
@@ -86,8 +90,10 @@ data class PlaceSearchUiState(
     val homeCityName: String = "",
     /** Cities already known in the chosen country, offered so a second spot reuses the first's city. */
     val knownCities: List<String> = emptyList(),
+    /** What kind of spot is being added, chosen with one tap before saving. */
+    val type: SpotType = SpotType.POI,
 ) {
-    /** Only the country is needed: a blank city falls back to the catch-all place. */
+    /** Only the country is needed: a blank city files the spot under the country itself. */
     private val homeChosen: Boolean get() = country != null
 
     /** A blank name becomes the catch-all too, so something can always be filed and renamed later. */
@@ -162,6 +168,10 @@ class PlaceSearchViewModel(
         state.update { it.copy(homeCityName = value) }
     }
 
+    fun onTypeChange(value: SpotType) {
+        state.update { it.copy(type = value) }
+    }
+
     fun pick(prediction: PlacePrediction) {
         viewModelScope.launch {
             state.update { it.copy(searching = true) }
@@ -205,13 +215,16 @@ class PlaceSearchViewModel(
             state.update { it.copy(saving = true) }
             val name = current.query.trim().ifEmpty { GENERAL_CITY_NAME }
             // Coordinates from a Maps link survive even when the name was typed by hand.
+            val home = homeOf(current)
             val id = spotRepository.add(
-                cityId = homeCityId(current),
+                cityId = home.cityId,
+                countryId = home.countryId,
                 name = name,
                 lat = target.knownLat,
                 lng = target.knownLng,
                 address = target.knownAddress,
                 mapsUrl = target.knownMapsUrl,
+                type = current.type,
             )
             onSaved(id)
         }
@@ -219,10 +232,15 @@ class PlaceSearchViewModel(
 
     private suspend fun save(pending: PendingPick): String {
         // Google decides which country and city this belongs to, not the screen it was opened from.
-        val resolved = pending.hierarchy?.let { resolver.resolve(it, pending.cityName) }
+        val home = pending.hierarchy
+            ?.let { resolver.resolve(it, pending.cityName) }
+            ?.let { SpotHomeIds(cityId = it.cityId, countryId = it.countryId) }
+            ?: homeOf(state.value)
         return spotRepository.add(
-            cityId = resolved?.cityId ?: homeCityId(state.value),
+            cityId = home.cityId,
+            countryId = home.countryId,
             name = pending.name,
+            type = state.value.type,
             googlePlaceId = pending.details.googlePlaceId,
             lat = pending.details.lat,
             lng = pending.details.lng,
@@ -238,19 +256,21 @@ class PlaceSearchViewModel(
     }
 
     /**
-     * The place a spot will live in. A place passed in wins. Otherwise the chosen country and city
-     * are found or created, which is how a brand new spot can bring a new country along with it.
+     * Where a spot will live. A city passed in wins. Otherwise the chosen country and city are found
+     * or created, which is how a brand new spot can bring a new country along with it; with no city
+     * named it lives on the country itself.
      */
-    private suspend fun homeCityId(current: PlaceSearchUiState): String {
-        if (target.cityId.isNotEmpty()) return target.cityId
-        val country = current.country ?: return target.cityId
-        return resolver.resolve(
+    private suspend fun homeOf(current: PlaceSearchUiState): SpotHomeIds {
+        if (target.cityId.isNotEmpty()) return SpotHomeIds(cityId = target.cityId)
+        val country = current.country ?: return SpotHomeIds()
+        val resolved = resolver.resolve(
             PlaceHierarchy(
                 isoCode = country.isoCode,
                 countryName = country.name,
                 cityName = current.homeCityName.trim(),
             ),
-        ).cityId
+        )
+        return SpotHomeIds(cityId = resolved.cityId, countryId = resolved.countryId)
     }
 
     private fun pendingFor(prediction: PlacePrediction, details: PlaceDetails): PendingPick {

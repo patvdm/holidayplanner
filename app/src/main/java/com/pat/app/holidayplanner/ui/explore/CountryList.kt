@@ -402,20 +402,7 @@ private fun FilterRow(filters: SpotFilters, onChange: (SpotFilters) -> Unit) {
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SpotStatus.entries.forEach { status ->
-            FilterChip(
-                selected = filters.status == status,
-                onClick = { onChange(filters.copy(status = status.takeIf { it != filters.status })) },
-                label = { Text(stringResource(status.label())) },
-            )
-        }
-        Priority.entries.forEach { priority ->
-            FilterChip(
-                selected = filters.priority == priority,
-                onClick = { onChange(filters.copy(priority = priority.takeIf { it != filters.priority })) },
-                label = { Text(stringResource(priority.label())) },
-            )
-        }
+        // The type first, then the two questions worth asking: is it a priority, and is it still to do.
         SpotType.entries.forEach { type ->
             FilterChip(
                 selected = filters.type == type,
@@ -423,6 +410,18 @@ private fun FilterRow(filters: SpotFilters, onChange: (SpotFilters) -> Unit) {
                 label = { Text(stringResource(type.label())) },
             )
         }
+        FilterChip(
+            selected = filters.priority == Priority.HIGH,
+            onClick = { onChange(filters.copy(priority = Priority.HIGH.takeIf { filters.priority == null })) },
+            label = { Text(stringResource(Priority.HIGH.label())) },
+        )
+        FilterChip(
+            selected = filters.status == SpotStatus.UNVISITED,
+            onClick = {
+                onChange(filters.copy(status = SpotStatus.UNVISITED.takeIf { filters.status == null }))
+            },
+            label = { Text(stringResource(SpotStatus.UNVISITED.label())) },
+        )
         if (filters.any) {
             FilterChip(
                 selected = false,

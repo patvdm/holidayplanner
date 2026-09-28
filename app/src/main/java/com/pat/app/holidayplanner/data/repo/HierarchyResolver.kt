@@ -1,9 +1,11 @@
 package com.pat.app.holidayplanner.data.repo
 
-import com.pat.app.holidayplanner.domain.GENERAL_CITY_NAME
 import com.pat.app.holidayplanner.domain.PlaceHierarchy
 
-/** Where a picked place will be filed, with the ids needed to save it. */
+/**
+ * Where a picked place will be filed, with the ids needed to save it. [cityId] is empty when no
+ * city was named, and the place then belongs to the country itself.
+ */
 data class ResolvedHierarchy(
     val countryId: String,
     val countryName: String,
@@ -11,7 +13,7 @@ data class ResolvedHierarchy(
     val cityName: String,
 ) {
     /** The "Netherlands › Den Haag" line shown for confirmation before anything is saved. */
-    val breadcrumb: String get() = "$countryName › $cityName"
+    val breadcrumb: String get() = if (cityName.isBlank()) countryName else "$countryName › $cityName"
 }
 
 /**
@@ -37,14 +39,20 @@ class HierarchyResolver(
         return existing?.meta?.id ?: countryRepository.add(name = countryName, isoCode = isoCode)
     }
 
-    /** [cityName] overrides what Google said, for when the person used the Change option. */
+    /**
+     * [cityName] overrides what Google said, for when the person used the Change option. A blank one
+     * files the place under the country itself rather than inventing a catch-all city.
+     */
     suspend fun resolve(hierarchy: PlaceHierarchy, cityName: String = hierarchy.cityName): ResolvedHierarchy {
         val country = countryRepository.findByIsoCode(hierarchy.isoCode)
         val countryId = country?.meta?.id
             ?: countryRepository.add(name = hierarchy.countryName, isoCode = hierarchy.isoCode)
         val countryLabel = country?.name ?: hierarchy.countryName
 
-        val chosenName = cityName.trim().ifEmpty { GENERAL_CITY_NAME }
+        val chosenName = cityName.trim()
+        if (chosenName.isEmpty()) {
+            return ResolvedHierarchy(countryId = countryId, countryName = countryLabel, cityId = "", cityName = "")
+        }
         val place = cityRepository.findByName(countryId, chosenName)
         val cityId = place?.meta?.id ?: cityRepository.add(countryId = countryId, name = chosenName)
 

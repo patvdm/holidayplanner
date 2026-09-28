@@ -38,8 +38,9 @@ enum class SpotStatus {
  * What kind of place a spot is. POI is the default, so a spot nobody classified is simply somewhere
  * to go rather than a spot with a missing field.
  */
+/** Listed in the order they are offered: POI, food, a place to sleep. Stored by name, never by position. */
 enum class SpotType {
-    POI, ACCOMMODATION, RESTAURANT;
+    POI, RESTAURANT, ACCOMMODATION;
 
     companion object {
         fun fromSheet(value: String?): SpotType = parseEnum(value, POI)

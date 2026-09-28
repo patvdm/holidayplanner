@@ -54,9 +54,11 @@ class SpotRepository(
     /** The place and country a spot sits under. */
     fun observeContext(spotId: String): Flow<SpotContext?> = dao.observeContext(spotId)
 
+    /** Files the spot under [cityId], or straight under [countryId] when no city is given. */
     suspend fun add(
         cityId: String,
         name: String,
+        countryId: String = "",
         googlePlaceId: String = "",
         lat: Double? = null,
         lng: Double? = null,
@@ -69,7 +71,7 @@ class SpotRepository(
         val spot = SpotEntity(
             meta = SyncMeta.created(id, stamp.now, stamp.userId),
             parentCityId = cityId,
-            parentCountryId = "",
+            parentCountryId = if (cityId.isEmpty()) countryId else "",
             name = name.trim(),
             type = type,
             googlePlaceId = googlePlaceId,
@@ -79,7 +81,7 @@ class SpotRepository(
             mapsUrl = mapsUrl,
             notes = "",
             status = SpotStatus.UNVISITED,
-            sortKey = SortKey.after(dao.lastSortKey(cityId, countryId = "")),
+            sortKey = SortKey.after(dao.lastSortKey(cityId, if (cityId.isEmpty()) countryId else "")),
             priority = Priority.NORMAL,
             imageUrl = "",
         )

@@ -12,8 +12,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -42,6 +47,7 @@ import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.GENERAL_CITY_NAME
+import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.explore.CountryPickerSheet
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
@@ -158,6 +164,7 @@ private fun SearchStep(
     if (state.needsHome && state.manual) HomeFields(state, viewModel)
 
     if (state.manual) {
+        TypeChips(state.type, viewModel::onTypeChange)
         Button(
             onClick = { viewModel.saveManually(onSaved) },
             enabled = state.canSaveManually && !state.saving,
@@ -288,8 +295,8 @@ private fun ResultRow(primary: String, secondary: String, onClick: () -> Unit) {
 
 /**
  * The parent for something that has no home yet, so it is never saved orphaned. A spot needs a
- * country and a city; a city needs only a country, since it is the city. Each is found or created
- * by name, which is how adding one can bring a new country along with it.
+ * country, and a city only if one is named. Each is found or created by name, which is how adding
+ * one can bring a new country along with it.
  */
 @Composable
 private fun HomeFields(state: PlaceSearchUiState, viewModel: PlaceSearchViewModel) {
@@ -303,15 +310,10 @@ private fun HomeFields(state: PlaceSearchUiState, viewModel: PlaceSearchViewMode
     }
 
     if (state.country != null) {
-        OutlinedTextField(
+        CityField(
             value = state.homeCityName,
             onValueChange = viewModel::onHomeCityNameChange,
-            label = { Text(stringResource(R.string.place_search_city)) },
-            placeholder = { Text(GENERAL_CITY_NAME) },
-            supportingText = { Text(stringResource(R.string.place_search_city_hint)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-            modifier = Modifier.fillMaxWidth(),
+            label = stringResource(R.string.place_search_city),
         )
         if (state.knownCities.isNotEmpty()) {
             Row(
@@ -366,19 +368,58 @@ private fun ConfirmStep(
             text = stringResource(R.string.place_search_filed_under, pending.breadcrumb),
             style = MaterialTheme.typography.bodyMedium,
         )
-        OutlinedTextField(
+        CityField(
             value = pending.cityName,
             onValueChange = viewModel::onCityNameChange,
-            label = { Text(stringResource(R.string.place_search_change_place)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            label = stringResource(R.string.place_search_change_place),
         )
     }
+
+    TypeChips(state.type, viewModel::onTypeChange)
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(onClick = { viewModel.confirm(onSaved) }, enabled = !saving && state.canConfirm(pending)) {
             Text(stringResource(R.string.action_save))
         }
         TextButton(onClick = viewModel::cancelPick) { Text(stringResource(R.string.action_back)) }
+    }
+}
+
+/**
+ * Where in the country a new spot goes. Blank keeps it on the country itself, so the cross that
+ * empties it in one tap is how a spot is filed with no city.
+ */
+@Composable
+private fun CityField(value: String, onValueChange: (String) -> Unit, label: String) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        placeholder = { Text(stringResource(R.string.place_search_whole_country)) },
+        supportingText = { Text(stringResource(R.string.place_search_city_hint)) },
+        trailingIcon = {
+            if (value.isNotEmpty()) {
+                IconButton(onClick = { onValueChange("") }) {
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_clear))
+                }
+            }
+        },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/** POI, food or a bed, picked with one tap while the spot is being added. */
+@Composable
+private fun TypeChips(selected: SpotType, onSelect: (SpotType) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        SpotType.entries.forEach { type ->
+            FilterChip(
+                selected = type == selected,
+                onClick = { onSelect(type) },
+                label = { Text(stringResource(type.label())) },
+            )
+        }
     }
 }

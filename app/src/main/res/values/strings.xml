@@ -30,9 +30,9 @@
     <string name="status_visited">Visited</string>
 
     <string name="type_none">Any type</string>
-    <string name="type_poi">Place of interest</string>
-    <string name="type_accommodation">Accommodation</string>
-    <string name="type_restaurant">Restaurant</string>
+    <string name="type_poi">POI</string>
+    <string name="type_accommodation">Hotel</string>
+    <string name="type_restaurant">Food</string>
     <string name="spot_type">Type</string>
     <string name="type_clear">No type</string>
 
@@ -79,7 +79,8 @@
     <string name="place_search_change_place">City or region</string>
     <string name="place_search_choose_country">Choose a country</string>
     <string name="place_search_city">City or region</string>
-    <string name="place_search_city_hint">Leave blank if you are not sure yet.</string>
+    <string name="place_search_city_hint">Leave blank to keep it on the country, with no city.</string>
+    <string name="place_search_whole_country">Whole country</string>
 
     <string name="hearts_description">%1$d hearts</string>
     <string name="hearts_everyone_description">%1$d hearts, everyone</string>
