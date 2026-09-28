@@ -6,9 +6,9 @@ import com.pat.app.holidayplanner.data.image.PhotoQueue
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.remote.ImageStore
 import com.pat.app.holidayplanner.domain.LinkSource
+import com.pat.app.holidayplanner.domain.NO_PICTURE
 import com.pat.app.holidayplanner.domain.ShareParser
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
@@ -28,9 +28,7 @@ class AttachmentRepository(
     private val queue: PhotoQueue,
     private val store: ImageStore,
     private val links: LinkRepository,
-    private val countries: CountryRepository,
-    private val cities: CityRepository,
-    private val spots: SpotRepository,
+    private val places: Places,
 ) {
 
     /** Everything hanging on a country, its cities and their spots, sorted by owner. */
@@ -38,13 +36,7 @@ class AttachmentRepository(
         links.observeInCountry(countryId).map(CountryAttachments::of)
 
     /** Everywhere in a country a photo or link could be moved to. */
-    fun observeTargets(countryId: String): Flow<List<AttachmentTarget>> = combine(
-        countries.observeCountry(countryId),
-        cities.observeCities(countryId),
-        spots.observeRowsInCountry(countryId, userId = ""),
-    ) { country, cityList, spotRows ->
-        if (country == null) emptyList() else attachmentTargets(country, cityList, spotRows.map { it.spot })
-    }
+    fun observeTargets(countryId: String): Flow<List<AttachmentTarget>> = places.observeTargets(countryId)
 
     /** The same, for a screen that only learns its country once something else has loaded. */
     fun observeTargetsOrNone(countryId: String?): Flow<List<AttachmentTarget>> =
@@ -60,6 +52,9 @@ class AttachmentRepository(
      */
     suspend fun attach(uri: Uri, owner: AttachmentOwner): Result<String> =
         queue.stage(uri).map { localUrl ->
+            // A place with no picture is about to get one from this photo. Saying "none" for now
+            // keeps the automatic picture search from filling the gap while the photo uploads.
+            if (places.pictureOf(owner) == "") places.setPicture(owner, NO_PICTURE)
             val id = links.add(url = localUrl, source = LinkSource.PHOTO, owner = owner)
             queue.enqueue(id)
             id
@@ -84,7 +79,12 @@ class AttachmentRepository(
             .onFailure { Log.w(TAG, "upload of ${link.meta.id} failed: ${it.message}") }
             .getOrNull() ?: return UploadOutcome.RETRY
         // Deleted while it was on its way: take it straight back out of the store.
-        if (!links.completeUpload(link.meta.id, stored.url)) store.remove(stored.url)
+        if (links.completeUpload(link.meta.id, stored.url)) {
+            // Read again, since the photo may have been moved while it was uploading.
+            links.find(link.meta.id)?.let { adoptAsPicture(AttachmentOwner.of(it), stored.url) }
+        } else {
+            store.remove(stored.url)
+        }
         queue.discard(link.url)
         return UploadOutcome.DONE
     }
@@ -99,6 +99,28 @@ class AttachmentRepository(
             links.delete(link.meta.id)
         }
         queue.discard(link.url)
+    }
+
+    /** Makes [url] the place's main picture, but only if it has none of its own. */
+    private suspend fun adoptAsPicture(owner: AttachmentOwner, url: String) {
+        if (places.lacksPicture(owner)) places.setPicture(owner, url)
+    }
+
+    /**
+     * Gives every place that has photos but no picture its first photo as the picture. Run at app
+     * start, before the automatic picture search, so a place someone photographed is never given
+     * a stranger's picture instead.
+     */
+    suspend fun adoptPhotosAsPictures() {
+        links.uploadedPhotos()
+            .groupBy(AttachmentOwner::of)
+            .forEach { (owner, photos) -> adoptAsPicture(owner, photos.first().url) }
+    }
+
+    /** Shows this photo as the main picture of whatever it hangs on, replacing what was there. */
+    suspend fun useAsPicture(photo: LinkEntity) {
+        if (!photo.source.isPhoto || PhotoQueue.isWaiting(photo.url)) return
+        places.setPicture(AttachmentOwner.of(photo), photo.url)
     }
 
     /** Queues again every photo still waiting, in case its upload was lost. Called at app start. */
@@ -124,6 +146,18 @@ class AttachmentRepository(
             queue.discard(attachment.url)
             return
         }
+        replacePictureIfGone(attachment)
         store.remove(attachment.url).onFailure { Log.w(TAG, "left ${attachment.url} in the store: ${it.message}") }
+    }
+
+    /**
+     * A deleted photo that was the place's main picture would leave it pointing at nothing. The
+     * next photo of the place takes over; with none left, the automatic search gets another go.
+     */
+    private suspend fun replacePictureIfGone(photo: LinkEntity) {
+        val owner = AttachmentOwner.of(photo)
+        if (places.pictureOf(owner) != photo.url) return
+        val next = links.uploadedPhotos().firstOrNull { AttachmentOwner.of(it) == owner && it.url != photo.url }
+        places.setPicture(owner, next?.url.orEmpty())
     }
 }

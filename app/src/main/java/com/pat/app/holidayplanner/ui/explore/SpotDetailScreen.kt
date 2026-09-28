@@ -153,6 +153,7 @@ fun SpotDetailScreen(
                     onOpen = { dialogs.viewing = it.url },
                     onMove = { dialogs.moving = it },
                     onDelete = { dialogs.deletingPhoto = it },
+                    onUseAsPicture = viewModel::useAsPicture,
                 )
 
                 HorizontalDivider()
@@ -266,6 +267,7 @@ private fun PhotosSection(
     onOpen: (LinkEntity) -> Unit,
     onMove: (LinkEntity) -> Unit,
     onDelete: (LinkEntity) -> Unit,
+    onUseAsPicture: (LinkEntity) -> Unit,
 ) {
     SectionLabel(stringResource(R.string.spot_photos))
     if (state.photos.isEmpty()) {
@@ -275,7 +277,13 @@ private fun PhotosSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     } else {
-        PhotoRoll(photos = state.photos, onOpen = onOpen, onDelete = onDelete, onMove = onMove)
+        PhotoRoll(
+            photos = state.photos,
+            onOpen = onOpen,
+            onDelete = onDelete,
+            onMove = onMove,
+            onUseAsPicture = onUseAsPicture,
+        )
     }
 }
 

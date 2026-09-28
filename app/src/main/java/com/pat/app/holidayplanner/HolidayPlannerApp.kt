@@ -47,8 +47,12 @@ class HolidayPlannerApp : Application(), SingletonImageLoader.Factory {
         updateScheduler.onAppStart()
         // Spots saved before their link could be followed have no position; repair them once.
         appScope.launch { coordinateBackfill.run() }
-        // Finds a picture for anything that has none, now and whenever something new is saved.
-        appScope.launch { pictureBackfill.watch() }
+        // Finds a picture for anything that has none, now and whenever something new is saved. A
+        // place that has photos takes its own first, so the search only fills what is really empty.
+        appScope.launch {
+            attachments.adoptPhotosAsPictures()
+            pictureBackfill.watch()
+        }
         // A photo whose upload was interrupted (the phone restarted, say) gets queued again.
         appScope.launch { attachments.resumeUploads() }
     }

@@ -22,6 +22,9 @@ class LinkRepository(
 
     suspend fun find(id: String): LinkEntity? = dao.find(id)
 
+    /** Every photo that has reached the backend, oldest first. */
+    suspend fun uploadedPhotos(): List<LinkEntity> = dao.uploadedPhotos()
+
     /** Photos kept on this phone that have not reached the backend yet. */
     suspend fun waitingPhotoIds(): List<String> = dao.waitingPhotoIds()
 

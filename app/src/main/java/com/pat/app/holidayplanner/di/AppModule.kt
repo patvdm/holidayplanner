@@ -31,6 +31,7 @@ import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.CoordinateBackfill
 import com.pat.app.holidayplanner.data.repo.PictureBackfill
+import com.pat.app.holidayplanner.data.repo.Places
 import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.SearchRepository
 import com.pat.app.holidayplanner.data.repo.SpotPinRepository
@@ -117,7 +118,8 @@ val appModule = module {
     single { CityRepository(get(), get(), get(), get()) }
     single { SpotRepository(get(), get(), get(), get(), get()) }
     single { LinkRepository(get(), get()) }
-    single { AttachmentRepository(get(), get(), get(), get(), get(), get()) }
+    single { Places(get(), get(), get()) }
+    single { AttachmentRepository(get(), get(), get(), get()) }
     single { CountryRepositories(get(), get(), get(), get(), get(), get()) }
     single { HierarchyResolver(get(), get()) }
     single { TripRepository(get(), get(), get(), get(), get()) }

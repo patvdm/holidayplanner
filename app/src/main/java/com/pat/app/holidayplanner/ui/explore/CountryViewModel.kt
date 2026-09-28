@@ -276,6 +276,11 @@ class CountryViewModel(
         viewModelScope.launch { repos.attachments.moveTo(attachment, owner) }
     }
 
+    /** Shows a photo as the main picture of whatever it hangs on. */
+    fun useAsPicture(photo: LinkEntity) {
+        viewModelScope.launch { repos.attachments.useAsPicture(photo) }
+    }
+
     /** A photo or a link, of the country, a city or a spot. */
     fun deleteAttachment(attachment: LinkEntity) {
         viewModelScope.launch { repos.attachments.remove(attachment) }

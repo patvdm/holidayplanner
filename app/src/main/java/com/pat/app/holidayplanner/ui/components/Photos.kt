@@ -63,6 +63,7 @@ fun PhotoRoll(
     onDelete: (LinkEntity) -> Unit,
     modifier: Modifier = Modifier,
     onMove: ((LinkEntity) -> Unit)? = null,
+    onUseAsPicture: ((LinkEntity) -> Unit)? = null,
     size: Dp = 96.dp,
 ) {
     if (photos.isEmpty()) return
@@ -86,6 +87,10 @@ fun PhotoRoll(
                     onDismiss = { menuOpen = false },
                     onMove = onMove?.let { move -> { move(photo) } },
                     onDelete = { onDelete(photo) },
+                    // Only once it has arrived: until then the other phone could not show it.
+                    onUseAsPicture = onUseAsPicture
+                        ?.takeUnless { PhotoQueue.isWaiting(photo.url) }
+                        ?.let { use -> { use(photo) } },
                 )
             }
         }
@@ -114,12 +119,22 @@ private fun AttachmentMenu(
     onDismiss: () -> Unit,
     onMove: (() -> Unit)?,
     onDelete: () -> Unit,
+    onUseAsPicture: (() -> Unit)? = null,
 ) {
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
         properties = PopupProperties(focusable = false),
     ) {
+        if (onUseAsPicture != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.photo_use_as_picture)) },
+                onClick = {
+                    onDismiss()
+                    onUseAsPicture()
+                },
+            )
+        }
         if (onMove != null) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.attachment_move)) },
@@ -231,6 +246,7 @@ fun Attachments(
     onMove: (LinkEntity) -> Unit,
     onDelete: (LinkEntity) -> Unit,
     modifier: Modifier = Modifier,
+    onUseAsPicture: ((LinkEntity) -> Unit)? = null,
 ) {
     if (attachments.isEmpty()) return
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -239,6 +255,7 @@ fun Attachments(
             onOpen = onOpenPhoto,
             onDelete = onDelete,
             onMove = onMove,
+            onUseAsPicture = onUseAsPicture,
             size = ROW_PHOTO_SIZE,
         )
         LinkList(

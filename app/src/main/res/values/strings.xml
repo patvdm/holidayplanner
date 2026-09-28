@@ -135,6 +135,7 @@
     <string name="share_uploading_title">Saving the photo</string>
     <string name="share_uploading_message">Making it smaller. It uploads in the background.</string>
     <string name="photo_waiting">Uploading</string>
+    <string name="photo_use_as_picture">Use as main picture</string>
 
     <string name="settings_section_appearance">Appearance</string>
     <string name="theme_dark">Dark</string>

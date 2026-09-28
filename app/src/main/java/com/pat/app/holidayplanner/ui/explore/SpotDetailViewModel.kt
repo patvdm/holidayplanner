@@ -199,6 +199,11 @@ class SpotDetailViewModel(
         viewModelScope.launch { attachments.moveTo(attachment, owner) }
     }
 
+    /** Shows a photo as this spot's main picture. */
+    fun useAsPicture(photo: LinkEntity) {
+        viewModelScope.launch { attachments.useAsPicture(photo) }
+    }
+
     /** A photo or a link: a photo goes from the backend's folder too. */
     fun deleteAttachment(attachment: LinkEntity) {
         viewModelScope.launch { attachments.remove(attachment) }

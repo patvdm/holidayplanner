@@ -94,6 +94,7 @@ fun CountryScreen(
             override val onOpenLink: (LinkEntity) -> Unit = { context.openExternalUrl(it.url) }
             override val onMoveAttachment: (LinkEntity) -> Unit = { dialogs.movingAttachment = it }
             override val onDeleteAttachment: (LinkEntity) -> Unit = { dialogs.deletingAttachment = it }
+            override val onUseAsPicture: (LinkEntity) -> Unit = viewModel::useAsPicture
             override val onAddPhoto: (AttachmentOwner) -> Unit = {
                 viewModel.choosePhotoFor(it)
                 photoPicker.launch(PickVisualMediaRequest(ImageOnly))

@@ -44,6 +44,10 @@ interface LinkDao : SyncDao<LinkEntity> {
     @Query("SELECT * FROM links WHERE dirty = 1 AND url NOT LIKE 'file:%' ORDER BY updatedAt LIMIT :limit")
     override suspend fun dirty(limit: Int): List<LinkEntity>
 
+    /** Every photo that has reached the backend, oldest first. */
+    @Query("SELECT * FROM links WHERE source = 'PHOTO' AND deleted = 0 AND url NOT LIKE 'file:%' ORDER BY createdAt")
+    suspend fun uploadedPhotos(): List<LinkEntity>
+
     /** Photos still waiting to upload, so an interrupted upload can be queued again. */
     @Query("SELECT id FROM links WHERE url LIKE 'file:%' AND deleted = 0")
     suspend fun waitingPhotoIds(): List<String>

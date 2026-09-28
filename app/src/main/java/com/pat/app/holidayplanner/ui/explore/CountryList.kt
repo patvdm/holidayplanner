@@ -215,6 +215,7 @@ private fun EntryContent(entry: Entry, state: CountryUiState, actions: CountryAc
             onOpenLink = actions.onOpenLink,
             onMove = actions.onMoveAttachment,
             onDelete = actions.onDeleteAttachment,
+            onUseAsPicture = actions.onUseAsPicture,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
         Entry.Filters -> FilterRow(state.filters, actions.onFilters)
@@ -278,6 +279,13 @@ private fun persistSpotMove(drag: SpotDrag, onMoved: (String, String?, String?) 
     )
 }
 
+/**
+ * A list row already shows its place's picture as the thumbnail. When that picture is one of the
+ * place's own photos, repeating it in the row's photo roll beside it would just show it twice.
+ */
+private fun List<LinkEntity>.withoutPicture(pictureUrl: String): List<LinkEntity> =
+    if (pictureUrl.isBlank()) this else filterNot { it.url == pictureUrl }
+
 /** Where the list sits for [cityId], so a search result can open the country scrolled to its city. */
 fun CountryUiState.indexOfCity(cityId: String): Int {
     if (cityId.isEmpty()) return -1
@@ -322,11 +330,13 @@ private fun CityHeader(section: CitySection, actions: CountryActions) {
         }
         if (section.expanded) {
             Attachments(
-                attachments = section.attachments,
+                // Its picture is already the row's thumbnail, so it is not repeated beside it.
+                attachments = section.attachments.withoutPicture(city.imageUrl),
                 onOpenPhoto = actions.onOpenPhoto,
                 onOpenLink = actions.onOpenLink,
                 onMove = actions.onMoveAttachment,
                 onDelete = actions.onDeleteAttachment,
+                onUseAsPicture = actions.onUseAsPicture,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             )
         }
@@ -487,12 +497,14 @@ private fun SpotRowItem(
             handle?.invoke()
         }
         // Everything saved about the place, on lines of their own so the row above stays readable.
+        // The photo already showing as the row's picture is left out; the spot's own screen has it.
         Attachments(
-            attachments = attachments,
+            attachments = attachments.withoutPicture(row.spot.imageUrl),
             onOpenPhoto = actions.onOpenPhoto,
             onOpenLink = actions.onOpenLink,
             onMove = actions.onMoveAttachment,
             onDelete = actions.onDeleteAttachment,
+            onUseAsPicture = actions.onUseAsPicture,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
         )
         HorizontalDivider()
@@ -616,6 +628,7 @@ interface CountryActions {
     val onOpenLink: (LinkEntity) -> Unit
     val onMoveAttachment: (LinkEntity) -> Unit
     val onDeleteAttachment: (LinkEntity) -> Unit
+    val onUseAsPicture: (LinkEntity) -> Unit
     val onAddPhoto: (AttachmentOwner) -> Unit
     val onAddLink: (AttachmentOwner) -> Unit
 
