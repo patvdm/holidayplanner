@@ -96,10 +96,6 @@ private sealed interface Entry {
     data class Spot(val row: SpotRow) : Entry {
         override val key = spotKey(row.spot.meta.id)
     }
-
-    data class NoSpots(val cityId: String) : Entry {
-        override val key = "no-spots:$cityId"
-    }
 }
 
 private fun cityKey(id: String) = "city:$id"
@@ -122,12 +118,10 @@ private fun buildEntries(
     // While filtering, a city with nothing that matches is left out rather than shown empty.
     val shown = if (state.filters.any) state.sections.filter { it.spots.isNotEmpty() } else state.sections
     if (state.filters.any && shown.isEmpty() && state.countrySpots.isEmpty()) add(Entry.NoMatches)
+    // A city with no spots is just its heading; its "N spots" line already says there are none.
     shown.forEach { section ->
         add(Entry.City(section))
-        if (section.expanded) {
-            val spots = orderOf(section.city.meta.id, section.spots)
-            if (spots.isEmpty()) add(Entry.NoSpots(section.city.meta.id)) else spots.forEach { add(Entry.Spot(it)) }
-        }
+        if (section.expanded) orderOf(section.city.meta.id, section.spots).forEach { add(Entry.Spot(it)) }
     }
 }
 
@@ -222,10 +216,6 @@ private fun EntryContent(entry: Entry, state: CountryUiState, actions: CountryAc
         Entry.NoCities -> EmptyListMessage(stringResource(R.string.country_empty))
         Entry.NoMatches -> EmptyListMessage(stringResource(R.string.city_no_matches))
         is Entry.City -> CityHeader(section = entry.section, actions = actions)
-        is Entry.NoSpots -> EmptyListMessage(
-            text = stringResource(R.string.city_empty),
-            modifier = Modifier.padding(start = SPOT_INDENT),
-        )
         is Entry.Spot -> Unit
     }
 }

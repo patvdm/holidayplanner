@@ -57,7 +57,6 @@
     <string name="country_spot_count">%1$d spots</string>
     <string name="country_arrange_cities">Arrange cities</string>
 
-    <string name="city_empty">No spots here yet. Share one to Holiday Planner and it lands under this city.</string>
     <string name="city_no_matches">No spots match these filters.</string>
     <string name="city_expand">Show spots</string>
     <string name="city_collapse">Hide spots</string>
