@@ -42,18 +42,22 @@ import kotlinx.coroutines.launch
 
 private const val STOP_TIMEOUT_MS = 5_000L
 
-/** The three filters on the spot lists. Null means "everything". */
+/** The filters on the spot lists. Null or false means "everything". */
 data class SpotFilters(
     val status: SpotStatus? = null,
     val priority: Priority? = null,
     val type: SpotType? = null,
+    val hasLinks: Boolean = false,
+    val hasImages: Boolean = false,
 ) {
-    val any: Boolean get() = status != null || priority != null || type != null
+    val any: Boolean get() = status != null || priority != null || type != null || hasLinks || hasImages
 
     fun matches(row: SpotRow): Boolean =
         (status == null || row.spot.status == status) &&
             (priority == null || row.spot.priority == priority) &&
-            (type == null || row.spot.type == type)
+            (type == null || row.spot.type == type) &&
+            (!hasLinks || row.plainLinkCount > 0) &&
+            (!hasImages || row.photoCount > 0)
 }
 
 /** One city on the country screen: its own row, what hangs on it, and the spots under it. */

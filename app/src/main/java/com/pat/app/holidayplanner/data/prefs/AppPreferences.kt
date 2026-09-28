@@ -3,6 +3,7 @@ package com.pat.app.holidayplanner.data.prefs
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -49,6 +50,13 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
     }
 
     /** The sort mode chosen for one list. Unknown or unset values fall back to manual order. */
+    /** Whether this phone has given the spots without a picture their second, wider search. */
+    val spotPictureRetryDone: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_SPOT_PICTURE_RETRY] == true }
+
+    suspend fun markSpotPictureRetryDone() {
+        store.edit { it[KEY_SPOT_PICTURE_RETRY] = true }
+    }
+
     /** Dark unless Light or Match phone was picked in Settings. */
     val themeMode: Flow<ThemeMode> = store.data.map { prefs -> ThemeMode.fromPref(prefs[KEY_THEME_MODE]) }
 
@@ -95,6 +103,7 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
 
         val KEY_CURRENT_USER_ID = stringPreferencesKey("current_user_id")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_SPOT_PICTURE_RETRY = booleanPreferencesKey("spot_picture_retry_local_language")
         val KEY_BACKEND_URL = stringPreferencesKey("backend_url")
         val KEY_BACKEND_SECRET = stringPreferencesKey("backend_secret")
         val KEY_LAST_SYNC_AT = longPreferencesKey("last_sync_at")

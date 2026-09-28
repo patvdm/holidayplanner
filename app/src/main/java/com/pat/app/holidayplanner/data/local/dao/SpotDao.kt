@@ -33,6 +33,8 @@ interface SpotDao : SyncDao<SpotEntity> {
         SELECT s.*,
             (SELECT COUNT(*) FROM hearts h WHERE h.spotId = s.id AND h.deleted = 0) AS heartCount,
             (SELECT COUNT(*) FROM links l WHERE l.spotId = s.id AND l.deleted = 0) AS linkCount,
+            (SELECT COUNT(*) FROM links f WHERE f.spotId = s.id AND f.deleted = 0 AND f.source = 'PHOTO')
+                AS photoCount,
             (SELECT COUNT(*) FROM hearts m WHERE m.spotId = s.id AND m.userId = :userId AND m.deleted = 0) > 0
                 AS heartedByMe
         FROM spots s
@@ -85,7 +87,10 @@ interface SpotDao : SyncDao<SpotEntity> {
     )
     fun observeContext(spotId: String): Flow<SpotContext?>
 
-    /** Spots nobody has found a picture for yet, with where they are so the search can say so. */
+    /**
+     * Spots whose picture is exactly [imageUrl], with where they are so the search can say so:
+     * blank for spots nobody has searched for yet, NO_PICTURE for ones a search came back empty.
+     */
     @Query(
         """
         SELECT s.*, COALESCE(p.name, '') AS cityName, c.id AS countryId, c.name AS countryName,
@@ -93,11 +98,11 @@ interface SpotDao : SyncDao<SpotEntity> {
         FROM spots s
         LEFT JOIN cities p ON p.id = s.parentCityId
         JOIN countries c ON c.id = CASE WHEN s.parentCityId = '' THEN s.parentCountryId ELSE p.countryId END
-        WHERE s.deleted = 0 AND (s.parentCityId = '' OR p.deleted = 0) AND c.deleted = 0 AND s.imageUrl = ''
+        WHERE s.deleted = 0 AND (s.parentCityId = '' OR p.deleted = 0) AND c.deleted = 0 AND s.imageUrl = :imageUrl
         ORDER BY s.createdAt DESC
         """,
     )
-    fun observeWithoutPicture(): Flow<List<SpotListRow>>
+    fun observeWithImageUrl(imageUrl: String): Flow<List<SpotListRow>>
 
     /** Spots that carry a Maps link but no coordinates, which the map cannot plot. */
     @Query(

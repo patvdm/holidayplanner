@@ -109,7 +109,8 @@ class SpotRepository(
     /** Blank asks for a picture to be found again; anything else is kept as given. */
     suspend fun setImageUrl(id: String, url: String) = edit(id) { it.copy(imageUrl = url.trim()) }
 
-    fun observeWithoutPicture(): Flow<List<SpotListRow>> = dao.observeWithoutPicture()
+    /** Spots whose picture is exactly [imageUrl]: blank for unsearched, NO_PICTURE for searched in vain. */
+    fun observeWithImageUrl(imageUrl: String): Flow<List<SpotListRow>> = dao.observeWithImageUrl(imageUrl)
 
     suspend fun move(id: String, previousKey: String?, nextKey: String?) =
         edit(id) { it.copy(sortKey = SortKey.between(previousKey, nextKey)) }

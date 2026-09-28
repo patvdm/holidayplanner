@@ -127,7 +127,7 @@ val appModule = module {
     single { SearchRepository(get()) }
     single { SpotPinRepository(get()) }
     single { CoordinateBackfill(get(), get(), get()) }
-    single { PictureBackfill(get(), get(), get(), get()) }
+    single { PictureBackfill(get(), get(), get(), get(), get()) }
 
     viewModelOf(::SessionViewModel)
     viewModelOf(::OnboardingViewModel)

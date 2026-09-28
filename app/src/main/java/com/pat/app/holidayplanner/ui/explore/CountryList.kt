@@ -2,10 +2,11 @@ package com.pat.app.holidayplanner.ui.explore
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.ExpandLess
@@ -405,12 +405,13 @@ private fun CityMenu(city: CityEntity, actions: CountryActions) {
     }
 }
 
+/** Wraps onto as many lines as it needs, so every chip is in view without scrolling sideways. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FilterRow(filters: SpotFilters, onChange: (SpotFilters) -> Unit) {
-    Row(
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -422,6 +423,16 @@ private fun FilterRow(filters: SpotFilters, onChange: (SpotFilters) -> Unit) {
                 label = { Text(stringResource(type.label())) },
             )
         }
+        FilterChip(
+            selected = filters.hasLinks,
+            onClick = { onChange(filters.copy(hasLinks = !filters.hasLinks)) },
+            label = { Text(stringResource(R.string.filter_has_links)) },
+        )
+        FilterChip(
+            selected = filters.hasImages,
+            onClick = { onChange(filters.copy(hasImages = !filters.hasImages)) },
+            label = { Text(stringResource(R.string.filter_has_images)) },
+        )
         FilterChip(
             selected = filters.priority == Priority.HIGH,
             onClick = { onChange(filters.copy(priority = Priority.HIGH.takeIf { filters.priority == null })) },

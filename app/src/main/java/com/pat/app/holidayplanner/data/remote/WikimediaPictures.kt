@@ -12,6 +12,7 @@ import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import java.io.IOException
+import com.pat.app.holidayplanner.domain.WikiLanguages
 import java.text.Normalizer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -24,6 +25,9 @@ private const val TIMEOUT_MS = 10_000L
 private const val THUMB_WIDTH = 1200
 private const val WIKIVOYAGE = "https://en.wikivoyage.org/w/api.php"
 private const val WIKIPEDIA = "https://en.wikipedia.org/w/api.php"
+
+/** The API of the Wikipedia in [language], such as "nl". */
+private fun wikipedia(language: String) = "https://$language.wikipedia.org/w/api.php"
 
 /** Words too short or too common to prove a page is about the spot rather than its city. */
 private const val MIN_TOKEN_LENGTH = 3
@@ -40,7 +44,8 @@ private data class Page(val title: String, val thumbnail: String?)
  * that its lead image, failing that Wikipedia's page of the same name, failing that a search. A
  * spot is a Wikipedia search, and the first hit is only trusted when its title shares a real word
  * with the spot's name: a search for a bar nobody has written about lands on the city's page,
- * whose picture would be wrong.
+ * whose picture would be wrong. When English Wikipedia has nothing, the one in the country's own
+ * language gets the same search.
  */
 class WikimediaPictures(
     private val clientFactory: () -> HttpClient = ::defaultClient,
@@ -56,12 +61,19 @@ class WikimediaPictures(
             ?: search(WIKIPEDIA, "$name $within".trim(), mustMatch = null)
     }
 
-    override suspend fun forSpot(name: String, cityName: String, countryName: String): Result<String?> =
-        runCatchingNetwork {
-            val proof = distinctiveTokens(name, cityName, countryName)
-            if (proof.isEmpty()) return@runCatchingNetwork null
-            search(WIKIPEDIA, "$name $cityName".trim(), mustMatch = proof)
-        }
+    override suspend fun forSpot(
+        name: String,
+        cityName: String,
+        countryName: String,
+        isoCode: String,
+    ): Result<String?> = runCatchingNetwork {
+        val proof = distinctiveTokens(name, cityName, countryName)
+        if (proof.isEmpty()) return@runCatchingNetwork null
+        val query = "$name $cityName".trim()
+        // English first, then the country's own Wikipedia, which knows many places English skips.
+        search(WIKIPEDIA, query, mustMatch = proof)
+            ?: WikiLanguages.forCountry(isoCode)?.let { search(wikipedia(it), query, mustMatch = proof) }
+    }
 
     /** The page called [title], or null when there is none. Redirects are followed. */
     private suspend fun pageOf(api: String, title: String): Page? = pages(api) {
