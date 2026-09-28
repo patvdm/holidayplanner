@@ -20,7 +20,6 @@ import androidx.navigation3.ui.NavDisplay
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.ui.explore.CountriesScreen
 import com.pat.app.holidayplanner.ui.explore.CountryScreen
-import com.pat.app.holidayplanner.ui.explore.CityScreen
 import com.pat.app.holidayplanner.ui.explore.SpotDetailScreen
 import com.pat.app.holidayplanner.ui.map.MapScope
 import com.pat.app.holidayplanner.ui.map.MapScreen
@@ -88,13 +87,7 @@ fun AppNavigation() {
                 entry<CountryKey> { key ->
                     CountryScreen(
                         countryId = key.countryId,
-                        onBack = nav::back,
-                        onOpenPlace = { nav.push(CityKey(it)) },
-                    )
-                }
-                entry<CityKey> { key ->
-                    CityScreen(
-                        cityId = key.cityId,
+                        focusCityId = key.cityId,
                         onBack = nav::back,
                         onOpenSpot = { nav.push(SpotKey(it)) },
                         onOpenRoute = { nav.push(RouteKey(it)) },

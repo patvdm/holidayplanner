@@ -87,10 +87,11 @@ class TabNavState(
     }
 
     /** Opens a search result, which knows what kind of thing it is but not where that kind lives. */
-    fun openSearchHit(type: SearchHitType, navId: String) {
+    fun openSearchHit(type: SearchHitType, id: String, navId: String) {
         when (type) {
             SearchHitType.COUNTRY -> openIn(AppTab.EXPLORE, CountryKey(navId))
-            SearchHitType.CITY -> openIn(AppTab.EXPLORE, CityKey(navId))
+            // A city has no screen of its own: it opens as its country, scrolled down to it.
+            SearchHitType.CITY -> openIn(AppTab.EXPLORE, CountryKey(navId, cityId = id))
             SearchHitType.SPOT, SearchHitType.LINK -> openIn(AppTab.EXPLORE, SpotKey(navId))
             SearchHitType.TRIP -> openIn(AppTab.TRIPS, TripKey(navId))
             SearchHitType.TRIP_ITEM -> openIn(AppTab.TRIPS, TripItemKey(navId))

@@ -81,7 +81,8 @@ data class RouteStopRow(
 /**
  * One search result, whatever kind of thing matched.
  *
- * [navId] is what tapping it opens, which is not always [id]: a link opens the spot it sits on.
+ * [navId] is what tapping it opens, which is not always [id]: a link opens the spot it sits on,
+ * and a city opens its country.
  */
 data class SearchHit(
     val type: String,

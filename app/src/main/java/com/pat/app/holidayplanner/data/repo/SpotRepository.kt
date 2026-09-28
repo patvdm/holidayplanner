@@ -40,8 +40,9 @@ class SpotRepository(
     /** Who hearted this spot, by name. */
     fun observeHeartNames(spotId: String): Flow<List<HeartRow>> = heartDao.observeNames(spotId)
 
-    /** Spots with their heart and link counts, as the place screen shows them. */
-    fun observeRows(cityId: String, userId: String): Flow<List<SpotRow>> = dao.observeRows(cityId, userId)
+    /** Every spot in a country, with its heart and link counts, as the country screen shows them. */
+    fun observeRowsInCountry(countryId: String, userId: String): Flow<List<SpotRow>> =
+        dao.observeRowsInCountry(countryId, userId)
 
     /** Every spot anywhere, for the Spots tab. */
     fun observeAllRows(): Flow<List<SpotListRow>> = dao.observeAllRows()

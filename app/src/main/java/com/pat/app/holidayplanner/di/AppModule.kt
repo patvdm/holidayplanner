@@ -41,8 +41,7 @@ import com.pat.app.holidayplanner.domain.AppClock
 import com.pat.app.holidayplanner.ui.SessionViewModel
 import com.pat.app.holidayplanner.ui.explore.CountriesViewModel
 import com.pat.app.holidayplanner.ui.explore.CountryViewModel
-import com.pat.app.holidayplanner.ui.explore.CityRepositories
-import com.pat.app.holidayplanner.ui.explore.CityViewModel
+import com.pat.app.holidayplanner.ui.explore.CountryRepositories
 import com.pat.app.holidayplanner.ui.components.PlaceSearchTarget
 import com.pat.app.holidayplanner.ui.components.PlaceSearchViewModel
 import com.pat.app.holidayplanner.ui.explore.SpotDetailViewModel
@@ -106,8 +105,8 @@ val appModule = module {
     single { CityRepository(get(), get(), get(), get()) }
     single { SpotRepository(get(), get(), get(), get(), get()) }
     single { LinkRepository(get(), get()) }
-    single { AttachmentRepository(get(), get(), get()) }
-    single { CityRepositories(get(), get(), get(), get(), get()) }
+    single { AttachmentRepository(get(), get(), get(), get(), get(), get()) }
+    single { CountryRepositories(get(), get(), get(), get(), get(), get()) }
     single { HierarchyResolver(get(), get()) }
     single { TripRepository(get(), get(), get(), get(), get()) }
     single { RouteRepository(get(), get(), get(), get(), get()) }
@@ -128,8 +127,7 @@ val appModule = module {
     viewModelOf(::RoutesViewModel)
 
     // These three are scoped to one row, so the id comes from the screen that opened them.
-    viewModel { (countryId: String) -> CountryViewModel(countryId, get(), get(), get()) }
-    viewModel { (cityId: String) -> CityViewModel(cityId, get(), get()) }
+    viewModel { (countryId: String) -> CountryViewModel(countryId, get(), get()) }
     viewModel { (spotId: String) -> SpotDetailViewModel(spotId, get(), get(), get(), get(), get()) }
     viewModel { (tripId: String) -> TripViewModel(tripId, get(), get(), get(), get()) }
     viewModel { (itemId: String) -> TripItemViewModel(itemId, get()) }

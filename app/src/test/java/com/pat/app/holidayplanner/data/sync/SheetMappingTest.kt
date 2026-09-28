@@ -99,9 +99,24 @@ class SheetMappingTest {
             meta = meta,
             spotId = "s1",
             cityId = "",
+            countryId = "",
             url = "https://x/y",
             source = LinkSource.INSTAGRAM,
             note = "reel",
+        )
+        assertEquals(entity, linkFromRow(SheetRow(linkToRow(entity))))
+    }
+
+    @Test
+    fun `a country's own link keeps its country`() {
+        val entity = LinkEntity(
+            meta = meta,
+            spotId = "",
+            cityId = "",
+            countryId = "c1",
+            url = "https://drive/photo",
+            source = LinkSource.PHOTO,
+            note = "",
         )
         assertEquals(entity, linkFromRow(SheetRow(linkToRow(entity))))
     }

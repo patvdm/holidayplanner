@@ -22,7 +22,7 @@ interface SearchDao {
         WHERE c.deleted = 0 AND c.name LIKE :like ESCAPE '\'
 
         UNION ALL
-        SELECT 'CITY', p.id, p.id, p.name, co.name
+        SELECT 'CITY', p.id, p.countryId, p.name, co.name
         FROM cities p JOIN countries co ON co.id = p.countryId
         WHERE p.deleted = 0 AND co.deleted = 0 AND p.name LIKE :like ESCAPE '\'
 
@@ -37,7 +37,7 @@ interface SearchDao {
         UNION ALL
         SELECT 'LINK', l.id, l.spotId, l.note, l.url
         FROM links l
-        WHERE l.deleted = 0 AND l.note != '' AND l.note LIKE :like ESCAPE '\'
+        WHERE l.deleted = 0 AND l.spotId != '' AND l.note != '' AND l.note LIKE :like ESCAPE '\'
 
         UNION ALL
         SELECT 'TRIP', t.id, t.id, t.name, t.startDate

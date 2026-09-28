@@ -50,7 +50,7 @@ private const val FOCUS_DELAY_MS = 250L
 @Composable
 fun SearchScreen(
     onBack: () -> Unit,
-    onOpen: (SearchHitType, navId: String) -> Unit,
+    onOpen: (SearchHitType, id: String, navId: String) -> Unit,
     viewModel: SearchViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -103,7 +103,7 @@ fun SearchScreen(
                             SectionHeader(stringResource(section.type.label()))
                         }
                         items(section.hits, key = { "${section.type}-${it.id}" }) { hit ->
-                            HitRow(hit) { onOpen(section.type, hit.navId) }
+                            HitRow(hit) { onOpen(section.type, hit.id, hit.navId) }
                         }
                     }
                 }

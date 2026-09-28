@@ -1,68 +1,131 @@
 package com.pat.app.holidayplanner.ui.explore
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.ui.window.PopupProperties
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.data.local.CityRow
+import com.pat.app.holidayplanner.data.local.CityEntity
+import com.pat.app.holidayplanner.data.local.LinkEntity
+import com.pat.app.holidayplanner.data.local.SpotRow
+import com.pat.app.holidayplanner.data.repo.AttachmentOwner
 import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.Priority
+import com.pat.app.holidayplanner.domain.SortMode
 import com.pat.app.holidayplanner.domain.SortScope
+import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
-import com.pat.app.holidayplanner.ui.components.EmptyListMessage
-import com.pat.app.holidayplanner.ui.components.HeroImage
+import com.pat.app.holidayplanner.ui.components.MoveAttachmentDialog
+import com.pat.app.holidayplanner.ui.components.PhotoViewer
+import com.pat.app.holidayplanner.ui.components.PickFromListDialog
 import com.pat.app.holidayplanner.ui.components.PictureDialog
-import com.pat.app.holidayplanner.ui.components.Thumbnail
-import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
-import com.pat.app.holidayplanner.ui.components.PriorityBadge
-import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.SortMenu
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
+import com.pat.app.holidayplanner.ui.components.openExternalUrl
+import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+/**
+ * A country and everything in it on one screen. Each city is a section heading carrying its own
+ * photos, links and menu, with its spots listed underneath; there is no separate city screen.
+ * [focusCityId] scrolls to one city on opening, for a search result that named it.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CountryScreen(
     countryId: String,
+    focusCityId: String,
     onBack: () -> Unit,
-    onOpenPlace: (String) -> Unit,
+    onOpenSpot: (String) -> Unit,
+    onOpenRoute: (String) -> Unit,
     viewModel: CountryViewModel = koinViewModel { parametersOf(countryId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var renaming by remember { mutableStateOf<CityRow?>(null) }
-    var changingPicture by remember { mutableStateOf(false) }
-    var menuOpen by remember { mutableStateOf(false) }
-    val putKeyboardAway = rememberKeyboardDismiss()
+    val dialogs = remember { CountryDialogs() }
+    var arranging by rememberSaveable { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    val context = LocalContext.current
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let(viewModel::addPhoto)
+    }
+    val openSpot by rememberUpdatedState(onOpenSpot)
+    val openRoute by rememberUpdatedState(onOpenRoute)
+
+    val actions = remember(viewModel, dialogs) {
+        object : CountryActions {
+            override val onOpenSpot: (String) -> Unit = { openSpot(it) }
+            override val onToggleCity: (String) -> Unit = viewModel::toggleExpanded
+            override val onFilters: (SpotFilters) -> Unit = viewModel::setFilters
+            override val onOpenPhoto: (LinkEntity) -> Unit = { dialogs.viewingPhoto = it.url }
+            override val onOpenLink: (LinkEntity) -> Unit = { context.openExternalUrl(it.url) }
+            override val onMoveAttachment: (LinkEntity) -> Unit = { dialogs.movingAttachment = it }
+            override val onDeleteAttachment: (LinkEntity) -> Unit = { dialogs.deletingAttachment = it }
+            override val onAddPhoto: (AttachmentOwner) -> Unit = {
+                viewModel.choosePhotoFor(it)
+                photoPicker.launch(PickVisualMediaRequest(ImageOnly))
+            }
+            override val onAddLink: (AttachmentOwner) -> Unit = { dialogs.addingLinkTo = it }
+            override val onChangePicture: (String) -> Unit = { dialogs.changingPictureOf = it }
+            override val onNewRoute: (CityEntity) -> Unit = { city ->
+                viewModel.createRoute(city.meta.id, city.name) { openRoute(it) }
+            }
+            override val onCityPriority: (String, Priority) -> Unit = viewModel::setCityPriority
+            override val onRenameCity: (CityEntity) -> Unit = { dialogs.renamingCity = it }
+            override val onDeleteCity: (CityEntity) -> Unit = { viewModel.requestCityDelete(it.meta.id, it.name) }
+            override val onHeart: (String) -> Unit = viewModel::toggleHeart
+            override val onSpotPriority: (String, Priority) -> Unit = viewModel::setSpotPriority
+            override val onSpotStatus: (String, SpotStatus) -> Unit = viewModel::setSpotStatus
+            override val onSpotMoved: (String, String?, String?) -> Unit = viewModel::moveSpot
+            override val onMoveSpot: (SpotRow) -> Unit = { dialogs.movingSpot = it }
+            override val onDeleteSpot: (SpotRow) -> Unit = viewModel::requestSpotDelete
+        }
+    }
+
+    // Once, when the cities first arrive: a search result for a city lands on that city.
+    var focused by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(state.sections.isNotEmpty()) {
+        if (focused || state.sections.isEmpty()) return@LaunchedEffect
+        focused = true
+        val index = state.indexOfCity(focusCityId)
+        if (index >= 0) listState.scrollToItem(index)
+    }
+
+    BackHandler(enabled = arranging) { arranging = false }
 
     Scaffold(
         // The tab bar below already keeps clear of the system bar; padding for it again left a dead strip.
@@ -70,17 +133,16 @@ fun CountryScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    val country = state.country
                     Text(
-                        text = if (country == null) {
-                            ""
+                        text = if (arranging) {
+                            stringResource(R.string.country_arrange_cities)
                         } else {
-                            "${CountryCatalog.flag(country.isoCode)} ${country.name}".trim()
+                            state.country?.let { "${CountryCatalog.flag(it.isoCode)} ${it.name}".trim() }.orEmpty()
                         },
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { if (arranging) arranging = false else onBack() }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.action_back),
@@ -88,28 +150,42 @@ fun CountryScreen(
                     }
                 },
                 actions = {
-                    SortMenu(SortScope.CITIES, state.sortMode, viewModel::setSortMode)
-                    IconButton(
-                        onClick = {
-                            putKeyboardAway()
-                            menuOpen = true
-                        },
-                    ) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
-                    }
-                    DropdownMenu(
-                        expanded = menuOpen,
-                        onDismissRequest = {
-                            menuOpen = false
-                            putKeyboardAway()
-                        },
-                        properties = PopupProperties(focusable = false),
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.picture_change)) },
-                            onClick = {
-                                menuOpen = false
-                                changingPicture = true
+                    if (arranging) {
+                        IconButton(onClick = { arranging = false }) {
+                            Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.action_done))
+                        }
+                    } else {
+                        CountryTopActions(
+                            state = state,
+                            onAddPhoto = { actions.onAddPhoto(AttachmentOwner(countryId = countryId)) },
+                            onArrange = { arranging = true },
+                            onSortMode = viewModel::setSortMode,
+                            menu = { close ->
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.spot_add_link)) },
+                                    onClick = {
+                                        close()
+                                        dialogs.addingLinkTo = AttachmentOwner(countryId = countryId)
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.picture_change)) },
+                                    onClick = {
+                                        close()
+                                        dialogs.changingPictureOf = ""
+                                    },
+                                )
+                                if (state.sections.isNotEmpty()) {
+                                    val expand = !state.anyExpanded
+                                    val label = if (expand) R.string.city_expand_all else R.string.city_collapse_all
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(label)) },
+                                        onClick = {
+                                            close()
+                                            viewModel.setAllExpanded(expand)
+                                        },
+                                    )
+                                }
                             },
                         )
                     }
@@ -117,61 +193,175 @@ fun CountryScreen(
             )
         },
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            state.country?.let { country ->
-                HeroImage(
-                    imageUrl = country.imageUrl,
-                    title = "${CountryCatalog.flag(country.isoCode)} ${country.name}".trim(),
-                )
-            }
-            if (state.rows.isEmpty()) {
-                EmptyListMessage(stringResource(R.string.country_empty))
-            } else {
-                ReorderableColumn(
-                    items = state.rows,
-                    idOf = { it.place.meta.id },
-                    sortKeyOf = { it.place.sortKey },
-                    reorderable = state.canReorder,
-                    onMoved = viewModel::move,
-                    modifier = Modifier.fillMaxSize(),
-                ) { row, handle ->
-                    CityRowItem(
-                        row = row,
-                        handle = handle,
-                        onClick = { onOpenPlace(row.place.meta.id) },
-                        onPriority = { viewModel.setPriority(row.place.meta.id, it) },
-                        onRename = { renaming = row },
-                        onDelete = { viewModel.requestDelete(row.place.meta.id, row.place.name) },
-                    )
-                }
-            }
+        if (arranging) {
+            ArrangeCities(
+                sections = state.sections,
+                onMoved = viewModel::moveCity,
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+            )
+        } else {
+            CountryContent(
+                state = state,
+                listState = listState,
+                actions = actions,
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+            )
         }
     }
 
-    if (changingPicture) {
-        PictureDialog(
-            onSave = {
-                viewModel.setImageUrl(it)
-                changingPicture = false
+    CountryDialogs(state = state, dialogs = dialogs, viewModel = viewModel)
+}
+
+/** The country's own buttons: a photo of it, the spot order, arranging the cities, and the rest. */
+@Composable
+private fun CountryTopActions(
+    state: CountryUiState,
+    onAddPhoto: () -> Unit,
+    onArrange: () -> Unit,
+    onSortMode: (SortMode) -> Unit,
+    menu: @Composable (close: () -> Unit) -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    val putKeyboardAway = rememberKeyboardDismiss()
+
+    if (state.savingPhoto) {
+        CircularProgressIndicator(modifier = Modifier.padding(horizontal = 16.dp))
+    } else {
+        IconButton(onClick = onAddPhoto) {
+            Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = stringResource(R.string.spot_add_photo))
+        }
+    }
+    SortMenu(SortScope.SPOTS, state.sortMode, onSortMode)
+    if (state.sections.size > 1) {
+        IconButton(onClick = onArrange) {
+            Icon(Icons.Filled.SwapVert, contentDescription = stringResource(R.string.country_arrange_cities))
+        }
+    }
+    IconButton(
+        onClick = {
+            putKeyboardAway()
+            menuOpen = true
+        },
+    ) {
+        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
+    }
+    DropdownMenu(
+        expanded = menuOpen,
+        onDismissRequest = {
+            menuOpen = false
+            putKeyboardAway()
+        },
+        properties = PopupProperties(focusable = false),
+    ) {
+        menu { menuOpen = false }
+    }
+}
+
+/** Which dialog is open, kept together so the screen itself stays readable. */
+private class CountryDialogs {
+    var viewingPhoto by mutableStateOf<String?>(null)
+    var deletingAttachment by mutableStateOf<LinkEntity?>(null)
+    var movingAttachment by mutableStateOf<LinkEntity?>(null)
+    var addingLinkTo by mutableStateOf<AttachmentOwner?>(null)
+
+    /** Empty for the country itself, else the city whose picture is being changed. */
+    var changingPictureOf by mutableStateOf<String?>(null)
+    var renamingCity by mutableStateOf<CityEntity?>(null)
+    var movingSpot by mutableStateOf<SpotRow?>(null)
+}
+
+@Composable
+private fun CountryDialogs(state: CountryUiState, dialogs: CountryDialogs, viewModel: CountryViewModel) {
+    dialogs.viewingPhoto?.let { url ->
+        PhotoViewer(url = url, onDismiss = { dialogs.viewingPhoto = null })
+    }
+
+    dialogs.deletingAttachment?.let { attachment ->
+        ConfirmDeleteDialog(
+            title = stringResource(
+                if (attachment.source.isPhoto) R.string.photo_delete_title else R.string.link_delete_title,
+            ),
+            message = stringResource(
+                if (attachment.source.isPhoto) R.string.photo_delete_message else R.string.link_delete_message,
+            ),
+            onConfirm = {
+                viewModel.deleteAttachment(attachment)
+                dialogs.deletingAttachment = null
             },
-            onDismiss = { changingPicture = false },
+            onDismiss = { dialogs.deletingAttachment = null },
         )
     }
 
-    renaming?.let { row ->
+    dialogs.movingAttachment?.let { attachment ->
+        MoveAttachmentDialog(
+            attachment = attachment,
+            targets = state.targets,
+            onPick = {
+                viewModel.moveAttachment(attachment, it)
+                dialogs.movingAttachment = null
+            },
+            onDismiss = { dialogs.movingAttachment = null },
+        )
+    }
+
+    dialogs.addingLinkTo?.let { owner ->
+        TextInputDialog(
+            title = stringResource(R.string.spot_add_link),
+            label = stringResource(R.string.label_url),
+            confirmLabel = stringResource(R.string.action_add),
+            onConfirm = {
+                viewModel.addLink(owner, it)
+                dialogs.addingLinkTo = null
+            },
+            onDismiss = { dialogs.addingLinkTo = null },
+        )
+    }
+
+    dialogs.changingPictureOf?.let { cityId ->
+        PictureDialog(
+            onSave = {
+                viewModel.setPicture(cityId, it)
+                dialogs.changingPictureOf = null
+            },
+            onDismiss = { dialogs.changingPictureOf = null },
+        )
+    }
+
+    dialogs.renamingCity?.let { city ->
         TextInputDialog(
             title = stringResource(R.string.country_rename_city),
             label = stringResource(R.string.label_name),
-            initial = row.place.name,
+            initial = city.name,
             onConfirm = {
-                viewModel.rename(row.place.meta.id, it)
-                renaming = null
+                viewModel.renameCity(city.meta.id, it)
+                dialogs.renamingCity = null
             },
-            onDismiss = { renaming = null },
+            onDismiss = { dialogs.renamingCity = null },
         )
     }
 
-    state.pendingDelete?.let { pending ->
+    dialogs.movingSpot?.let { row ->
+        val here = state.country?.meta?.id
+        PickFromListDialog(
+            title = stringResource(R.string.spot_move),
+            // This country's cities first: a spot filed in the wrong town is usually one town over.
+            options = state.cityOptions
+                .filter { it.cityId != row.spot.parentCityId }
+                .sortedBy { it.countryId != here }
+                .map { it.cityId to "${it.countryName} › ${it.cityName}" },
+            onPick = {
+                viewModel.moveSpotToCity(row.spot.meta.id, it)
+                dialogs.movingSpot = null
+            },
+            onDismiss = { dialogs.movingSpot = null },
+        )
+    }
+
+    state.pendingCityDelete?.let { pending ->
         ConfirmDeleteDialog(
             title = stringResource(R.string.delete_title, pending.name),
             message = stringResource(R.string.delete_place_message, pending.impact.spots),
@@ -179,44 +369,13 @@ fun CountryScreen(
             onDismiss = viewModel::cancelDelete,
         )
     }
-}
 
-@Composable
-private fun CityRowItem(
-    row: CityRow,
-    handle: (@Composable () -> Unit)?,
-    onClick: () -> Unit,
-    onPriority: (Priority) -> Unit,
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Thumbnail(row.place.imageUrl)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(row.place.name, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = stringResource(R.string.country_spot_count, row.spotCount),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            PriorityBadge(row.place.priority)
-            RowMenu(
-                currentPriority = row.place.priority,
-                onPriority = onPriority,
-                onRename = onRename,
-                onDelete = onDelete,
-            )
-            handle?.invoke()
-        }
-        HorizontalDivider()
+    state.pendingSpotDelete?.let { pending ->
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.delete_title, pending.name),
+            message = stringResource(R.string.delete_spot_message, pending.impact.links, pending.impact.hearts),
+            onConfirm = viewModel::confirmDelete,
+            onDismiss = viewModel::cancelDelete,
+        )
     }
 }

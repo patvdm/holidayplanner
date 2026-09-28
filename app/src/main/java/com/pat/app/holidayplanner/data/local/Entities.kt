@@ -77,15 +77,20 @@ data class SpotEntity(
 ) : SyncEntity
 
 /**
- * A link or a photo, hanging on whatever it is about: a spot, or the city itself for the things
- * that belong to a place rather than to one address in it. Exactly one of [spotId] and [cityId]
- * is set; a link with neither belongs nowhere and is never written.
+ * A link or a photo, hanging on whatever it is about: a spot, or the city or country itself for the
+ * things that belong to a place rather than to one address in it. Exactly one of [spotId], [cityId]
+ * and [countryId] is set; a link with none belongs nowhere and is never written.
  */
-@Entity(tableName = "links", primaryKeys = ["id"], indices = [Index("spotId"), Index("cityId")])
+@Entity(
+    tableName = "links",
+    primaryKeys = ["id"],
+    indices = [Index("spotId"), Index("cityId"), Index("countryId")],
+)
 data class LinkEntity(
     @Embedded override val meta: SyncMeta,
     val spotId: String,
     val cityId: String,
+    val countryId: String,
     val url: String,
     val source: LinkSource,
     /** No longer written: a link is shown as itself. Kept so older rows keep what they said. */

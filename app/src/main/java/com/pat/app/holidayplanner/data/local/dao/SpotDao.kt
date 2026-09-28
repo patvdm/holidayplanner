@@ -24,7 +24,10 @@ interface SpotDao : SyncDao<SpotEntity> {
     @Query("SELECT * FROM spots WHERE deleted = 0 ORDER BY name COLLATE NOCASE")
     fun observeAll(): Flow<List<SpotEntity>>
 
-    /** Spots with their heart and link counts, and whether the signed-in person hearted them. */
+    /**
+     * Every spot in one country's cities, with its heart and link counts and whether the signed-in
+     * person hearted it. The country screen groups them under their cities itself.
+     */
     @Query(
         """
         SELECT s.*,
@@ -33,11 +36,13 @@ interface SpotDao : SyncDao<SpotEntity> {
             (SELECT COUNT(*) FROM hearts m WHERE m.spotId = s.id AND m.userId = :userId AND m.deleted = 0) > 0
                 AS heartedByMe
         FROM spots s
-        WHERE s.parentCityId = :cityId AND s.deleted = 0
+        WHERE s.deleted = 0 AND s.parentCityId IN (
+            SELECT id FROM cities WHERE countryId = :countryId AND deleted = 0
+        )
         ORDER BY s.sortKey, s.id
         """,
     )
-    fun observeRows(cityId: String, userId: String): Flow<List<SpotRow>>
+    fun observeRowsInCountry(countryId: String, userId: String): Flow<List<SpotRow>>
 
     /** Every spot anywhere, with where it is, for the Spots tab. */
     @Query(

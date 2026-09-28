@@ -1,85 +1,347 @@
 package com.pat.app.holidayplanner.ui.explore
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pat.app.holidayplanner.data.local.CountryEntity
+import com.pat.app.holidayplanner.data.local.CityEntity
+import com.pat.app.holidayplanner.data.local.CityOption
 import com.pat.app.holidayplanner.data.local.CityRow
+import com.pat.app.holidayplanner.data.local.CountryEntity
+import com.pat.app.holidayplanner.data.local.LinkEntity
+import com.pat.app.holidayplanner.data.local.SpotRow
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
-import com.pat.app.holidayplanner.data.repo.CountryRepository
+import com.pat.app.holidayplanner.data.repo.AttachmentOwner
+import com.pat.app.holidayplanner.data.repo.AttachmentRepository
+import com.pat.app.holidayplanner.data.repo.AttachmentTarget
 import com.pat.app.holidayplanner.data.repo.CityRepository
+import com.pat.app.holidayplanner.data.repo.CountryAttachments
+import com.pat.app.holidayplanner.data.repo.CountryRepository
+import com.pat.app.holidayplanner.data.repo.DeleteImpact
+import com.pat.app.holidayplanner.data.repo.RouteRepository
+import com.pat.app.holidayplanner.data.repo.SpotRepository
+import com.pat.app.holidayplanner.data.repo.UserRepository
+import com.pat.app.holidayplanner.data.repo.attachmentTargets
+import com.pat.app.holidayplanner.domain.CountryCatalog
+import com.pat.app.holidayplanner.domain.GeoPoint
 import com.pat.app.holidayplanner.domain.Priority
+import com.pat.app.holidayplanner.domain.Proximity
 import com.pat.app.holidayplanner.domain.SortMode
 import com.pat.app.holidayplanner.domain.SortScope
+import com.pat.app.holidayplanner.domain.SpotStatus
+import com.pat.app.holidayplanner.domain.SpotType
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val STOP_TIMEOUT_MS = 5_000L
 
+/** The three filters on the spot lists. Null means "everything". */
+data class SpotFilters(
+    val status: SpotStatus? = null,
+    val priority: Priority? = null,
+    val type: SpotType? = null,
+) {
+    val any: Boolean get() = status != null || priority != null || type != null
+
+    fun matches(row: SpotRow): Boolean =
+        (status == null || row.spot.status == status) &&
+            (priority == null || row.spot.priority == priority) &&
+            (type == null || row.spot.type == type)
+}
+
+/** One city on the country screen: its own row, what hangs on it, and the spots under it. */
+data class CitySection(
+    val city: CityEntity,
+    /** The spots on show, filtered and sorted. */
+    val spots: List<SpotRow>,
+    /** Every spot in the city, whatever the filters hide. */
+    val spotCount: Int,
+    val attachments: List<LinkEntity>,
+    val expanded: Boolean,
+)
+
 data class CountryUiState(
     val country: CountryEntity? = null,
-    val rows: List<CityRow> = emptyList(),
+    /** Always in the order the cities were dragged into. */
+    val sections: List<CitySection> = emptyList(),
+    /** What was shared to the country itself rather than to anything in it. */
+    val countryAttachments: List<LinkEntity> = emptyList(),
+    /** The photos and links of each spot, so a row can show them without a query of its own. */
+    val spotAttachments: Map<String, List<LinkEntity>> = emptyMap(),
+    /** Everywhere in this country a photo or a link could be moved to. */
+    val targets: List<AttachmentTarget> = emptyList(),
+    /** Every city anywhere, for moving a spot. */
+    val cityOptions: List<CityOption> = emptyList(),
+    val filters: SpotFilters = SpotFilters(),
     val sortMode: SortMode = SortMode.MANUAL,
-    val pendingDelete: PendingDelete? = null,
+    val userCount: Int = 0,
+    val savingPhoto: Boolean = false,
+    val pendingCityDelete: PendingDelete? = null,
+    val pendingSpotDelete: PendingDelete? = null,
 ) {
-    val canReorder: Boolean get() = sortMode == SortMode.MANUAL
+    /** Dragging spots only makes sense in manual order and with nothing filtered out. */
+    val canReorderSpots: Boolean get() = sortMode == SortMode.MANUAL && !filters.any
+
+    val anyExpanded: Boolean get() = sections.any { it.expanded }
 }
+
+/**
+ * What the country screen reads and writes. Grouped because the screen shows a country, its
+ * cities, their spots and everything hanging on all three at once, and a constructor listing all
+ * of them says nothing useful.
+ */
+class CountryRepositories(
+    val countries: CountryRepository,
+    val cities: CityRepository,
+    val spots: SpotRepository,
+    val users: UserRepository,
+    val routes: RouteRepository,
+    val attachments: AttachmentRepository,
+)
+
+/** Everything stored, before the screen's own choices shape it. */
+private data class CountryData(
+    val country: CountryEntity?,
+    val cities: List<CityRow>,
+    val spots: List<SpotRow>,
+    val attachments: CountryAttachments,
+    val cityOptions: List<CityOption>,
+)
+
+/** How the screen chose to look at that. */
+private data class CountryView(
+    val sortMode: SortMode,
+    val filters: SpotFilters,
+    val collapsed: Set<String>,
+    val userCount: Int,
+)
+
+/** What is under way right now: deletes waiting for a yes, photos on their way up. */
+private data class CountryPending(
+    val cityDelete: PendingDelete?,
+    val spotDelete: PendingDelete?,
+    val uploads: Int,
+)
 
 class CountryViewModel(
     private val countryId: String,
-    private val countryRepository: CountryRepository,
-    private val cityRepository: CityRepository,
+    private val repos: CountryRepositories,
     private val prefs: AppPreferences,
 ) : ViewModel() {
 
-    private val pendingDelete = MutableStateFlow<PendingDelete?>(null)
+    private val filters = MutableStateFlow(SpotFilters())
 
-    val uiState: StateFlow<CountryUiState> = combine(
-        countryRepository.observeCountry(countryId),
-        cityRepository.observeRows(countryId),
-        prefs.sortMode(SortScope.CITIES),
-        pendingDelete,
-    ) { country, rows, mode, pending ->
-        CountryUiState(country = country, rows = rows.sortedPlaces(mode), sortMode = mode, pendingDelete = pending)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CountryUiState())
+    /** Cities start open; this remembers the ones closed since the screen opened. */
+    private val collapsed = MutableStateFlow<Set<String>>(emptySet())
+    private val pendingCityDelete = MutableStateFlow<PendingDelete?>(null)
+    private val pendingSpotDelete = MutableStateFlow<PendingDelete?>(null)
+    private val uploads = MutableStateFlow(0)
 
-    /** Blank lets the automatic search have another go. */
-    fun setImageUrl(url: String) {
-        viewModelScope.launch { countryRepository.setImageUrl(countryId, url) }
+    /** What the photo being picked right now is of, since the picker only answers with a picture. */
+    private var photoOwner: AttachmentOwner? = null
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val spots: Flow<List<SpotRow>> = repos.users.currentUserId.flatMapLatest { userId ->
+        repos.spots.observeRowsInCountry(countryId, userId.orEmpty())
     }
+
+    private val data: Flow<CountryData> = combine(
+        repos.countries.observeCountry(countryId),
+        repos.cities.observeRows(countryId),
+        spots,
+        repos.attachments.observeInCountry(countryId),
+        repos.cities.observeOptions(),
+        ::CountryData,
+    )
+
+    private val view: Flow<CountryView> = combine(
+        prefs.sortMode(SortScope.SPOTS),
+        filters,
+        collapsed,
+        repos.users.observeUserCount(),
+        ::CountryView,
+    )
+
+    private val pending: Flow<CountryPending> =
+        combine(pendingCityDelete, pendingSpotDelete, uploads, ::CountryPending)
+
+    val uiState: StateFlow<CountryUiState> = combine(data, view, pending, ::countryUiState)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CountryUiState())
 
     fun setSortMode(mode: SortMode) {
-        viewModelScope.launch { prefs.setSortMode(SortScope.CITIES, mode) }
+        viewModelScope.launch { prefs.setSortMode(SortScope.SPOTS, mode) }
     }
 
-    fun setPriority(id: String, priority: Priority) {
-        viewModelScope.launch { cityRepository.setPriority(id, priority) }
+    fun setFilters(value: SpotFilters) {
+        filters.value = value
     }
 
-    fun rename(id: String, name: String) {
-        viewModelScope.launch { cityRepository.rename(id, name) }
+    fun toggleExpanded(cityId: String) =
+        collapsed.update { if (cityId in it) it - cityId else it + cityId }
+
+    fun setAllExpanded(expanded: Boolean) {
+        collapsed.value = if (expanded) emptySet() else uiState.value.sections.map { it.city.meta.id }.toSet()
     }
 
-    fun move(id: String, previousKey: String?, nextKey: String?) {
-        viewModelScope.launch { cityRepository.move(id, previousKey, nextKey) }
-    }
-
-    fun requestDelete(id: String, name: String) {
+    /** The picture at the top of the country, or on a city's row when [cityId] is given. Blank searches again. */
+    fun setPicture(cityId: String, url: String) {
         viewModelScope.launch {
-            pendingDelete.value = PendingDelete(id, name, cityRepository.deleteImpact(id))
+            if (cityId.isEmpty()) repos.countries.setImageUrl(countryId, url) else repos.cities.setImageUrl(cityId, url)
         }
     }
 
+    fun setCityPriority(id: String, priority: Priority) {
+        viewModelScope.launch { repos.cities.setPriority(id, priority) }
+    }
+
+    fun renameCity(id: String, name: String) {
+        viewModelScope.launch { repos.cities.rename(id, name) }
+    }
+
+    fun moveCity(id: String, previousKey: String?, nextKey: String?) {
+        viewModelScope.launch { repos.cities.move(id, previousKey, nextKey) }
+    }
+
+    fun requestCityDelete(id: String, name: String) {
+        viewModelScope.launch {
+            pendingCityDelete.value = PendingDelete(id, name, repos.cities.deleteImpact(id))
+        }
+    }
+
+    /** The row already carries the counts, so confirming a delete needs no extra query. */
+    fun requestSpotDelete(row: SpotRow) {
+        pendingSpotDelete.value = PendingDelete(
+            id = row.spot.meta.id,
+            name = row.spot.name,
+            impact = DeleteImpact(links = row.linkCount, hearts = row.heartCount),
+        )
+    }
+
     fun cancelDelete() {
-        pendingDelete.value = null
+        pendingCityDelete.value = null
+        pendingSpotDelete.value = null
     }
 
     fun confirmDelete() {
-        val target = pendingDelete.value ?: return
-        pendingDelete.value = null
-        viewModelScope.launch { cityRepository.delete(target.id) }
+        val city = pendingCityDelete.value
+        val spot = pendingSpotDelete.value
+        cancelDelete()
+        viewModelScope.launch {
+            city?.let { repos.cities.delete(it.id) }
+            spot?.let { repos.spots.delete(it.id) }
+        }
     }
+
+    /** Remembers what the next picked photo is of. Called just before the picker opens. */
+    fun choosePhotoFor(owner: AttachmentOwner) {
+        photoOwner = owner
+    }
+
+    /** Unlike every other edit here, this one needs the network. */
+    fun addPhoto(uri: Uri) {
+        val owner = photoOwner ?: return
+        photoOwner = null
+        viewModelScope.launch {
+            uploads.update { it + 1 }
+            repos.attachments.attach(uri, owner)
+            uploads.update { it - 1 }
+        }
+    }
+
+    fun addLink(owner: AttachmentOwner, url: String) {
+        val trimmed = url.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch { repos.attachments.attachLink(trimmed, owner) }
+    }
+
+    fun moveAttachment(attachment: LinkEntity, owner: AttachmentOwner) {
+        viewModelScope.launch { repos.attachments.moveTo(attachment, owner) }
+    }
+
+    /** A photo or a link, of the country, a city or a spot. */
+    fun deleteAttachment(attachment: LinkEntity) {
+        viewModelScope.launch { repos.attachments.remove(attachment) }
+    }
+
+    fun toggleHeart(spotId: String) {
+        viewModelScope.launch { repos.spots.toggleHeart(spotId) }
+    }
+
+    fun setSpotPriority(id: String, priority: Priority) {
+        viewModelScope.launch { repos.spots.setPriority(id, priority) }
+    }
+
+    fun setSpotStatus(id: String, status: SpotStatus) {
+        viewModelScope.launch { repos.spots.setStatus(id, status) }
+    }
+
+    /** A new place within the spot's own city; the list never drags a spot across cities. */
+    fun moveSpot(id: String, previousKey: String?, nextKey: String?) {
+        viewModelScope.launch { repos.spots.move(id, previousKey, nextKey) }
+    }
+
+    /** Files a spot under another city, at the end of that city's list. */
+    fun moveSpotToCity(spotId: String, cityId: String) {
+        viewModelScope.launch { repos.spots.moveToPlace(spotId, cityId) }
+    }
+
+    /**
+     * Starts a route through a city with every spot nobody has visited yet already on it,
+     * ordered so it opens as a sensible walk with no extra tap.
+     */
+    fun createRoute(cityId: String, title: String, onCreated: (String) -> Unit) {
+        val section = uiState.value.sections.firstOrNull { it.city.meta.id == cityId } ?: return
+        val unvisited = Proximity
+            .orderByProximity(section.spots.filter { it.spot.status == SpotStatus.UNVISITED }) { row ->
+                val lat = row.spot.lat
+                val lng = row.spot.lng
+                if (lat != null && lng != null) GeoPoint(lat, lng) else null
+            }
+            .map { it.spot.meta.id }
+        viewModelScope.launch { onCreated(repos.routes.create(cityId, title, unvisited)) }
+    }
+}
+
+private fun countryUiState(data: CountryData, view: CountryView, pending: CountryPending): CountryUiState {
+    val spotsByCity = data.spots.groupBy { it.spot.parentCityId }
+    val sections = data.cities
+        .sortedWith(compareBy<CityRow> { it.place.sortKey }.thenBy { it.place.meta.id })
+        .map { row ->
+            val all = spotsByCity[row.place.meta.id].orEmpty()
+            CitySection(
+                city = row.place,
+                spots = all.filter(view.filters::matches).sortedSpots(view.sortMode),
+                spotCount = all.size,
+                attachments = data.attachments.byCity[row.place.meta.id].orEmpty(),
+                expanded = row.place.meta.id !in view.collapsed,
+            )
+        }
+    val country = data.country
+    return CountryUiState(
+        country = country,
+        sections = sections,
+        countryAttachments = data.attachments.country,
+        spotAttachments = data.attachments.bySpot,
+        targets = if (country == null) {
+            emptyList()
+        } else {
+            // The flag says "the country itself" at a glance in a list of place names.
+            val named = country.copy(name = "${CountryCatalog.flag(country.isoCode)} ${country.name}".trim())
+            attachmentTargets(named, data.cities.map { it.place }, data.spots.map { it.spot })
+        },
+        cityOptions = data.cityOptions,
+        filters = view.filters,
+        sortMode = view.sortMode,
+        userCount = view.userCount,
+        savingPhoto = pending.uploads > 0,
+        pendingCityDelete = pending.cityDelete,
+        pendingSpotDelete = pending.spotDelete,
+    )
 }

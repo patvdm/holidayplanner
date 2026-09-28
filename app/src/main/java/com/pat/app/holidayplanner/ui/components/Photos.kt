@@ -48,8 +48,8 @@ private val PHOTO_SHAPE = RoundedCornerShape(12.dp)
 private const val VIEWER_DIM = 0.95f
 
 /**
- * The photos of one spot, side by side. Tapping one opens it; holding one offers to remove it,
- * which is the only way a photo goes, so it asks first.
+ * The photos of a place, side by side. Tapping one opens it; holding one offers to move it to
+ * something else or to remove it.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -58,22 +58,64 @@ fun PhotoRoll(
     onOpen: (LinkEntity) -> Unit,
     onDelete: (LinkEntity) -> Unit,
     modifier: Modifier = Modifier,
+    onMove: ((LinkEntity) -> Unit)? = null,
     size: Dp = 96.dp,
 ) {
     if (photos.isEmpty()) return
     LazyRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(photos, key = { it.meta.id }) { photo ->
-            AsyncImage(
-                model = photo.url,
-                contentDescription = stringResource(R.string.photo_open),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(size)
-                    .clip(PHOTO_SHAPE)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .combinedClickable(onClick = { onOpen(photo) }, onLongClick = { onDelete(photo) }),
+            var menuOpen by remember(photo.meta.id) { mutableStateOf(false) }
+            Box {
+                AsyncImage(
+                    model = photo.url,
+                    contentDescription = stringResource(R.string.photo_open),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(size)
+                        .clip(PHOTO_SHAPE)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .combinedClickable(onClick = { onOpen(photo) }, onLongClick = { menuOpen = true }),
+                )
+                AttachmentMenu(
+                    expanded = menuOpen,
+                    onDismiss = { menuOpen = false },
+                    onMove = onMove?.let { move -> { move(photo) } },
+                    onDelete = { onDelete(photo) },
+                )
+            }
+        }
+    }
+}
+
+/** What holding a photo or a link offers: send it somewhere else, or get rid of it. */
+@Composable
+private fun AttachmentMenu(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    onMove: (() -> Unit)?,
+    onDelete: () -> Unit,
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        properties = PopupProperties(focusable = false),
+    ) {
+        if (onMove != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.attachment_move)) },
+                onClick = {
+                    onDismiss()
+                    onMove()
+                },
             )
         }
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.action_delete)) },
+            onClick = {
+                onDismiss()
+                onDelete()
+            },
+        )
     }
 }
 
@@ -111,8 +153,9 @@ fun PhotoViewer(url: String, onDismiss: () -> Unit) {
 }
 
 /**
- * A spot's or a city's links, one line each. A link is shown as itself: there is nothing to say
- * about it that the address does not, and a row has space for one line.
+ * The links of a place, one line each. A link is shown as itself: there is nothing to say about it
+ * that the address does not, and a row has space for one line. Holding one offers to move or
+ * remove it.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -120,6 +163,7 @@ fun LinkList(
     links: List<LinkEntity>,
     onOpen: (LinkEntity) -> Unit,
     modifier: Modifier = Modifier,
+    onMove: ((LinkEntity) -> Unit)? = null,
     onDelete: ((LinkEntity) -> Unit)? = null,
 ) {
     if (links.isEmpty()) return
@@ -137,26 +181,51 @@ fun LinkList(
                         .fillMaxWidth()
                         .combinedClickable(
                             onClick = { onOpen(link) },
-                            onLongClick = { if (onDelete != null) menuOpen = true },
+                            onLongClick = { if (onDelete != null || onMove != null) menuOpen = true },
                         )
                         .padding(vertical = 6.dp),
                 )
-                if (onDelete != null) {
-                    DropdownMenu(
-                        expanded = menuOpen,
-                        onDismissRequest = { menuOpen = false },
-                        properties = PopupProperties(focusable = false),
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_delete)) },
-                            onClick = {
-                                menuOpen = false
-                                onDelete(link)
-                            },
-                        )
-                    }
-                }
+                AttachmentMenu(
+                    expanded = menuOpen,
+                    onDismiss = { menuOpen = false },
+                    onMove = onMove?.let { move -> { move(link) } },
+                    onDelete = { onDelete?.invoke(link) },
+                )
             }
         }
+    }
+}
+
+/** Small enough that a row with photos is still a row rather than a card. */
+private val ROW_PHOTO_SIZE = 64.dp
+
+/**
+ * The photos of a place, then its links, the same shape whether they hang on a spot, a city or a
+ * country. Nothing at all is drawn when there is nothing to show.
+ */
+@Composable
+fun Attachments(
+    attachments: List<LinkEntity>,
+    onOpenPhoto: (LinkEntity) -> Unit,
+    onOpenLink: (LinkEntity) -> Unit,
+    onMove: (LinkEntity) -> Unit,
+    onDelete: (LinkEntity) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (attachments.isEmpty()) return
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        PhotoRoll(
+            photos = attachments.filter { it.source.isPhoto },
+            onOpen = onOpenPhoto,
+            onDelete = onDelete,
+            onMove = onMove,
+            size = ROW_PHOTO_SIZE,
+        )
+        LinkList(
+            links = attachments.filterNot { it.source.isPhoto },
+            onOpen = onOpenLink,
+            onMove = onMove,
+            onDelete = onDelete,
+        )
     }
 }

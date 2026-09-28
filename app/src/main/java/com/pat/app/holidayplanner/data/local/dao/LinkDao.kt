@@ -13,20 +13,25 @@ interface LinkDao : SyncDao<LinkEntity> {
     @Query("SELECT * FROM links WHERE spotId = :spotId AND deleted = 0 ORDER BY createdAt DESC")
     fun observeBySpot(spotId: String): Flow<List<LinkEntity>>
 
-    /** What hangs on the city itself rather than on any one spot in it. */
-    @Query("SELECT * FROM links WHERE cityId = :cityId AND deleted = 0 ORDER BY createdAt DESC")
-    fun observeByCity(cityId: String): Flow<List<LinkEntity>>
-
-    /** Every link and photo of every spot in one city, so its rows can show them without a query each. */
+    /**
+     * Every link and photo in one country, whatever it hangs on: the country itself, one of its
+     * cities, or a spot in one of them. The country screen shows all three, so it asks once.
+     */
     @Query(
         """
-        SELECT l.* FROM links l
-        JOIN spots s ON s.id = l.spotId
-        WHERE s.parentCityId = :cityId AND s.deleted = 0 AND l.deleted = 0
-        ORDER BY l.createdAt
+        SELECT * FROM links
+        WHERE deleted = 0 AND (
+            countryId = :countryId
+            OR cityId IN (SELECT id FROM cities WHERE countryId = :countryId AND deleted = 0)
+            OR spotId IN (
+                SELECT s.id FROM spots s JOIN cities c ON c.id = s.parentCityId
+                WHERE c.countryId = :countryId AND s.deleted = 0 AND c.deleted = 0
+            )
+        )
+        ORDER BY createdAt
         """,
     )
-    fun observeBySpotsIn(cityId: String): Flow<List<LinkEntity>>
+    fun observeInCountry(countryId: String): Flow<List<LinkEntity>>
 
     @Query("SELECT * FROM links WHERE url = :url AND deleted = 0 LIMIT 1")
     suspend fun findByUrl(url: String): LinkEntity?

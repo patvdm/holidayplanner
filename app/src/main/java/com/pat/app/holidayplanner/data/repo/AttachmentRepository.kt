@@ -8,13 +8,15 @@ import com.pat.app.holidayplanner.data.remote.ImageStore
 import com.pat.app.holidayplanner.domain.LinkSource
 import com.pat.app.holidayplanner.domain.ShareParser
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 private const val TAG = "AttachmentRepository"
 
 /**
  * What hangs on a place: the links shared to it and the photos taken of it, which are the same
- * thing wearing a different face. Either can belong to a spot or to the city itself.
+ * thing wearing a different face. Either can belong to a spot, a city or a country.
  *
  * A photo is the one thing in the app that cannot be saved offline, since the picture has to reach
  * the backend before the other phone can show it. Its row is only written once it has.
@@ -23,26 +25,44 @@ class AttachmentRepository(
     private val scaler: PhotoScaler,
     private val store: ImageStore,
     private val links: LinkRepository,
+    private val countries: CountryRepository,
+    private val cities: CityRepository,
+    private val spots: SpotRepository,
 ) {
 
-    /** Everything hanging on the spots of one city, photos and links alike, keyed by spot. */
-    fun observeForSpotsIn(cityId: String): Flow<Map<String, List<LinkEntity>>> =
-        links.observeInCity(cityId).map { all -> all.groupBy { it.spotId } }
+    /** Everything hanging on a country, its cities and their spots, sorted by owner. */
+    fun observeInCountry(countryId: String): Flow<CountryAttachments> =
+        links.observeInCountry(countryId).map(CountryAttachments::of)
 
-    /** What hangs on the city itself. */
-    fun observeForCity(cityId: String): Flow<List<LinkEntity>> = links.observeForCity(cityId)
+    /** Everywhere in a country a photo or link could be moved to. */
+    fun observeTargets(countryId: String): Flow<List<AttachmentTarget>> = combine(
+        countries.observeCountry(countryId),
+        cities.observeCities(countryId),
+        spots.observeRowsInCountry(countryId, userId = ""),
+    ) { country, cityList, spotRows ->
+        if (country == null) emptyList() else attachmentTargets(country, cityList, spotRows.map { it.spot })
+    }
 
-    /** A link, against the spot or the city it is about. */
-    suspend fun attachLink(url: String, spotId: String = "", cityId: String = ""): String =
-        links.add(url = url, source = ShareParser.sourceOf(url), spotId = spotId, cityId = cityId)
+    /** The same, for a screen that only learns its country once something else has loaded. */
+    fun observeTargetsOrNone(countryId: String?): Flow<List<AttachmentTarget>> =
+        if (countryId.isNullOrEmpty()) flowOf(emptyList()) else observeTargets(countryId)
 
-    /** Scales the picture, stores it, and hangs it on the spot or the city it is of. */
-    suspend fun attach(uri: Uri, spotId: String = "", cityId: String = ""): Result<String> =
+    /** A link, against the spot, city or country it is about. */
+    suspend fun attachLink(url: String, owner: AttachmentOwner): String =
+        links.add(url = url, source = ShareParser.sourceOf(url), owner = owner)
+
+    /** Scales the picture, stores it, and hangs it on whatever it is of. */
+    suspend fun attach(uri: Uri, owner: AttachmentOwner): Result<String> =
         scaler.scale(uri).mapCatching { photo ->
-            val of = spotId.ifEmpty { cityId }
-            val stored = store.upload(photo.bytes, photo.mimeType, "$of.jpg").getOrThrow()
-            links.add(url = stored.url, source = LinkSource.PHOTO, spotId = spotId, cityId = cityId)
+            val stored = store.upload(photo.bytes, photo.mimeType, "${owner.fileStem}.jpg").getOrThrow()
+            links.add(url = stored.url, source = LinkSource.PHOTO, owner = owner)
         }
+
+    /** Hangs a photo or a link on something else. The picture itself stays where it is stored. */
+    suspend fun moveTo(attachment: LinkEntity, owner: AttachmentOwner) {
+        if (AttachmentOwner.of(attachment) == owner) return
+        links.reassign(attachment.meta.id, owner)
+    }
 
     /**
      * Takes a photo or a link off whatever it hangs on. A photo goes out of the backend's folder

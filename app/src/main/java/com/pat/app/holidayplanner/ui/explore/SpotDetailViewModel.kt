@@ -9,7 +9,9 @@ import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.local.SpotEntity
 import android.net.Uri
 import com.pat.app.holidayplanner.data.repo.LinkRepository
+import com.pat.app.holidayplanner.data.repo.AttachmentOwner
 import com.pat.app.holidayplanner.data.repo.AttachmentRepository
+import com.pat.app.holidayplanner.data.repo.AttachmentTarget
 import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
@@ -19,7 +21,11 @@ import com.pat.app.holidayplanner.domain.ShareParser
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +41,8 @@ data class SpotDetailUiState(
     val hearts: List<HeartRow> = emptyList(),
     val links: List<LinkEntity> = emptyList(),
     val cities: List<CityOption> = emptyList(),
+    /** Everywhere in this spot's country a photo or link of it could be moved to. */
+    val targets: List<AttachmentTarget> = emptyList(),
     val currentUserId: String = "",
     /** True while a picture is on its way to the backend, which is the one thing here that waits. */
     val savingPhoto: Boolean = false,
@@ -72,6 +80,7 @@ private data class SpotBundle(
     val hearts: List<HeartRow>,
     val links: List<LinkEntity>,
     val cities: List<CityOption>,
+    val targets: List<AttachmentTarget>,
 )
 
 class SpotDetailViewModel(
@@ -85,16 +94,25 @@ class SpotDetailViewModel(
 
     private val savingPhoto = MutableStateFlow(false)
 
+    private val context: Flow<SpotContext?> = spotRepository.observeContext(spotId)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val targets: Flow<List<AttachmentTarget>> = context
+        .map { it?.countryId }
+        .distinctUntilChanged()
+        .flatMapLatest(attachments::observeTargetsOrNone)
+
     private val bundle: Flow<SpotBundle> = combine(
         spotRepository.observeHeartNames(spotId),
         linkRepository.observeLinks(spotId),
         cityRepository.observeOptions(),
+        targets,
         ::SpotBundle,
     )
 
     val uiState: StateFlow<SpotDetailUiState> = combine(
         spotRepository.observeSpot(spotId),
-        spotRepository.observeContext(spotId),
+        context,
         bundle,
         userRepository.currentUserId,
         savingPhoto,
@@ -105,6 +123,7 @@ class SpotDetailViewModel(
             hearts = parts.hearts,
             links = parts.links,
             cities = parts.cities,
+            targets = parts.targets,
             currentUserId = userId.orEmpty(),
             savingPhoto = saving,
         )
@@ -151,7 +170,7 @@ class SpotDetailViewModel(
             if (source == LinkSource.MAPS) {
                 spotRepository.setMapsUrl(spotId, trimmed)
             } else {
-                linkRepository.add(url = trimmed, source = source, spotId = spotId)
+                linkRepository.add(url = trimmed, source = source, owner = AttachmentOwner(spotId = spotId))
             }
         }
     }
@@ -169,9 +188,14 @@ class SpotDetailViewModel(
     fun addPhoto(uri: Uri) {
         viewModelScope.launch {
             savingPhoto.value = true
-            attachments.attach(uri, spotId = spotId)
+            attachments.attach(uri, AttachmentOwner(spotId = spotId))
             savingPhoto.value = false
         }
+    }
+
+    /** Hangs a photo or a link of this spot on something else in its country. */
+    fun moveAttachment(attachment: LinkEntity, owner: AttachmentOwner) {
+        viewModelScope.launch { attachments.moveTo(attachment, owner) }
     }
 
     /** A photo or a link: a photo goes from the backend's folder too. */

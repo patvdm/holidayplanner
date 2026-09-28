@@ -18,11 +18,9 @@ data object RoutesRootKey : NavKey
 @Serializable
 data object SpotsRootKey : NavKey
 
+/** A country and its cities. [cityId], when set, is the city to scroll to on opening. */
 @Serializable
-data class CountryKey(val countryId: String) : NavKey
-
-@Serializable
-data class CityKey(val cityId: String) : NavKey
+data class CountryKey(val countryId: String, val cityId: String = "") : NavKey
 
 @Serializable
 data class SpotKey(val spotId: String) : NavKey
@@ -50,10 +48,9 @@ data class MapKey(
     val spotId: String = "",
 ) : NavKey {
     companion object {
-        /** The map for a screen: a country, city or spot screen centres on itself, anything else shows all. */
+        /** The map for a screen: a country or spot screen centres on itself, anything else shows all. */
         fun forScreen(key: NavKey): MapKey = when (key) {
             is CountryKey -> MapKey(countryId = key.countryId)
-            is CityKey -> MapKey(cityId = key.cityId)
             is SpotKey -> MapKey(spotId = key.spotId)
             is MapKey -> key
             else -> MapKey()

@@ -19,10 +19,6 @@ enum class SortScope(val prefKey: String, val options: List<SortMode>) {
         prefKey = "countries",
         options = listOf(SortMode.MANUAL, SortMode.PRIORITY, SortMode.RECENT, SortMode.ALPHABETICAL),
     ),
-    CITIES(
-        prefKey = "cities",
-        options = listOf(SortMode.MANUAL, SortMode.PRIORITY, SortMode.RECENT, SortMode.ALPHABETICAL),
-    ),
     SPOTS(
         prefKey = "spots",
         options = listOf(

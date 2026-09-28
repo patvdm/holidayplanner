@@ -15,6 +15,7 @@ import com.pat.app.holidayplanner.domain.MapsLinkParser
 import com.pat.app.holidayplanner.domain.ShareParser
 import com.pat.app.holidayplanner.domain.SharedLink
 import com.pat.app.holidayplanner.ui.components.PlacePick
+import com.pat.app.holidayplanner.data.repo.AttachmentOwner
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,10 +42,9 @@ data class SharedSpot(
     val mapsUrl: String,
 )
 
-/** A pick, as the two repositories want it: one id set, the other empty. */
-private val PlacePick.spotId: String get() = if (isCity) "" else id
-
-private val PlacePick.cityId: String get() = if (isCity) id else ""
+/** A pick, as the repositories want it: the one id it is, every other one empty. */
+private val PlacePick.owner: AttachmentOwner
+    get() = if (isCity) AttachmentOwner(cityId = id) else AttachmentOwner(spotId = id)
 
 /** Where a link that was already shared ended up, so the dialog can say so. */
 data class ExistingLink(val linkId: String, val url: String, val where: String?)
@@ -192,7 +192,7 @@ class ShareViewModel(
         val filing = state.value as? ShareState.FilingPhoto ?: return
         state.value = ShareState.Uploading
         viewModelScope.launch {
-            attachments.attach(filing.uri, spotId = pick.spotId, cityId = pick.cityId)
+            attachments.attach(filing.uri, pick.owner)
                 .onSuccess { state.value = ShareState.Saved }
                 .onFailure { state.value = ShareState.Problem(it.message.orEmpty()) }
         }
@@ -206,8 +206,7 @@ class ShareViewModel(
             linkRepository.add(
                 url = filing.link.url,
                 source = filing.link.source,
-                spotId = pick.spotId,
-                cityId = pick.cityId,
+                owner = pick.owner,
             )
         }
     }

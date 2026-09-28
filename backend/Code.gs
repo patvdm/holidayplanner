@@ -23,7 +23,7 @@ var SCHEMA = {
     'parentCityId', 'name', 'type', 'googlePlaceId', 'lat', 'lng', 'address', 'mapsUrl', 'notes', 'status',
     'sortKey', 'priority', 'imageUrl',
   ]),
-  Links: COMMON_COLUMNS.concat(['spotId', 'cityId', 'url', 'source', 'note']),
+  Links: COMMON_COLUMNS.concat(['spotId', 'cityId', 'countryId', 'url', 'source', 'note']),
   Hearts: COMMON_COLUMNS.concat(['spotId', 'userId']),
   Trips: COMMON_COLUMNS.concat(['name', 'countryId', 'startDate', 'endDate', 'notes']),
   TripItems: COMMON_COLUMNS.concat([

@@ -55,6 +55,7 @@ import com.pat.app.holidayplanner.ui.components.LinkList
 import com.pat.app.holidayplanner.ui.components.PhotoRoll
 import com.pat.app.holidayplanner.ui.components.PhotoViewer
 import com.pat.app.holidayplanner.ui.components.PictureDialog
+import com.pat.app.holidayplanner.ui.components.MoveAttachmentDialog
 import com.pat.app.holidayplanner.ui.components.PickFromListDialog
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import com.pat.app.holidayplanner.ui.components.label
@@ -148,6 +149,7 @@ fun SpotDetailScreen(
                 PhotosSection(
                     state = state,
                     onOpen = { dialogs.viewing = it.url },
+                    onMove = { dialogs.moving = it },
                     onDelete = { dialogs.deletingPhoto = it },
                 )
 
@@ -155,6 +157,7 @@ fun SpotDetailScreen(
                 LinksSection(
                     links = state.references,
                     onOpen = { context.openExternalUrl(it.url) },
+                    onMove = { dialogs.moving = it },
                     onDelete = viewModel::deleteAttachment,
                     onAdd = { dialogs.addingLink = true },
                 )
@@ -251,6 +254,7 @@ private class SpotDialogs {
     var confirmingDelete by mutableStateOf(false)
     var viewing by mutableStateOf<String?>(null)
     var deletingPhoto by mutableStateOf<LinkEntity?>(null)
+    var moving by mutableStateOf<LinkEntity?>(null)
 }
 
 /** The photos of this spot. They are added from the button in the top bar. */
@@ -258,6 +262,7 @@ private class SpotDialogs {
 private fun PhotosSection(
     state: SpotDetailUiState,
     onOpen: (LinkEntity) -> Unit,
+    onMove: (LinkEntity) -> Unit,
     onDelete: (LinkEntity) -> Unit,
 ) {
     SectionLabel(stringResource(R.string.spot_photos))
@@ -268,7 +273,7 @@ private fun PhotosSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     } else {
-        PhotoRoll(photos = state.photos, onOpen = onOpen, onDelete = onDelete)
+        PhotoRoll(photos = state.photos, onOpen = onOpen, onDelete = onDelete, onMove = onMove)
     }
 }
 
@@ -305,6 +310,18 @@ private fun SpotDialogs(
                 dialogs.deletingPhoto = null
             },
             onDismiss = { dialogs.deletingPhoto = null },
+        )
+    }
+
+    dialogs.moving?.let { attachment ->
+        MoveAttachmentDialog(
+            attachment = attachment,
+            targets = state.targets,
+            onPick = {
+                viewModel.moveAttachment(attachment, it)
+                dialogs.moving = null
+            },
+            onDismiss = { dialogs.moving = null },
         )
     }
 
@@ -409,6 +426,7 @@ private const val SAVE_DELAY_MS = 800L
 private fun LinksSection(
     links: List<LinkEntity>,
     onOpen: (LinkEntity) -> Unit,
+    onMove: (LinkEntity) -> Unit,
     onDelete: (LinkEntity) -> Unit,
     onAdd: () -> Unit,
 ) {
@@ -429,7 +447,7 @@ private fun LinksSection(
         )
     }
 
-    LinkList(links = links, onOpen = onOpen, onDelete = onDelete)
+    LinkList(links = links, onOpen = onOpen, onMove = onMove, onDelete = onDelete)
 }
 
 

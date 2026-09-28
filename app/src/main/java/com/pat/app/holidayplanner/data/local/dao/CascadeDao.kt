@@ -66,6 +66,7 @@ interface CascadeDao {
                 SELECT id FROM spots WHERE parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
             )
             OR cityId IN (SELECT id FROM cities WHERE countryId = :countryId)
+            OR countryId = :countryId
         )
         """,
     )

@@ -17,6 +17,7 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_save">Save</string>
     <string name="action_add">Add</string>
+    <string name="action_done">Done</string>
 
     <string name="label_name">Name</string>
     <string name="label_url">Link</string>
@@ -54,9 +55,18 @@
     <string name="country_rename_city">Rename city</string>
     <string name="country_empty">No cities here yet. They appear as spots are shared.</string>
     <string name="country_spot_count">%1$d spots</string>
+    <string name="country_arrange_cities">Arrange cities</string>
 
     <string name="city_empty">No spots here yet. Share one to Holiday Planner and it lands under this city.</string>
     <string name="city_no_matches">No spots match these filters.</string>
+    <string name="city_expand">Show spots</string>
+    <string name="city_collapse">Hide spots</string>
+    <string name="city_expand_all">Open every city</string>
+    <string name="city_collapse_all">Fold every city</string>
+
+    <string name="attachment_move">Move to…</string>
+    <string name="attachment_move_photo">Move this photo to</string>
+    <string name="attachment_move_link">Move this link to</string>
 
     <string name="place_search_title">Add a spot</string>
     <string name="place_search_label">Search</string>
