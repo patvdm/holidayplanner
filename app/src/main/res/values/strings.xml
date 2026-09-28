@@ -45,8 +45,7 @@
     <string name="menu_set_priority">Priority: %1$s</string>
     <string name="menu_set_status">Status: %1$s</string>
     <string name="filter_clear">Clear filters</string>
-    <string name="filter_has_links">Has links</string>
-    <string name="filter_has_images">Has images</string>
+    <string name="filter_has_attachments">Has links/images</string>
 
     <string name="countries_add">Add a country</string>
     <string name="countries_search">Search countries</string>

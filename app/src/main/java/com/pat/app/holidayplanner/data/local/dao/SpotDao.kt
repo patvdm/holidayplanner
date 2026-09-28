@@ -33,8 +33,6 @@ interface SpotDao : SyncDao<SpotEntity> {
         SELECT s.*,
             (SELECT COUNT(*) FROM hearts h WHERE h.spotId = s.id AND h.deleted = 0) AS heartCount,
             (SELECT COUNT(*) FROM links l WHERE l.spotId = s.id AND l.deleted = 0) AS linkCount,
-            (SELECT COUNT(*) FROM links f WHERE f.spotId = s.id AND f.deleted = 0 AND f.source = 'PHOTO')
-                AS photoCount,
             (SELECT COUNT(*) FROM hearts m WHERE m.spotId = s.id AND m.userId = :userId AND m.deleted = 0) > 0
                 AS heartedByMe
         FROM spots s

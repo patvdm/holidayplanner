@@ -25,13 +25,8 @@ data class SpotRow(
     val heartCount: Int,
     /** Everything attached, photos included; what a delete takes with it. */
     val linkCount: Int,
-    /** The photos among them. */
-    val photoCount: Int,
     val heartedByMe: Boolean,
-) {
-    /** Links in the ordinary sense: attached addresses that are not photos. */
-    val plainLinkCount: Int get() = linkCount - photoCount
-}
+)
 
 /** Who hearted a spot, with their name resolved. */
 data class HeartRow(

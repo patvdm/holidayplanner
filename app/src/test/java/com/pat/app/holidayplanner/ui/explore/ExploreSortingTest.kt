@@ -46,7 +46,6 @@ class ExploreSortingTest {
         ),
         heartCount = hearts,
         linkCount = 0,
-        photoCount = 0,
         heartedByMe = false,
     )
 
