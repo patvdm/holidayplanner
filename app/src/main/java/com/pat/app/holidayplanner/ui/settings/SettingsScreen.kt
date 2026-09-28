@@ -18,6 +18,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -25,10 +29,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.BuildConfig
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.sync.SyncStatus
+import com.pat.app.holidayplanner.data.update.AppUpdater
+import com.pat.app.holidayplanner.data.update.UpdateCheck
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 private val timestampFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -65,6 +73,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewMo
 
             SectionTitle(stringResource(R.string.settings_section_about))
             Text(stringResource(R.string.settings_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
+            UpdateCheckRow()
         }
     }
 }
@@ -158,3 +167,41 @@ private fun SectionTitle(text: String) {
 
 private fun formatTimestamp(epochMillis: Long): String =
     Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).format(timestampFormat)
+
+/**
+ * Checks for a new version now, downloading it even on mobile data since it was asked for. A
+ * version found this way is offered by the same prompt the background check uses.
+ */
+@Composable
+private fun UpdateCheckRow(updater: AppUpdater = koinInject()) {
+    var checking by remember { mutableStateOf(false) }
+    var outcome by remember { mutableStateOf<UpdateCheck?>(null) }
+    val scope = rememberCoroutineScope()
+
+    OutlinedButton(
+        enabled = !checking,
+        onClick = {
+            checking = true
+            scope.launch {
+                outcome = updater.check(allowDownload = true)
+                checking = false
+            }
+        },
+    ) {
+        Text(stringResource(if (checking) R.string.update_checking else R.string.update_check))
+    }
+    outcome?.let {
+        Text(
+            text = stringResource(
+                when (it) {
+                    UpdateCheck.UP_TO_DATE -> R.string.update_up_to_date
+                    UpdateCheck.READY -> R.string.update_found
+                    UpdateCheck.WAITING, UpdateCheck.FAILED -> R.string.update_failed
+                    UpdateCheck.NOT_SET_UP -> R.string.update_not_set_up
+                },
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}

@@ -18,6 +18,15 @@ val localProperties = Properties().apply {
 
 fun secret(name: String): String = localProperties.getProperty(name)?.trim().orEmpty()
 
+/**
+ * Every commit is a version: the commit count is the versionCode, so a published build is always
+ * newer than the one before it and the phones' update check can simply compare numbers.
+ */
+val commitCount: Int = providers.exec { commandLine("git", "rev-list", "--count", "HEAD") }
+    .standardOutput.asText.map { it.trim().toIntOrNull() ?: 1 }.getOrElse(1)
+val commitHash: String = providers.exec { commandLine("git", "rev-parse", "--short", "HEAD") }
+    .standardOutput.asText.map { it.trim() }.getOrElse("")
+
 fun javaString(value: String): String = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
 android {
@@ -30,8 +39,8 @@ android {
         applicationId = "com.pat.app.holidayplanner"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = commitCount
+        versionName = "1.$commitCount ($commitHash)"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

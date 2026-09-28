@@ -86,10 +86,11 @@ Without a keystore the release build is unsigned and will not install; debug bui
 
 ### Auto-updating
 
-The plan called for Firebase App Distribution so both phones update themselves. That needs a
-Firebase project and testers added by email, which is account setup rather than code. The Gradle
-plugin is not wired up, because wiring a distribution pipeline that nothing can run would be dead
-configuration. Add it when the manual APK hand-off becomes annoying.
+Both phones update themselves from the app's own channel on the Cloudflare Worker, instead of the
+Firebase App Distribution the plan named: no extra accounts, and the Worker was already there for
+photos. Publishing is `python tools/release/publish.py`; setup and how updates arrive are in
+`tools/release/README.md`. The version number is the commit count, so steps 4 and 5 above are
+replaced by committing and running that script.
 
 ## Build
 

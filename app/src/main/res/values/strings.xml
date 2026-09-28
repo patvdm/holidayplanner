@@ -135,6 +135,17 @@
     <string name="share_uploading_title">Saving the photo</string>
     <string name="share_uploading_message">Making it smaller. It uploads in the background.</string>
     <string name="photo_waiting">Uploading</string>
+
+    <string name="update_title">Update ready</string>
+    <string name="update_message">Version %1$s is downloaded. Installing closes the app for a moment; open it again afterwards.</string>
+    <string name="update_install">Install</string>
+    <string name="update_later">Later</string>
+    <string name="update_check">Check for updates</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_up_to_date">This is the latest version.</string>
+    <string name="update_found">A new version is ready to install.</string>
+    <string name="update_failed">Could not reach the update server. Try again in a moment.</string>
+    <string name="update_not_set_up">Updates are not set up for this build.</string>
     <string name="share_photo_failed_title">Could not save the photo</string>
     <string name="share_photo_failed_message">The photo could not be read. Try sharing it again.</string>
     <string name="share_duplicate_title">Already saved</string>

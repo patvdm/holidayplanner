@@ -8,6 +8,9 @@ import com.pat.app.holidayplanner.data.location.ReverseGeocoder
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.remote.GooglePlacesSearch
 import com.pat.app.holidayplanner.data.image.PhotoQueue
+import com.pat.app.holidayplanner.data.update.AppUpdater
+import com.pat.app.holidayplanner.data.update.UpdateScheduler
+import com.pat.app.holidayplanner.data.update.UpdateServer
 import com.pat.app.holidayplanner.data.image.PhotoScaler
 import com.pat.app.holidayplanner.data.remote.HttpLinkResolver
 import com.pat.app.holidayplanner.data.remote.CloudflarePhotos
@@ -101,6 +104,9 @@ val appModule = module {
     single<ImageStore> { RoutedImageStore(get<CloudflarePhotos>(), get<SheetsApi>()) }
     single { PhotoScaler(androidContext()) }
     single { PhotoQueue(androidContext(), get()) }
+    single { UpdateServer() }
+    single { AppUpdater(androidContext(), get()) }
+    single { UpdateScheduler(androidContext()) }
     single { syncTables(get()) }
     single { SyncRepository(get(), get(), get(), get(), get(), get()) }
     single { SyncStatusRepository(get(), get(), get()) }

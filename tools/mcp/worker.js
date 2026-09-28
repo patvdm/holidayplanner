@@ -9,7 +9,9 @@
  *   SHEETS_URL     the Apps Script /exec URL, same as local.properties
  *   SHEETS_SECRET  the script's SECRET, same as local.properties
  *   ACCESS_TOKEN   a long random string; the connector URL is https://<worker>/<ACCESS_TOKEN>/mcp
- *   PHOTO_TOKEN    another long random string, which the app sends to store and delete photos
+ *   PHOTO_TOKEN    another long random string, which the app sends to store and delete photos,
+ *                  and to fetch app updates
+ *   RELEASE_TOKEN  a third one, known only to the PC that publishes new versions of the app
  *
  * Binding (Settings, Bindings, R2 bucket):
  *   PHOTOS         the R2 bucket photos are kept in. Served back at https://<worker>/photos/<key>.
@@ -124,6 +126,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === '/photos' || url.pathname.startsWith('/photos/')) return photos(request, env, url);
+    if (url.pathname.startsWith('/app/')) return releases(request, env, url);
     if (!env.ACCESS_TOKEN || url.pathname !== `/${env.ACCESS_TOKEN}/mcp`) {
       return new Response('Not found', { status: 404 });
     }
@@ -197,6 +200,75 @@ async function photos(request, env, url) {
     return jsonResponse({ ok: true });
   }
   return new Response('Method Not Allowed', { status: 405 });
+}
+
+/**
+ * The app's own update channel, kept in the same bucket as the photos under `app/`.
+ *
+ *   PUT /app/release   (Bearer RELEASE_TOKEN) body is the APK; headers X-Version-Code,
+ *                      X-Version-Name and X-Sha256. Refused unless newer than what is there.
+ *   GET /app/latest    (Bearer PHOTO_TOKEN) {versionCode, versionName, sha256, size, apk}
+ *   GET /app/apk/<key> (Bearer PHOTO_TOKEN) the APK itself
+ *
+ * Reading needs the token the app already carries, because an APK holds the app's own secrets and
+ * must not be downloadable by anyone who finds the address.
+ */
+const LATEST_KEY = 'app/latest.json';
+
+async function releases(request, env, url) {
+  if (!env.PHOTOS) return new Response('No PHOTOS bucket bound', { status: 500 });
+  const bearer = request.headers.get('Authorization') || '';
+  const reader = env.PHOTO_TOKEN && bearer === `Bearer ${env.PHOTO_TOKEN}`;
+  const publisher = env.RELEASE_TOKEN && bearer === `Bearer ${env.RELEASE_TOKEN}`;
+  const latest = async () => {
+    const object = await env.PHOTOS.get(LATEST_KEY);
+    return object ? JSON.parse(await object.text()) : null;
+  };
+
+  if (request.method === 'GET' && url.pathname === '/app/latest') {
+    if (!reader) return new Response('Unauthorized', { status: 401 });
+    const current = await latest();
+    return current ? jsonResponse(current) : new Response('Nothing published', { status: 404 });
+  }
+  if (request.method === 'GET' && url.pathname.startsWith('/app/apk/')) {
+    if (!reader) return new Response('Unauthorized', { status: 401 });
+    const key = 'app/' + decodeURIComponent(url.pathname.slice('/app/apk/'.length));
+    const object = await env.PHOTOS.get(key);
+    if (!object) return new Response('Not found', { status: 404 });
+    return new Response(object.body, {
+      headers: { 'Content-Type': 'application/vnd.android.package-archive', 'Content-Length': String(object.size) },
+    });
+  }
+  if (request.method === 'PUT' && url.pathname === '/app/release') {
+    if (!publisher) return new Response('Unauthorized', { status: 401 });
+    const versionCode = Number(request.headers.get('X-Version-Code'));
+    const versionName = request.headers.get('X-Version-Name') || String(versionCode);
+    const sha256 = (request.headers.get('X-Sha256') || '').toLowerCase();
+    if (!Number.isInteger(versionCode) || versionCode <= 0 || !/^[0-9a-f]{64}$/.test(sha256)) {
+      return new Response('Bad version headers', { status: 400 });
+    }
+    const previous = await latest();
+    if (previous && previous.versionCode >= versionCode) {
+      return new Response(`Already at ${previous.versionCode}`, { status: 409 });
+    }
+    const bytes = await request.arrayBuffer();
+    const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
+      .map((b) => b.toString(16).padStart(2, '0')).join('');
+    if (digest !== sha256) return new Response('Checksum does not match the upload', { status: 400 });
+    const name = `holiday-planner-${versionCode}-${crypto.randomUUID()}.apk`;
+    await env.PHOTOS.put('app/' + name, bytes, {
+      httpMetadata: { contentType: 'application/vnd.android.package-archive' },
+    });
+    const release = {
+      versionCode, versionName, sha256, size: bytes.byteLength, apk: `/app/apk/${name}`,
+      publishedAt: new Date().toISOString(),
+    };
+    await env.PHOTOS.put(LATEST_KEY, JSON.stringify(release), { httpMetadata: { contentType: 'application/json' } });
+    // Only the newest is ever offered, so the one before it is just taking up space.
+    if (previous && previous.apk) await env.PHOTOS.delete('app/' + previous.apk.slice('/app/apk/'.length));
+    return jsonResponse({ ok: true, ...release });
+  }
+  return new Response('Not found', { status: 404 });
 }
 
 /** One JSON-RPC message in, one result out (or null for a notification). */

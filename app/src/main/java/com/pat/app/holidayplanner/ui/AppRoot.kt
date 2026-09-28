@@ -22,4 +22,5 @@ fun AppRoot(viewModel: SessionViewModel = koinViewModel()) {
         SessionState.SignedOut -> OnboardingScreen()
         is SessionState.SignedIn -> AppNavigation()
     }
+    UpdatePrompt()
 }

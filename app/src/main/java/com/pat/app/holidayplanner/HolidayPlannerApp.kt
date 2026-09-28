@@ -10,6 +10,8 @@ import com.pat.app.holidayplanner.data.repo.AttachmentRepository
 import com.pat.app.holidayplanner.data.repo.CoordinateBackfill
 import com.pat.app.holidayplanner.data.repo.PictureBackfill
 import com.pat.app.holidayplanner.data.sync.SyncScheduler
+import com.pat.app.holidayplanner.data.update.AppVisibility
+import com.pat.app.holidayplanner.data.update.UpdateScheduler
 import com.pat.app.holidayplanner.di.appModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +29,7 @@ class HolidayPlannerApp : Application(), SingletonImageLoader.Factory {
     private val coordinateBackfill: CoordinateBackfill by inject()
     private val pictureBackfill: PictureBackfill by inject()
     private val attachments: AttachmentRepository by inject()
+    private val updateScheduler: UpdateScheduler by inject()
 
     /** Outlives every screen, for the repair and the picture search below. */
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -38,7 +41,10 @@ class HolidayPlannerApp : Application(), SingletonImageLoader.Factory {
             androidContext(this@HolidayPlannerApp)
             modules(appModule)
         }
+        registerActivityLifecycleCallbacks(AppVisibility)
         syncScheduler.onAppStart()
+        // Both phones stay on the latest published version (data/update).
+        updateScheduler.onAppStart()
         // Spots saved before their link could be followed have no position; repair them once.
         appScope.launch { coordinateBackfill.run() }
         // Finds a picture for anything that has none, now and whenever something new is saved.

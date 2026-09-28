@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Near me only. Coarse is enough to sort spots by distance, so fine is not requested. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- The app updates itself from its own channel (tools/mcp); see data/update. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".HolidayPlannerApp"
@@ -53,6 +55,11 @@
                 <data android:mimeType="image/*" />
             </intent-filter>
         </activity>
+
+        <!-- Hears back from Android's installer about an update. -->
+        <receiver
+            android:name=".data.update.UpdateStatusReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>
