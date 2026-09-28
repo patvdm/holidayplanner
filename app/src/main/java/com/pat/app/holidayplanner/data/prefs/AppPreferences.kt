@@ -103,7 +103,8 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
 
         val KEY_CURRENT_USER_ID = stringPreferencesKey("current_user_id")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
-        val KEY_SPOT_PICTURE_RETRY = booleanPreferencesKey("spot_picture_retry_local_language")
+        // Renamed when the search learns something new, so spots it gave up on get one more try.
+        val KEY_SPOT_PICTURE_RETRY = booleanPreferencesKey("spot_picture_retry_town_named_spots")
         val KEY_BACKEND_URL = stringPreferencesKey("backend_url")
         val KEY_BACKEND_SECRET = stringPreferencesKey("backend_secret")
         val KEY_LAST_SYNC_AT = longPreferencesKey("last_sync_at")

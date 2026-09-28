@@ -53,10 +53,13 @@ class WikimediaPictures(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun forPlace(name: String, within: String): Result<String?> = runCatchingNetwork {
+    override suspend fun forPlace(name: String, within: String): Result<String?> =
+        runCatchingNetwork { placePicture(name, within) }
+
+    private suspend fun placePicture(name: String, within: String): String? {
         val guide = pageOf(WIKIVOYAGE, name)
         val fromGuide = guide?.let { banner(it.title) ?: it.thumbnail?.takeIf { url -> url.isPhotograph() } }
-        fromGuide
+        return fromGuide
             ?: pageOf(WIKIPEDIA, name)?.thumbnail?.takeIf { it.isPhotograph() }
             ?: search(WIKIPEDIA, "$name $within".trim(), mustMatch = null)
     }
@@ -68,7 +71,9 @@ class WikimediaPictures(
         isoCode: String,
     ): Result<String?> = runCatchingNetwork {
         val proof = distinctiveTokens(name, cityName, countryName)
-        if (proof.isEmpty()) return@runCatchingNetwork null
+        // A spot called nothing but its town, such as a share of "Bruges" itself, is the town: it
+        // gets the town's picture, found the way a city's is.
+        if (proof.isEmpty()) return@runCatchingNetwork placePicture(name, within = countryName)
         val query = "$name $cityName".trim()
         // English first, then the country's own Wikipedia, which knows many places English skips.
         search(WIKIPEDIA, query, mustMatch = proof)
