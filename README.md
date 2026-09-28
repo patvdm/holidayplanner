@@ -12,7 +12,13 @@ Backend is a Google Sheet behind an Apps Script web app (see `backend/README.md`
    SHEETS_URL=https://script.google.com/macros/s/XXX/exec
    SHEETS_SECRET=the-script-property-SECRET
    MAPS_API_KEY=
+   PHOTOS_URL=https://holiday-planner.<your-subdomain>.workers.dev
+   PHOTOS_TOKEN=the-worker's-PHOTO_TOKEN
    ```
+
+   `PHOTOS_URL` and `PHOTOS_TOKEN` are optional: with them, photos are stored in Cloudflare R2
+   through the Worker in `tools/mcp` (quick); without them, in Drive through Apps Script (slow).
+   Either way a photo uploads in the background, so adding one never waits.
 
    `app/build.gradle.kts` reads them into `BuildConfig` (missing keys become empty strings, so a
    fresh checkout still builds). The backend URL and secret can also be overridden at runtime in

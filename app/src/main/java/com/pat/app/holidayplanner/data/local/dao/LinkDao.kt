@@ -37,8 +37,16 @@ interface LinkDao : SyncDao<LinkEntity> {
     @Query("SELECT * FROM links WHERE url = :url AND deleted = 0 LIMIT 1")
     suspend fun findByUrl(url: String): LinkEntity?
 
-    @Query("SELECT * FROM links WHERE dirty = 1 ORDER BY updatedAt LIMIT :limit")
+    /**
+     * A photo still waiting to upload points at a file on this phone. It is held back until it has
+     * a real address, or the other phone would get a picture it cannot open.
+     */
+    @Query("SELECT * FROM links WHERE dirty = 1 AND url NOT LIKE 'file:%' ORDER BY updatedAt LIMIT :limit")
     override suspend fun dirty(limit: Int): List<LinkEntity>
+
+    /** Photos still waiting to upload, so an interrupted upload can be queued again. */
+    @Query("SELECT id FROM links WHERE url LIKE 'file:%' AND deleted = 0")
+    suspend fun waitingPhotoIds(): List<String>
 
     @Query("SELECT * FROM links WHERE id = :id")
     override suspend fun find(id: String): LinkEntity?

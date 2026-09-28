@@ -36,6 +36,7 @@ private const val TIMEOUT_MS = 30_000L
 
 /** A picture is far more to send than a row, over whatever connection the phone happens to have. */
 private const val UPLOAD_TIMEOUT_MS = 120_000L
+private const val DRIVE_PICTURE_PATH = "googleusercontent.com/d/"
 
 private const val BODY_PREVIEW_CHARS = 120
 
@@ -102,8 +103,14 @@ class SheetsApi(
             StoredImage(url = body.str("url"), fileId = body.str("fileId"))
         }
 
-    override suspend fun remove(fileId: String): Result<Unit> =
-        call("deleteImage") { put("fileId", fileId) }.map { }
+    override suspend fun remove(url: String): Result<Unit> {
+        val fileId = url.substringAfter(DRIVE_PICTURE_PATH, "").substringBefore('?')
+        if (fileId.isEmpty()) return Result.success(Unit)
+        return call("deleteImage") { put("fileId", fileId) }.map { }
+    }
+
+    /** Drive pictures are served from lh3.googleusercontent.com/d/<file id>. */
+    override fun owns(url: String): Boolean = url.contains(DRIVE_PICTURE_PATH)
 
     private suspend fun call(
         action: String,

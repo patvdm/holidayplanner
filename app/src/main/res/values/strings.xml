@@ -133,9 +133,10 @@
     <string name="share_pick_spot">Which place is this about?</string>
     <string name="share_pick_spot_photo">Which place is this a photo of?</string>
     <string name="share_uploading_title">Saving the photo</string>
-    <string name="share_uploading_message">Making it smaller and sending it…</string>
+    <string name="share_uploading_message">Making it smaller. It uploads in the background.</string>
+    <string name="photo_waiting">Uploading</string>
     <string name="share_photo_failed_title">Could not save the photo</string>
-    <string name="share_photo_failed_message">The backend could not be reached. Try again in a moment.</string>
+    <string name="share_photo_failed_message">The photo could not be read. Try sharing it again.</string>
     <string name="share_duplicate_title">Already saved</string>
     <string name="share_duplicate_unknown">This link is already saved.</string>
     <string name="share_duplicate_on_spot">This link is already on %1$s.</string>

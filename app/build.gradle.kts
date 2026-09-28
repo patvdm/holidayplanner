@@ -38,6 +38,9 @@ android {
         buildConfigField("String", "SHEETS_URL", javaString(secret("SHEETS_URL")))
         buildConfigField("String", "SHEETS_SECRET", javaString(secret("SHEETS_SECRET")))
         buildConfigField("String", "MAPS_API_KEY", javaString(secret("MAPS_API_KEY")))
+        // The Cloudflare Worker that stores photos (tools/mcp). Blank falls back to Drive via Apps Script.
+        buildConfigField("String", "PHOTOS_URL", javaString(secret("PHOTOS_URL")))
+        buildConfigField("String", "PHOTOS_TOKEN", javaString(secret("PHOTOS_TOKEN")))
         manifestPlaceholders["MAPS_API_KEY"] = secret("MAPS_API_KEY")
     }
 

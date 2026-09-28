@@ -6,6 +6,7 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.pat.app.holidayplanner.data.remote.APP_USER_AGENT
+import com.pat.app.holidayplanner.data.repo.AttachmentRepository
 import com.pat.app.holidayplanner.data.repo.CoordinateBackfill
 import com.pat.app.holidayplanner.data.repo.PictureBackfill
 import com.pat.app.holidayplanner.data.sync.SyncScheduler
@@ -25,6 +26,7 @@ class HolidayPlannerApp : Application(), SingletonImageLoader.Factory {
     private val syncScheduler: SyncScheduler by inject()
     private val coordinateBackfill: CoordinateBackfill by inject()
     private val pictureBackfill: PictureBackfill by inject()
+    private val attachments: AttachmentRepository by inject()
 
     /** Outlives every screen, for the repair and the picture search below. */
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -41,6 +43,8 @@ class HolidayPlannerApp : Application(), SingletonImageLoader.Factory {
         appScope.launch { coordinateBackfill.run() }
         // Finds a picture for anything that has none, now and whenever something new is saved.
         appScope.launch { pictureBackfill.watch() }
+        // A photo whose upload was interrupted (the phone restarted, say) gets queued again.
+        appScope.launch { attachments.resumeUploads() }
     }
 
     /** The image loader every picture goes through, fetching with a name Wikimedia will serve. */

@@ -14,9 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -42,10 +44,12 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.PopupProperties
 import coil3.compose.AsyncImage
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.data.image.PhotoQueue
 import com.pat.app.holidayplanner.data.local.LinkEntity
 
 private val PHOTO_SHAPE = RoundedCornerShape(12.dp)
 private const val VIEWER_DIM = 0.95f
+private const val WAITING_BADGE_DIM = 0.55f
 
 /**
  * The photos of a place, side by side. Tapping one opens it; holding one offers to move it to
@@ -76,6 +80,7 @@ fun PhotoRoll(
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                         .combinedClickable(onClick = { onOpen(photo) }, onLongClick = { menuOpen = true }),
                 )
+                if (PhotoQueue.isWaiting(photo.url)) WaitingBadge(Modifier.align(Alignment.BottomEnd))
                 AttachmentMenu(
                     expanded = menuOpen,
                     onDismiss = { menuOpen = false },
@@ -85,6 +90,21 @@ fun PhotoRoll(
             }
         }
     }
+}
+
+/** Marks a photo that is still on this phone only, so nobody wonders why the other phone lacks it. */
+@Composable
+private fun WaitingBadge(modifier: Modifier = Modifier) {
+    Icon(
+        imageVector = Icons.Outlined.CloudUpload,
+        contentDescription = stringResource(R.string.photo_waiting),
+        tint = Color.White,
+        modifier = modifier
+            .padding(4.dp)
+            .background(Color.Black.copy(alpha = WAITING_BADGE_DIM), CircleShape)
+            .padding(3.dp)
+            .size(14.dp),
+    )
 }
 
 /** What holding a photo or a link offers: send it somewhere else, or get rid of it. */

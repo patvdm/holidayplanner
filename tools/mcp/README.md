@@ -40,6 +40,31 @@ Test: "What do I have saved in the Netherlands?" then "Add the Rijksmuseum in Am
 priority." The Inbox tab shows the row with `done` beside it, and the app shows the spot after
 its next sync.
 
+## Photos (optional, makes photo uploads much faster)
+
+The same Worker can store the app's photos in Cloudflare R2 instead of Drive. Uploads skip the
+Apps Script cold start, its redirect and the Drive calls, and the picture goes up as plain bytes.
+Photos already in Drive keep working; only new ones go to R2. R2's free tier is 10 GB.
+
+1. **Bucket.** In Cloudflare: *Storage & databases → R2 Object Storage → Create bucket*, name it
+   `holiday-planner-photos`. (R2 asks for a payment method once, even on the free tier.) Leave
+   Public Access disabled: the Worker serves the photos.
+2. **Binding.** In the Worker: *Settings → Bindings → Add → R2 bucket*, variable name `PHOTOS`,
+   bucket `holiday-planner-photos`.
+3. **Secret.** *Settings → Variables and Secrets → Add*, type **Secret**, `PHOTO_TOKEN`: another
+   long random string (not the same as `ACCESS_TOKEN`).
+4. **Code.** Paste the current `worker.js` over the old one and deploy.
+5. **App.** In `local.properties`:
+   ```properties
+   PHOTOS_URL=https://holiday-planner.<your-subdomain>.workers.dev
+   PHOTOS_TOKEN=<the PHOTO_TOKEN value>
+   ```
+   and rebuild. A phone built without these still uploads to Drive, and either phone shows photos
+   from both places.
+
+Check: `curl -i https://holiday-planner.<your-subdomain>.workers.dev/photos/nothing` answers 404.
+A 500 saying "No PHOTOS bucket bound" means step 2 is missing.
+
 ## Notes
 
 - The token in the URL is the only lock on the door. Anyone with the full URL could add places.

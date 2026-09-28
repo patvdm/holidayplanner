@@ -9,6 +9,10 @@
  *   SHEETS_URL     the Apps Script /exec URL, same as local.properties
  *   SHEETS_SECRET  the script's SECRET, same as local.properties
  *   ACCESS_TOKEN   a long random string; the connector URL is https://<worker>/<ACCESS_TOKEN>/mcp
+ *   PHOTO_TOKEN    another long random string, which the app sends to store and delete photos
+ *
+ * Binding (Settings, Bindings, R2 bucket):
+ *   PHOTOS         the R2 bucket photos are kept in. Served back at https://<worker>/photos/<key>.
  *
  * Speaks MCP over Streamable HTTP (JSON responses, no session state), which is what claude.ai's
  * custom connectors use. See tools/mcp/README.md for the setup.
@@ -119,6 +123,7 @@ const TOOLS = [
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/photos' || url.pathname.startsWith('/photos/')) return photos(request, env, url);
     if (!env.ACCESS_TOKEN || url.pathname !== `/${env.ACCESS_TOKEN}/mcp`) {
       return new Response('Not found', { status: 404 });
     }
@@ -147,6 +152,52 @@ export default {
     return answer ? jsonResponse(answer) : new Response(null, { status: 202 });
   },
 };
+
+/**
+ * The app's photo store, far quicker than Drive through Apps Script: no cold start, no redirect,
+ * and the picture travels as plain bytes rather than as text inside JSON.
+ *
+ *   PUT    /photos        (Bearer PHOTO_TOKEN) body is the image; answers {url, fileId}
+ *   GET    /photos/<key>  public, so both phones can show it without signing in
+ *   DELETE /photos/<key>  (Bearer PHOTO_TOKEN)
+ *
+ * Keys are random UUIDs, which is what keeps the public GET from being a listing of everything.
+ */
+async function photos(request, env, url) {
+  if (!env.PHOTOS) return new Response('No PHOTOS bucket bound', { status: 500 });
+  const key = decodeURIComponent(url.pathname.slice('/photos/'.length));
+  const authorised = env.PHOTO_TOKEN && request.headers.get('Authorization') === `Bearer ${env.PHOTO_TOKEN}`;
+
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    if (!key) return new Response('Not found', { status: 404 });
+    const object = await env.PHOTOS.get(key);
+    if (!object) return new Response('Not found', { status: 404 });
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    headers.set('ETag', object.httpEtag);
+    // A key never points at a different picture, so it can be cached for good.
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    return new Response(request.method === 'HEAD' ? null : object.body, { headers });
+  }
+  if (!authorised) return new Response('Unauthorized', { status: 401 });
+
+  if (request.method === 'PUT' && url.pathname === '/photos') {
+    const type = request.headers.get('Content-Type') || 'image/jpeg';
+    if (!type.startsWith('image/')) return new Response('Images only', { status: 415 });
+    const extension = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
+    const newKey = `${crypto.randomUUID()}.${extension}`;
+    // Read whole rather than streamed: R2 wants a known length, and a scaled photo is small.
+    const bytes = await request.arrayBuffer();
+    if (bytes.byteLength === 0) return new Response('Empty body', { status: 400 });
+    await env.PHOTOS.put(newKey, bytes, { httpMetadata: { contentType: type } });
+    return jsonResponse({ ok: true, url: `${url.origin}/photos/${newKey}`, fileId: newKey });
+  }
+  if (request.method === 'DELETE' && key) {
+    await env.PHOTOS.delete(key);
+    return jsonResponse({ ok: true });
+  }
+  return new Response('Method Not Allowed', { status: 405 });
+}
 
 /** One JSON-RPC message in, one result out (or null for a notification). */
 async function handle(message, env) {

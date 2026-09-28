@@ -7,9 +7,12 @@ import com.pat.app.holidayplanner.data.location.FusedDeviceLocation
 import com.pat.app.holidayplanner.data.location.ReverseGeocoder
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.remote.GooglePlacesSearch
+import com.pat.app.holidayplanner.data.image.PhotoQueue
 import com.pat.app.holidayplanner.data.image.PhotoScaler
 import com.pat.app.holidayplanner.data.remote.HttpLinkResolver
+import com.pat.app.holidayplanner.data.remote.CloudflarePhotos
 import com.pat.app.holidayplanner.data.remote.ImageStore
+import com.pat.app.holidayplanner.data.remote.RoutedImageStore
 import com.pat.app.holidayplanner.data.remote.LinkResolver
 import com.pat.app.holidayplanner.data.remote.PictureSource
 import com.pat.app.holidayplanner.data.remote.PlacesSearch
@@ -93,8 +96,11 @@ val appModule = module {
     single<DeviceLocation> { FusedDeviceLocation(androidContext()) }
     single { SheetsApi(get()) }
     single<SheetsBackend> { get<SheetsApi>() }
-    single<ImageStore> { get<SheetsApi>() }
+    single { CloudflarePhotos() }
+    // Photos go to Cloudflare when it is set up, and to Drive through the sheet's script otherwise.
+    single<ImageStore> { RoutedImageStore(get<CloudflarePhotos>(), get<SheetsApi>()) }
     single { PhotoScaler(androidContext()) }
+    single { PhotoQueue(androidContext(), get()) }
     single { syncTables(get()) }
     single { SyncRepository(get(), get(), get(), get(), get(), get()) }
     single { SyncStatusRepository(get(), get(), get()) }

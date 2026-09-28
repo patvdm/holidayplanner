@@ -20,6 +20,24 @@ class LinkRepository(
 
     suspend fun findByUrl(url: String): LinkEntity? = dao.findByUrl(url)
 
+    suspend fun find(id: String): LinkEntity? = dao.find(id)
+
+    /** Photos kept on this phone that have not reached the backend yet. */
+    suspend fun waitingPhotoIds(): List<String> = dao.waitingPhotoIds()
+
+    /**
+     * Gives a waiting photo its real address, which also lets it sync. Reads the row afresh, so a
+     * move made while it was uploading is kept. False when the photo was deleted meanwhile.
+     */
+    suspend fun completeUpload(id: String, url: String): Boolean {
+        val current = dao.find(id) ?: return false
+        if (current.meta.deleted) return false
+        val stamp = writer.stamp()
+        dao.upsert(listOf(current.copy(url = url, meta = current.meta.touched(stamp.now, stamp.userId))))
+        writer.requestSync()
+        return true
+    }
+
     /**
      * Every link belongs to a spot, a city or a country: one with nowhere to live is not worth
      * keeping, and would show up on nothing.
