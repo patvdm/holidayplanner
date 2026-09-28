@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
@@ -39,7 +38,7 @@ import com.pat.app.holidayplanner.ui.components.SyncStatusIcon
 import com.pat.app.holidayplanner.ui.components.Thumbnail
 import com.pat.app.holidayplanner.ui.components.TypeBadge
 import com.pat.app.holidayplanner.ui.components.label
-import com.pat.app.holidayplanner.ui.components.firstLine
+import com.pat.app.holidayplanner.ui.components.noteOrNull
 import com.pat.app.holidayplanner.ui.explore.label
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.foundation.layout.WindowInsets
@@ -185,12 +184,10 @@ private fun SpotListItem(row: SpotListRow, onClick: () -> Unit) {
                     StatusChip(row.spot.status)
                     TypeBadge(row.spot.type)
                 }
-                row.spot.notes.firstLine()?.let { note ->
+                row.spot.notes.noteOrNull()?.let { note ->
                     Text(
                         text = note,
                         style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

@@ -96,6 +96,7 @@ fun cityToRow(entity: CityEntity): Map<String, String> = buildRow(entity.meta) {
     put("sortKey", entity.sortKey)
     put("priority", entity.priority.name)
     put("imageUrl", entity.imageUrl)
+    put("notes", entity.notes)
 }
 
 fun cityFromRow(row: SheetRow): CityEntity? {
@@ -110,6 +111,7 @@ fun cityFromRow(row: SheetRow): CityEntity? {
         sortKey = row.str("sortKey").trim(),
         priority = Priority.fromSheet(row.str("priority")),
         imageUrl = row.str("imageUrl").trim(),
+        notes = row.str("notes"),
     )
 }
 

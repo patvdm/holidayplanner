@@ -68,6 +68,7 @@ class SheetMappingTest {
             sortKey = "V",
             priority = Priority.NORMAL,
             imageUrl = "",
+            notes = "Park at the station.\nMarket on Saturdays.",
         )
         assertEquals(entity, cityFromRow(SheetRow(cityToRow(entity))))
     }

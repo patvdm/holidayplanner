@@ -40,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,7 +52,7 @@ import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.Thumbnail
 import com.pat.app.holidayplanner.ui.components.TypeBadge
-import com.pat.app.holidayplanner.ui.components.firstLine
+import com.pat.app.holidayplanner.ui.components.noteOrNull
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.openExternalUrl
 import kotlinx.coroutines.launch
@@ -246,12 +245,10 @@ private fun CandidateRow(
                     StatusChip(candidate.status)
                     TypeBadge(candidate.type)
                 }
-                candidate.notes.firstLine()?.let { note ->
+                candidate.notes.noteOrNull()?.let { note ->
                     Text(
                         text = note,
                         style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

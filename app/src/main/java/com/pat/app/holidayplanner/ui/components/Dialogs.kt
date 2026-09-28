@@ -50,6 +50,39 @@ fun TextInputDialog(
     )
 }
 
+/**
+ * Writes or changes a note. Several lines, sentence case, and saving it empty removes the note,
+ * which is why Save is never greyed out here.
+ */
+@Composable
+fun NoteDialog(
+    initial: String,
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var value by remember { mutableStateOf(initial) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (initial.isBlank()) R.string.note_add else R.string.note_edit)) },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it },
+                label = { Text(stringResource(R.string.note_label)) },
+                minLines = NOTE_MIN_LINES,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(value.trim()) }) { Text(stringResource(R.string.action_save)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+
+private const val NOTE_MIN_LINES = 3
+
 /** Confirms a delete, spelling out what else goes with it. */
 @Composable
 fun ConfirmDeleteDialog(

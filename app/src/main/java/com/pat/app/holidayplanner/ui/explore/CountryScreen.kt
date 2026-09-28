@@ -50,6 +50,7 @@ import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.MoveAttachmentDialog
+import com.pat.app.holidayplanner.ui.components.NoteDialog
 import com.pat.app.holidayplanner.ui.components.PhotoViewer
 import com.pat.app.holidayplanner.ui.components.PictureDialog
 import com.pat.app.holidayplanner.ui.components.SortMenu
@@ -100,15 +101,22 @@ fun CountryScreen(
                 photoPicker.launch(PickVisualMediaRequest(ImageOnly))
             }
             override val onAddLink: (AttachmentOwner) -> Unit = { dialogs.addingLinkTo = it }
+            override val onEditNote: (AttachmentOwner, String) -> Unit = { owner, note ->
+                dialogs.editingNote = owner to note
+            }
             override val onChangePicture: (String) -> Unit = { dialogs.changingPictureOf = it }
             override val onNewRoute: (CityEntity) -> Unit = { city ->
                 viewModel.createRoute(city.meta.id, city.name) { openRoute(it) }
             }
-            override val onCityPriority: (String, Priority) -> Unit = viewModel::setCityPriority
+            override val onCityPriority: (String, Priority) -> Unit = { id, priority ->
+                viewModel.setPriority(AttachmentOwner(cityId = id), priority)
+            }
             override val onRenameCity: (CityEntity) -> Unit = { dialogs.renamingCity = it }
             override val onDeleteCity: (CityEntity) -> Unit = { viewModel.requestCityDelete(it.meta.id, it.name) }
             override val onHeart: (String) -> Unit = viewModel::toggleHeart
-            override val onSpotPriority: (String, Priority) -> Unit = viewModel::setSpotPriority
+            override val onSpotPriority: (String, Priority) -> Unit = { id, priority ->
+                viewModel.setPriority(AttachmentOwner(spotId = id), priority)
+            }
             override val onSpotStatus: (String, SpotStatus) -> Unit = viewModel::setSpotStatus
             override val onSpotMoved: (String, String?, String?) -> Unit = viewModel::moveSpot
             override val onMoveSpot: (SpotRow) -> Unit = { dialogs.movingSpot = it }
@@ -272,6 +280,9 @@ private class CountryDialogs {
     var changingPictureOf by mutableStateOf<String?>(null)
     var renamingCity by mutableStateOf<CityEntity?>(null)
     var movingSpot by mutableStateOf<SpotRow?>(null)
+
+    /** The city or spot whose note is open, with the note it had when the dialog opened. */
+    var editingNote by mutableStateOf<Pair<AttachmentOwner, String>?>(null)
 }
 
 @Composable
@@ -328,6 +339,17 @@ private fun CountryDialogs(state: CountryUiState, dialogs: CountryDialogs, viewM
                 dialogs.changingPictureOf = null
             },
             onDismiss = { dialogs.changingPictureOf = null },
+        )
+    }
+
+    dialogs.editingNote?.let { (owner, note) ->
+        NoteDialog(
+            initial = note,
+            onSave = {
+                viewModel.setNote(owner, it)
+                dialogs.editingNote = null
+            },
+            onDismiss = { dialogs.editingNote = null },
         )
     }
 

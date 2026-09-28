@@ -50,6 +50,8 @@ data class CityEntity(
     val sortKey: String,
     val priority: Priority,
     val imageUrl: String,
+    /** Anything worth remembering about the city as a whole. */
+    val notes: String,
 ) : SyncEntity
 
 @Entity(

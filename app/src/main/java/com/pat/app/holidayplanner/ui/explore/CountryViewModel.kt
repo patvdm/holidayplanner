@@ -208,8 +208,20 @@ class CountryViewModel(
         }
     }
 
-    fun setCityPriority(id: String, priority: Priority) {
-        viewModelScope.launch { repos.cities.setPriority(id, priority) }
+    /** The priority of a city or a spot. */
+    fun setPriority(place: AttachmentOwner, priority: Priority) {
+        viewModelScope.launch {
+            if (place.cityId.isNotEmpty()) repos.cities.setPriority(place.cityId, priority)
+            if (place.spotId.isNotEmpty()) repos.spots.setPriority(place.spotId, priority)
+        }
+    }
+
+    /** The note of a city or a spot. Blank removes it. */
+    fun setNote(place: AttachmentOwner, note: String) {
+        viewModelScope.launch {
+            if (place.cityId.isNotEmpty()) repos.cities.setNotes(place.cityId, note)
+            if (place.spotId.isNotEmpty()) repos.spots.setNotes(place.spotId, note)
+        }
     }
 
     fun renameCity(id: String, name: String) {
@@ -288,10 +300,6 @@ class CountryViewModel(
 
     fun toggleHeart(spotId: String) {
         viewModelScope.launch { repos.spots.toggleHeart(spotId) }
-    }
-
-    fun setSpotPriority(id: String, priority: Priority) {
-        viewModelScope.launch { repos.spots.setPriority(id, priority) }
     }
 
     fun setSpotStatus(id: String, status: SpotStatus) {

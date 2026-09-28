@@ -52,6 +52,7 @@ class CityRepository(
             sortKey = SortKey.after(dao.lastSortKey(countryId)),
             priority = Priority.NORMAL,
             imageUrl = "",
+            notes = "",
         )
         dao.upsert(listOf(place))
         writer.requestSync()
@@ -67,6 +68,8 @@ class CityRepository(
     suspend fun rename(id: String, name: String) = edit(id) { it.copy(name = name.trim()) }
 
     suspend fun setPriority(id: String, priority: Priority) = edit(id) { it.copy(priority = priority) }
+
+    suspend fun setNotes(id: String, notes: String) = edit(id) { it.copy(notes = notes.trim()) }
 
     /** Blank asks for a picture to be found again; anything else is kept as given. */
     suspend fun setImageUrl(id: String, url: String) = edit(id) { it.copy(imageUrl = url.trim()) }

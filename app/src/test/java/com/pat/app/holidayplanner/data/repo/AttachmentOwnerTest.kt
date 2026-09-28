@@ -98,6 +98,7 @@ class AttachmentOwnerTest {
         sortKey = sortKey,
         priority = Priority.NORMAL,
         imageUrl = "",
+        notes = "",
     )
 
     private fun spot(id: String, name: String, cityId: String, sortKey: String) = SpotEntity(

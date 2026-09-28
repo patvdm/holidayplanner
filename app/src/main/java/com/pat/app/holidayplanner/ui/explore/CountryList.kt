@@ -37,7 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import com.pat.app.holidayplanner.R
@@ -58,7 +57,7 @@ import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.Thumbnail
 import com.pat.app.holidayplanner.ui.components.TypeBadge
-import com.pat.app.holidayplanner.ui.components.firstLine
+import com.pat.app.holidayplanner.ui.components.noteOrNull
 import com.pat.app.holidayplanner.ui.components.label
 import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
 import sh.calvin.reorderable.ReorderableItem
@@ -307,6 +306,9 @@ private fun CityHeader(section: CitySection, actions: CountryActions) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                city.notes.noteOrNull()?.let { note ->
+                    Text(text = note, style = MaterialTheme.typography.bodySmall)
+                }
             }
             PriorityBadge(city.priority)
             CityMenu(city = city, actions = actions)
@@ -341,6 +343,8 @@ private fun CityMenu(city: CityEntity, actions: CountryActions) {
     val putKeyboardAway = rememberKeyboardDismiss()
     val owner = AttachmentOwner(cityId = city.meta.id)
     val entries = listOf(
+        (if (city.notes.isBlank()) R.string.note_add else R.string.note_edit) to
+            { actions.onEditNote(owner, city.notes) },
         R.string.spot_add_photo to { actions.onAddPhoto(owner) },
         R.string.spot_add_link to { actions.onAddLink(owner) },
         R.string.picture_change to { actions.onChangePicture(city.meta.id) },
@@ -471,12 +475,10 @@ private fun SpotRowItem(
                     TypeBadge(row.spot.type)
                 }
                 // The reason a place was saved is usually the first thing written about it.
-                row.spot.notes.firstLine()?.let { note ->
+                row.spot.notes.noteOrNull()?.let { note ->
                     Text(
                         text = note,
                         style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -525,6 +527,15 @@ private fun SpotRowMenu(row: SpotRow, actions: CountryActions) {
             },
             properties = PopupProperties(focusable = false),
         ) {
+            val noteLabel = if (row.spot.notes.isBlank()) R.string.note_add else R.string.note_edit
+            DropdownMenuItem(
+                text = { Text(stringResource(noteLabel)) },
+                onClick = {
+                    expanded = false
+                    actions.onEditNote(AttachmentOwner(spotId = id), row.spot.notes)
+                },
+            )
+            HorizontalDivider()
             Priority.entries.forEach { priority ->
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.menu_set_priority, stringResource(priority.label()))) },
@@ -621,6 +632,9 @@ interface CountryActions {
     val onUseAsPicture: (LinkEntity) -> Unit
     val onAddPhoto: (AttachmentOwner) -> Unit
     val onAddLink: (AttachmentOwner) -> Unit
+
+    /** Opens the note of a city or a spot, with what it says now. */
+    val onEditNote: (AttachmentOwner, String) -> Unit
 
     /** Empty for the country's own picture, a city id for that city's. */
     val onChangePicture: (String) -> Unit
