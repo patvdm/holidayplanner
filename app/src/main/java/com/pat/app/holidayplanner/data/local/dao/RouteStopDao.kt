@@ -18,11 +18,11 @@ interface RouteStopDao : SyncDao<RouteStopEntity> {
     @Query(
         """
         SELECT r.id AS stopId, r.sortKey AS sortKey, r.spotId AS spotId,
-            s.name AS name, c.id AS cityId, c.name AS cityName, s.address AS address,
+            s.name AS name, s.parentCityId AS cityId, COALESCE(c.name, '') AS cityName, s.address AS address,
             s.lat AS lat, s.lng AS lng, s.googlePlaceId AS googlePlaceId
         FROM route_stops r
         JOIN spots s ON s.id = r.spotId
-        JOIN cities c ON c.id = s.parentCityId
+        LEFT JOIN cities c ON c.id = s.parentCityId
         WHERE r.routeId = :routeId AND r.deleted = 0 AND s.deleted = 0
         ORDER BY r.sortKey, r.id
         """,

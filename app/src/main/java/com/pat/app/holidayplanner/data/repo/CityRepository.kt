@@ -3,6 +3,7 @@ package com.pat.app.holidayplanner.data.repo
 import com.pat.app.holidayplanner.data.local.CityEntity
 import com.pat.app.holidayplanner.data.local.CityOption
 import com.pat.app.holidayplanner.data.local.CityRow
+import com.pat.app.holidayplanner.data.local.SpotHome
 import com.pat.app.holidayplanner.data.local.SyncMeta
 import com.pat.app.holidayplanner.data.local.dao.CascadeDao
 import com.pat.app.holidayplanner.data.local.dao.CityDao
@@ -26,8 +27,11 @@ class CityRepository(
     /** Cities with their spot counts, as the country screen shows them. */
     fun observeRows(countryId: String): Flow<List<CityRow>> = dao.observeRows(countryId)
 
-    /** Every city with its country name, for moving a spot. */
+    /** Every city with its country name, for choosing a city. */
     fun observeOptions(): Flow<List<CityOption>> = dao.observeOptions()
+
+    /** Every country and city a spot could be filed under. */
+    fun observeHomes(): Flow<List<SpotHome>> = dao.observeHomes()
 
     suspend fun add(
         countryId: String,

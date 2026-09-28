@@ -23,6 +23,7 @@ interface LinkDao : SyncDao<LinkEntity> {
         WHERE deleted = 0 AND (
             countryId = :countryId
             OR cityId IN (SELECT id FROM cities WHERE countryId = :countryId AND deleted = 0)
+            OR spotId IN (SELECT id FROM spots WHERE parentCountryId = :countryId AND deleted = 0)
             OR spotId IN (
                 SELECT s.id FROM spots s JOIN cities c ON c.id = s.parentCityId
                 WHERE c.countryId = :countryId AND s.deleted = 0 AND c.deleted = 0

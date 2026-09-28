@@ -19,8 +19,8 @@ interface CountryDao : SyncDao<CountryEntity> {
         """
         SELECT c.*,
             (SELECT COUNT(*) FROM cities p WHERE p.countryId = c.id AND p.deleted = 0) AS cityCount,
-            (SELECT COUNT(*) FROM spots s WHERE s.deleted = 0 AND s.parentCityId IN
-                (SELECT p2.id FROM cities p2 WHERE p2.countryId = c.id AND p2.deleted = 0)) AS spotCount
+            (SELECT COUNT(*) FROM spots s WHERE s.deleted = 0 AND (s.parentCountryId = c.id OR s.parentCityId IN
+                (SELECT p2.id FROM cities p2 WHERE p2.countryId = c.id AND p2.deleted = 0))) AS spotCount
         FROM countries c
         WHERE c.deleted = 0
         ORDER BY c.sortKey, c.id
@@ -48,7 +48,10 @@ interface CountryDao : SyncDao<CountryEntity> {
     @Query(
         """
         SELECT COUNT(*) FROM spots
-        WHERE deleted = 0 AND parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId AND deleted = 0)
+        WHERE deleted = 0 AND (
+            parentCountryId = :countryId
+            OR parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId AND deleted = 0)
+        )
         """,
     )
     suspend fun countSpots(countryId: String): Int

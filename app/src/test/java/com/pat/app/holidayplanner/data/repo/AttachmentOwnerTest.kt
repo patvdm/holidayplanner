@@ -15,7 +15,7 @@ import org.junit.Test
 class AttachmentOwnerTest {
 
     @Test
-    fun `targets list the country, then each city in its order followed by its spots in theirs`() {
+    fun `targets list the country, its own spots, then each city in its order followed by its spots in theirs`() {
         val targets = attachmentTargets(
             country = country("nl", "Netherlands"),
             cities = listOf(city("ams", "Amsterdam", sortKey = "V"), city("dh", "The Hague", sortKey = "G")),
@@ -23,12 +23,14 @@ class AttachmentOwnerTest {
                 spot("rijks", "Rijksmuseum", cityId = "ams", sortKey = "k"),
                 spot("maur", "Mauritshuis", cityId = "dh", sortKey = "V"),
                 spot("vondel", "Vondelpark", cityId = "ams", sortKey = "G"),
+                spot("dunes", "Dunes", cityId = "", sortKey = "V"),
             ),
         )
 
         assertEquals(
             listOf(
                 "Netherlands" to 0,
+                "Dunes" to 1,
                 "The Hague" to 1,
                 "Mauritshuis" to 2,
                 "Amsterdam" to 1,
@@ -38,8 +40,9 @@ class AttachmentOwnerTest {
             targets.map { it.name to it.depth },
         )
         assertEquals(AttachmentOwner(countryId = "nl"), targets[0].owner)
-        assertEquals(AttachmentOwner(cityId = "dh"), targets[1].owner)
-        assertEquals(AttachmentOwner(spotId = "maur"), targets[2].owner)
+        assertEquals(AttachmentOwner(spotId = "dunes"), targets[1].owner)
+        assertEquals(AttachmentOwner(cityId = "dh"), targets[2].owner)
+        assertEquals(AttachmentOwner(spotId = "maur"), targets[3].owner)
     }
 
     @Test
@@ -100,6 +103,7 @@ class AttachmentOwnerTest {
     private fun spot(id: String, name: String, cityId: String, sortKey: String) = SpotEntity(
         meta = meta(id),
         parentCityId = cityId,
+        parentCountryId = if (cityId.isEmpty()) "nl" else "",
         name = name,
         type = SpotType.POI,
         googlePlaceId = "",

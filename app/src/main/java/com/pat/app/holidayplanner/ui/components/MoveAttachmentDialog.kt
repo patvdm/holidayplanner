@@ -49,7 +49,7 @@ fun MoveAttachmentDialog(
                 targets.filter { it.owner != current }.forEach { target ->
                     Text(
                         text = target.name,
-                        style = if (target.depth < 2) {
+                        style = if (target.owner.spotId.isEmpty()) {
                             MaterialTheme.typography.titleSmall
                         } else {
                             MaterialTheme.typography.bodyMedium

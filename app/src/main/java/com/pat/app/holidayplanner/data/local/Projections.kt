@@ -50,6 +50,20 @@ data class CityOption(
     val countryName: String,
 )
 
+/**
+ * Somewhere a spot can live: a city, or a country itself when [cityId] is empty. Offered when
+ * moving a spot, countries in their dragged order with each one's cities after it.
+ */
+data class SpotHome(
+    val countryId: String,
+    val countryName: String,
+    val isoCode: String,
+    val cityId: String,
+    val cityName: String,
+) {
+    val isCountry: Boolean get() = cityId.isEmpty()
+}
+
 /** A spot as offered by the picker, with the hierarchy that identifies it. */
 data class SpotPickerRow(
     val spotId: String,
@@ -60,7 +74,8 @@ data class SpotPickerRow(
     val countryName: String,
     val isoCode: String,
 ) {
-    val group: String get() = "$countryName › $cityName"
+    /** A spot of the country itself has no city to name. */
+    val group: String get() = if (cityName.isBlank()) countryName else "$countryName › $cityName"
 }
 
 

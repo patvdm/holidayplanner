@@ -170,7 +170,12 @@ private fun SpotListItem(row: SpotListRow, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(row.spot.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = stringResource(R.string.spots_where, row.cityName, row.countryName),
+                    // A spot of the country itself has no city to name.
+                    text = if (row.cityName.isBlank()) {
+                        row.countryName
+                    } else {
+                        stringResource(R.string.spots_where, row.cityName, row.countryName)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

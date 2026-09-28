@@ -55,11 +55,14 @@ data class CityEntity(
 @Entity(
     tableName = "spots",
     primaryKeys = ["id"],
-    indices = [Index("parentCityId"), Index("sortKey")],
+    indices = [Index("parentCityId"), Index("parentCountryId"), Index("sortKey")],
 )
 data class SpotEntity(
     @Embedded override val meta: SyncMeta,
+    /** The city the spot is in. Empty for a spot that belongs to its country as a whole. */
     val parentCityId: String,
+    /** Set only when [parentCityId] is empty: the country the spot belongs to directly. */
+    val parentCountryId: String,
     val name: String,
     /** POI unless somebody said otherwise. */
     val type: SpotType,

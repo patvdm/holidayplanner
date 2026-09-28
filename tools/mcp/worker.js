@@ -325,6 +325,13 @@ async function listPlaces({ country, details }, env) {
   const lines = [];
   for (const c of countries) {
     lines.push(`${c.name} (${c.isoCode})${c.priority === 'HIGH' ? ' [high]' : ''}${picture(c, details)}`);
+    // Spots that belong to the country itself, with no city, come before its cities.
+    const own = inOrder(spots.filter((s) => !s.parentCityId && s.parentCountryId === c.id));
+    if (own.length && !details) lines.push(`  (country): ${own.map((s) => s.name + tagsOf(s)).join('; ')}`);
+    if (own.length && details) {
+      lines.push('  (country)');
+      for (const s of own) lines.push(`    ${s.name}${tagsOf(s)}${picture(s, true)}`);
+    }
     for (const city of inOrder(cities.filter((x) => x.countryId === c.id))) {
       const here = inOrder(spots.filter((s) => s.parentCityId === city.id));
       if (!details) {

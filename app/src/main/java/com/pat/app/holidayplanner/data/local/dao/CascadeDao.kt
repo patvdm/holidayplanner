@@ -37,7 +37,10 @@ interface CascadeDao {
     @Query(
         """
         UPDATE spots SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
-        WHERE deleted = 0 AND parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
+        WHERE deleted = 0 AND (
+            parentCountryId = :countryId
+            OR parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
+        )
         """,
     )
     suspend fun deleteSpotsOfCountry(countryId: String, now: Long, userId: String)
@@ -63,7 +66,8 @@ interface CascadeDao {
         UPDATE links SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
         WHERE deleted = 0 AND (
             spotId IN (
-                SELECT id FROM spots WHERE parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
+                SELECT id FROM spots WHERE parentCountryId = :countryId
+                OR parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
             )
             OR cityId IN (SELECT id FROM cities WHERE countryId = :countryId)
             OR countryId = :countryId
@@ -94,7 +98,8 @@ interface CascadeDao {
         """
         UPDATE hearts SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
         WHERE deleted = 0 AND spotId IN (
-            SELECT id FROM spots WHERE parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
+            SELECT id FROM spots WHERE parentCountryId = :countryId
+                OR parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
         )
         """,
     )
@@ -202,7 +207,8 @@ interface CascadeDao {
         """
         UPDATE route_stops SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
         WHERE deleted = 0 AND spotId IN (
-            SELECT id FROM spots WHERE parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
+            SELECT id FROM spots WHERE parentCountryId = :countryId
+                OR parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
         )
         """,
     )

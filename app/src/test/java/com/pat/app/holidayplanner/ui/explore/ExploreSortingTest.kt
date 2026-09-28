@@ -30,6 +30,7 @@ class ExploreSortingTest {
         spot = SpotEntity(
             meta = meta(id, 1),
             parentCityId = "p1",
+            parentCountryId = "",
             name = name,
             type = SpotType.POI,
             googlePlaceId = "",

@@ -77,6 +77,7 @@ class SheetMappingTest {
         val entity = SpotEntity(
             meta = meta,
             parentCityId = "p1",
+            parentCountryId = "",
             name = "Mauritshuis",
             type = SpotType.POI,
             googlePlaceId = "xyz",
@@ -91,6 +92,32 @@ class SheetMappingTest {
             imageUrl = "https://upload.wikimedia.org/mauritshuis.jpg",
         )
         assertEquals(entity, spotFromRow(SheetRow(spotToRow(entity))))
+    }
+
+    @Test
+    fun `a spot of the country itself keeps its country and no city`() {
+        val row = spotToRow(
+            SpotEntity(
+                meta = meta,
+                parentCityId = "",
+                parentCountryId = "c1",
+                name = "Dunes",
+                type = SpotType.POI,
+                googlePlaceId = "",
+                lat = null,
+                lng = null,
+                address = "",
+                mapsUrl = "",
+                notes = "",
+                status = SpotStatus.UNVISITED,
+                sortKey = "V",
+                priority = Priority.NORMAL,
+                imageUrl = "",
+            ),
+        )
+        val back = spotFromRow(SheetRow(row))
+        assertEquals("", back?.parentCityId)
+        assertEquals("c1", back?.parentCountryId)
     }
 
     @Test

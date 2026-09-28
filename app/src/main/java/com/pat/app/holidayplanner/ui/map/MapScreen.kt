@@ -126,7 +126,7 @@ private fun SpotMap(
                 Marker(
                     state = rememberUpdatedMarkerState(position = LatLng(pin.lat, pin.lng)),
                     title = pin.name,
-                    snippet = pin.cityName,
+                    snippet = pin.cityName.ifBlank { pin.countryName },
                     icon = BitmapDescriptorFactory.defaultMarker(pin.status.markerHue()),
                     onClick = {
                         selected = pin
@@ -160,7 +160,7 @@ private fun SpotCard(pin: SpotPin, onOpen: () -> Unit, modifier: Modifier = Modi
             Column(modifier = Modifier.weight(1f)) {
                 Text(pin.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = pin.cityName,
+                    text = pin.cityName.ifBlank { pin.countryName },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -102,21 +102,31 @@ private fun cityKey(id: String) = "city:$id"
 
 private fun spotKey(id: String) = "spot:$id"
 
-private fun buildEntries(state: CountryUiState, orderOf: (CitySection) -> List<SpotRow>): List<Entry> = buildList {
+/**
+ * [orderOf] gives the spots of a group in the order to show them: a city's by its id, the country's
+ * own by an empty id.
+ */
+private fun buildEntries(
+    state: CountryUiState,
+    orderOf: (String, List<SpotRow>) -> List<SpotRow>,
+): List<Entry> = buildList {
     add(Entry.Hero)
     if (state.countryAttachments.isNotEmpty()) add(Entry.CountryOwn)
-    if (state.sections.isNotEmpty()) add(Entry.Filters) else add(Entry.NoCities)
+    if (state.isEmpty) add(Entry.NoCities) else add(Entry.Filters)
+    // The country's own spots come first, above every city, with no heading of their own.
+    orderOf("", state.countrySpots).forEach { add(Entry.Spot(it)) }
     state.sections.forEach { section ->
         add(Entry.City(section))
         if (section.expanded) {
-            val spots = orderOf(section)
+            val spots = orderOf(section.city.meta.id, section.spots)
             if (spots.isEmpty()) add(Entry.NoSpots(section.city.meta.id)) else spots.forEach { add(Entry.Spot(it)) }
         }
     }
 }
 
 /**
- * A spot being dragged, and the order its city's spots are in while it is. The order is held on to
+ * A spot being dragged, and the order the spots of its city (or of the country itself, for an empty
+ * [cityId]) are in while it is. The order is held on to
  * after the finger lifts until the database answers, or the row would jump back for a moment.
  */
 private data class SpotDrag(val cityId: String, val order: List<SpotRow>, val movedId: String? = null)
@@ -141,8 +151,8 @@ fun CountryContent(
         if (!dragging) drag = null
     }
 
-    val entries = buildEntries(state) { section ->
-        drag?.takeIf { it.cityId == section.city.meta.id }?.order ?: section.spots
+    val entries = buildEntries(state) { groupId, spots ->
+        drag?.takeIf { it.cityId == groupId }?.order ?: spots
     }
 
     val reorderState = rememberReorderableLazyListState(listState) { from, to ->
@@ -166,13 +176,12 @@ fun CountryContent(
                 row = entry.row,
                 reorderState = reorderState,
                 state = state,
-                // Only the spots of the city being dragged in make way, so a spot never lands in another city.
+                // Only the spots of the group being dragged in make way, so a spot never changes city by dragging.
                 enabled = state.canReorderSpots && drag.let { it == null || it.cityId == cityId },
                 actions = actions,
                 onDragStarted = {
                     dragging = true
-                    val section = state.sections.first { it.city.meta.id == cityId }
-                    drag = SpotDrag(cityId, section.spots)
+                    drag = SpotDrag(cityId, state.spotsOf(cityId))
                 },
                 onDragStopped = {
                     dragging = false
@@ -264,7 +273,7 @@ private fun persistSpotMove(drag: SpotDrag, onMoved: (String, String?, String?) 
 /** Where the list sits for [cityId], so a search result can open the country scrolled to its city. */
 fun CountryUiState.indexOfCity(cityId: String): Int {
     if (cityId.isEmpty()) return -1
-    return buildEntries(this) { it.spots }.indexOfFirst { it.key == cityKey(cityId) }
+    return buildEntries(this) { _, spots -> spots }.indexOfFirst { it.key == cityKey(cityId) }
 }
 
 /** How far a city's spots sit in from the city above them, so the nesting reads at a glance. */

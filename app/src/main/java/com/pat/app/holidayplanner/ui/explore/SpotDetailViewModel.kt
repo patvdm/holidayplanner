@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.HeartRow
 import com.pat.app.holidayplanner.data.local.LinkEntity
-import com.pat.app.holidayplanner.data.local.CityOption
+import com.pat.app.holidayplanner.data.local.SpotHome
 import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.local.SpotEntity
 import android.net.Uri
@@ -40,7 +40,8 @@ data class SpotDetailUiState(
     val context: SpotContext? = null,
     val hearts: List<HeartRow> = emptyList(),
     val links: List<LinkEntity> = emptyList(),
-    val cities: List<CityOption> = emptyList(),
+    /** Every country and city this spot could be moved to. */
+    val homes: List<SpotHome> = emptyList(),
     /** Everywhere in this spot's country a photo or link of it could be moved to. */
     val targets: List<AttachmentTarget> = emptyList(),
     val currentUserId: String = "",
@@ -79,7 +80,7 @@ data class SpotDetailUiState(
 private data class SpotBundle(
     val hearts: List<HeartRow>,
     val links: List<LinkEntity>,
-    val cities: List<CityOption>,
+    val homes: List<SpotHome>,
     val targets: List<AttachmentTarget>,
 )
 
@@ -105,7 +106,7 @@ class SpotDetailViewModel(
     private val bundle: Flow<SpotBundle> = combine(
         spotRepository.observeHeartNames(spotId),
         linkRepository.observeLinks(spotId),
-        cityRepository.observeOptions(),
+        cityRepository.observeHomes(),
         targets,
         ::SpotBundle,
     )
@@ -122,7 +123,7 @@ class SpotDetailViewModel(
             context = context,
             hearts = parts.hearts,
             links = parts.links,
-            cities = parts.cities,
+            homes = parts.homes,
             targets = parts.targets,
             currentUserId = userId.orEmpty(),
             savingPhoto = saving,
@@ -154,8 +155,8 @@ class SpotDetailViewModel(
         viewModelScope.launch { spotRepository.toggleHeart(spotId) }
     }
 
-    fun moveToPlace(cityId: String) {
-        viewModelScope.launch { spotRepository.moveToPlace(spotId, cityId) }
+    fun moveTo(home: SpotHome) {
+        viewModelScope.launch { spotRepository.moveTo(spotId, home) }
     }
 
     /**

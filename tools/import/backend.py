@@ -88,6 +88,10 @@ if __name__ == "__main__":
     spots = live.get("Spots", [])
     for c in countries:
         print(f"{c['isoCode']} {c['name']}")
+        own = [s["name"] for s in sorted(spots, key=lambda r: r.get("sortKey", ""))
+               if not s.get("parentCityId") and s.get("parentCountryId") == c["id"]]
+        if own:
+            print(f"   (country): {', '.join(own)}")
         for ci in sorted([x for x in cities if x["countryId"] == c["id"]], key=lambda r: r.get("sortKey", "")):
             names = [s["name"] for s in sorted(spots, key=lambda r: r.get("sortKey", "")) if s["parentCityId"] == ci["id"]]
             print(f"   {ci['name']}: {', '.join(names)}")

@@ -6,6 +6,7 @@ import androidx.room.Upsert
 import com.pat.app.holidayplanner.data.local.CityEntity
 import com.pat.app.holidayplanner.data.local.CityOption
 import com.pat.app.holidayplanner.data.local.CityRow
+import com.pat.app.holidayplanner.data.local.SpotHome
 import com.pat.app.holidayplanner.data.local.SyncDao
 import kotlinx.coroutines.flow.Flow
 
@@ -40,6 +41,21 @@ interface CityDao : SyncDao<CityEntity> {
         """,
     )
     fun observeOptions(): Flow<List<CityOption>>
+
+    /** Every country and every city, the country first and its cities after it, for moving a spot. */
+    @Query(
+        """
+        SELECT c.id AS countryId, c.name AS countryName, c.isoCode AS isoCode, '' AS cityId, '' AS cityName,
+            c.sortKey AS countrySort, '' AS citySort
+        FROM countries c WHERE c.deleted = 0
+        UNION ALL
+        SELECT c.id, c.name, c.isoCode, p.id, p.name, c.sortKey, p.sortKey
+        FROM cities p JOIN countries c ON c.id = p.countryId
+        WHERE p.deleted = 0 AND c.deleted = 0
+        ORDER BY countrySort, countryId, citySort, cityId
+        """,
+    )
+    fun observeHomes(): Flow<List<SpotHome>>
 
     /** Cities nobody has found a picture for yet. */
     @Query(

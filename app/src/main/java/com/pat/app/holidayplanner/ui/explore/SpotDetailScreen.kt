@@ -44,7 +44,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
-import com.pat.app.holidayplanner.data.local.CityOption
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
@@ -56,7 +55,6 @@ import com.pat.app.holidayplanner.ui.components.PhotoRoll
 import com.pat.app.holidayplanner.ui.components.PhotoViewer
 import com.pat.app.holidayplanner.ui.components.PictureDialog
 import com.pat.app.holidayplanner.ui.components.MoveAttachmentDialog
-import com.pat.app.holidayplanner.ui.components.PickFromListDialog
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import com.pat.app.holidayplanner.ui.components.label
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -138,7 +136,11 @@ fun SpotDetailScreen(
                     imageUrl = spot.imageUrl,
                     title = spot.name,
                     subtitle = state.context?.let {
-                        stringResource(R.string.spot_breadcrumb, it.countryName, it.cityName)
+                        if (it.cityName.isBlank()) {
+                            it.countryName
+                        } else {
+                            stringResource(R.string.spot_breadcrumb, it.countryName, it.cityName)
+                        }
                     },
                 )
             }
@@ -348,15 +350,15 @@ private fun SpotDialogs(
         )
     }
 
-    if (dialogs.movingSpot) {
-        PickFromListDialog(
-            title = stringResource(R.string.spot_move),
-            options = state.cities
-                .filter { it.cityId != state.context?.cityId }
-                .map { it.cityId to "${it.countryName} › ${it.cityName}" },
+    val spot = state.spot
+    if (dialogs.movingSpot && spot != null) {
+        MoveSpotDialog(
+            spot = spot,
+            homes = state.homes,
+            hereFirst = state.context?.countryId,
             onPick = {
                 dialogs.movingSpot = false
-                viewModel.moveToPlace(it)
+                viewModel.moveTo(it)
             },
             onDismiss = { dialogs.movingSpot = false },
         )

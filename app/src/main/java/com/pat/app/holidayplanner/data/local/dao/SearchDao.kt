@@ -27,9 +27,11 @@ interface SearchDao {
         WHERE p.deleted = 0 AND co.deleted = 0 AND p.name LIKE :like ESCAPE '\'
 
         UNION ALL
-        SELECT 'SPOT', s.id, s.id, s.name, ci.name
-        FROM spots s JOIN cities ci ON ci.id = s.parentCityId
-        WHERE s.deleted = 0 AND ci.deleted = 0 AND (
+        SELECT 'SPOT', s.id, s.id, s.name, COALESCE(ci.name, co.name)
+        FROM spots s
+        LEFT JOIN cities ci ON ci.id = s.parentCityId
+        JOIN countries co ON co.id = CASE WHEN s.parentCityId = '' THEN s.parentCountryId ELSE ci.countryId END
+        WHERE s.deleted = 0 AND (s.parentCityId = '' OR ci.deleted = 0) AND co.deleted = 0 AND (
             s.name LIKE :like ESCAPE '\' OR s.notes LIKE :like ESCAPE '\'
             OR s.address LIKE :like ESCAPE '\'
         )

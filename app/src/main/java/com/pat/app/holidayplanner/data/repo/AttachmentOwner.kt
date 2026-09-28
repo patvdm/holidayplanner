@@ -24,7 +24,7 @@ data class AttachmentTarget(val owner: AttachmentOwner, val name: String, val de
 
 /**
  * Everything in one country that can carry a photo or a link, in the order the country screen
- * shows it: the country, then each city followed by its spots.
+ * shows it: the country, its own spots, then each city followed by its spots.
  */
 fun attachmentTargets(
     country: CountryEntity,
@@ -42,8 +42,11 @@ fun attachmentTargets(
                     AttachmentTarget(AttachmentOwner(spotId = spot.meta.id), spot.name, depth = 2)
                 }
         }
+    val ownSpots = spotsByCity[""].orEmpty().map { spot ->
+        AttachmentTarget(AttachmentOwner(spotId = spot.meta.id), spot.name, depth = 1)
+    }
     return listOf(AttachmentTarget(AttachmentOwner(countryId = country.meta.id), country.name, depth = 0)) +
-        cityTargets
+        ownSpots + cityTargets
 }
 
 /** A country's photos and links, sorted by what they hang on. */

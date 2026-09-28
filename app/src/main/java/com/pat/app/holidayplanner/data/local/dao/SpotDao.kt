@@ -36,8 +36,9 @@ interface SpotDao : SyncDao<SpotEntity> {
             (SELECT COUNT(*) FROM hearts m WHERE m.spotId = s.id AND m.userId = :userId AND m.deleted = 0) > 0
                 AS heartedByMe
         FROM spots s
-        WHERE s.deleted = 0 AND s.parentCityId IN (
-            SELECT id FROM cities WHERE countryId = :countryId AND deleted = 0
+        WHERE s.deleted = 0 AND (
+            s.parentCountryId = :countryId
+            OR s.parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId AND deleted = 0)
         )
         ORDER BY s.sortKey, s.id
         """,
@@ -47,11 +48,12 @@ interface SpotDao : SyncDao<SpotEntity> {
     /** Every spot anywhere, with where it is, for the Spots tab. */
     @Query(
         """
-        SELECT s.*, p.name AS cityName, c.id AS countryId, c.name AS countryName, c.isoCode AS isoCode
+        SELECT s.*, COALESCE(p.name, '') AS cityName, c.id AS countryId, c.name AS countryName,
+            c.isoCode AS isoCode
         FROM spots s
-        JOIN cities p ON p.id = s.parentCityId
-        JOIN countries c ON c.id = p.countryId
-        WHERE s.deleted = 0 AND p.deleted = 0 AND c.deleted = 0
+        LEFT JOIN cities p ON p.id = s.parentCityId
+        JOIN countries c ON c.id = CASE WHEN s.parentCityId = '' THEN s.parentCountryId ELSE p.countryId END
+        WHERE s.deleted = 0 AND (s.parentCityId = '' OR p.deleted = 0) AND c.deleted = 0
         """,
     )
     fun observeAllRows(): Flow<List<SpotListRow>>
@@ -59,13 +61,13 @@ interface SpotDao : SyncDao<SpotEntity> {
     /** Every spot with the hierarchy above it, for searching and grouping in the picker. */
     @Query(
         """
-        SELECT s.id AS spotId, s.name AS spotName, p.id AS cityId, p.name AS cityName,
+        SELECT s.id AS spotId, s.name AS spotName, s.parentCityId AS cityId, COALESCE(p.name, '') AS cityName,
             c.id AS countryId, c.name AS countryName, c.isoCode AS isoCode
         FROM spots s
-        JOIN cities p ON p.id = s.parentCityId
-        JOIN countries c ON c.id = p.countryId
-        WHERE s.deleted = 0 AND p.deleted = 0 AND c.deleted = 0
-        ORDER BY c.name COLLATE NOCASE, p.name COLLATE NOCASE, s.name COLLATE NOCASE
+        LEFT JOIN cities p ON p.id = s.parentCityId
+        JOIN countries c ON c.id = CASE WHEN s.parentCityId = '' THEN s.parentCountryId ELSE p.countryId END
+        WHERE s.deleted = 0 AND (s.parentCityId = '' OR p.deleted = 0) AND c.deleted = 0
+        ORDER BY c.name COLLATE NOCASE, COALESCE(p.name, '') COLLATE NOCASE, s.name COLLATE NOCASE
         """,
     )
     fun observePickerRows(): Flow<List<SpotPickerRow>>
@@ -73,10 +75,11 @@ interface SpotDao : SyncDao<SpotEntity> {
     /** The place and country a spot belongs to. */
     @Query(
         """
-        SELECT p.id AS cityId, p.name AS cityName, c.id AS countryId, c.name AS countryName, c.isoCode AS isoCode
+        SELECT s.parentCityId AS cityId, COALESCE(p.name, '') AS cityName, c.id AS countryId,
+            c.name AS countryName, c.isoCode AS isoCode
         FROM spots s
-        JOIN cities p ON p.id = s.parentCityId
-        JOIN countries c ON c.id = p.countryId
+        LEFT JOIN cities p ON p.id = s.parentCityId
+        JOIN countries c ON c.id = CASE WHEN s.parentCityId = '' THEN s.parentCountryId ELSE p.countryId END
         WHERE s.id = :spotId
         """,
     )
@@ -85,11 +88,12 @@ interface SpotDao : SyncDao<SpotEntity> {
     /** Spots nobody has found a picture for yet, with where they are so the search can say so. */
     @Query(
         """
-        SELECT s.*, p.name AS cityName, c.id AS countryId, c.name AS countryName, c.isoCode AS isoCode
+        SELECT s.*, COALESCE(p.name, '') AS cityName, c.id AS countryId, c.name AS countryName,
+            c.isoCode AS isoCode
         FROM spots s
-        JOIN cities p ON p.id = s.parentCityId
-        JOIN countries c ON c.id = p.countryId
-        WHERE s.deleted = 0 AND p.deleted = 0 AND c.deleted = 0 AND s.imageUrl = ''
+        LEFT JOIN cities p ON p.id = s.parentCityId
+        JOIN countries c ON c.id = CASE WHEN s.parentCityId = '' THEN s.parentCountryId ELSE p.countryId END
+        WHERE s.deleted = 0 AND (s.parentCityId = '' OR p.deleted = 0) AND c.deleted = 0 AND s.imageUrl = ''
         ORDER BY s.createdAt DESC
         """,
     )
@@ -108,24 +112,26 @@ interface SpotDao : SyncDao<SpotEntity> {
     @Query(
         """
         SELECT s.id AS spotId, s.name AS name, s.lat AS lat, s.lng AS lng, s.status AS status,
-            ci.id AS cityId, ci.name AS cityName, co.id AS countryId, co.name AS countryName
+            s.parentCityId AS cityId, COALESCE(p.name, '') AS cityName, c.id AS countryId,
+            c.name AS countryName
         FROM spots s
-        JOIN cities ci ON ci.id = s.parentCityId
-        JOIN countries co ON co.id = ci.countryId
-        WHERE s.deleted = 0 AND ci.deleted = 0 AND co.deleted = 0
+        LEFT JOIN cities p ON p.id = s.parentCityId
+        JOIN countries c ON c.id = CASE WHEN s.parentCityId = '' THEN s.parentCountryId ELSE p.countryId END
+        WHERE s.deleted = 0 AND (s.parentCityId = '' OR p.deleted = 0) AND c.deleted = 0
             AND s.lat IS NOT NULL AND s.lng IS NOT NULL
         """,
     )
     fun observePins(): Flow<List<SpotPin>>
 
+    /** The last spot in a city, or among a country's own spots when [cityId] is empty. */
     @Query(
         """
         SELECT sortKey FROM spots
-        WHERE parentCityId = :cityId AND deleted = 0
+        WHERE parentCityId = :cityId AND parentCountryId = :countryId AND deleted = 0
         ORDER BY sortKey DESC, id DESC LIMIT 1
         """,
     )
-    suspend fun lastSortKey(cityId: String): String?
+    suspend fun lastSortKey(cityId: String, countryId: String): String?
 
     @Query("SELECT * FROM spots WHERE dirty = 1 ORDER BY updatedAt LIMIT :limit")
     override suspend fun dirty(limit: Int): List<SpotEntity>

@@ -51,7 +51,6 @@ import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.MoveAttachmentDialog
 import com.pat.app.holidayplanner.ui.components.PhotoViewer
-import com.pat.app.holidayplanner.ui.components.PickFromListDialog
 import com.pat.app.holidayplanner.ui.components.PictureDialog
 import com.pat.app.holidayplanner.ui.components.SortMenu
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
@@ -345,16 +344,12 @@ private fun CountryDialogs(state: CountryUiState, dialogs: CountryDialogs, viewM
     }
 
     dialogs.movingSpot?.let { row ->
-        val here = state.country?.meta?.id
-        PickFromListDialog(
-            title = stringResource(R.string.spot_move),
-            // This country's cities first: a spot filed in the wrong town is usually one town over.
-            options = state.cityOptions
-                .filter { it.cityId != row.spot.parentCityId }
-                .sortedBy { it.countryId != here }
-                .map { it.cityId to "${it.countryName} › ${it.cityName}" },
+        MoveSpotDialog(
+            spot = row.spot,
+            homes = state.homes,
+            hereFirst = state.country?.meta?.id,
             onPick = {
-                viewModel.moveSpotToCity(row.spot.meta.id, it)
+                viewModel.moveSpotTo(row.spot.meta.id, it)
                 dialogs.movingSpot = null
             },
             onDismiss = { dialogs.movingSpot = null },

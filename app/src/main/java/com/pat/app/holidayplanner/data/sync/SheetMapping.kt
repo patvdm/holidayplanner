@@ -117,6 +117,7 @@ fun cityFromRow(row: SheetRow): CityEntity? {
 
 fun spotToRow(entity: SpotEntity): Map<String, String> = buildRow(entity.meta) {
     put("parentCityId", entity.parentCityId)
+    put("parentCountryId", entity.parentCountryId)
     put("name", entity.name)
     put("type", entity.type.name)
     put("googlePlaceId", entity.googlePlaceId)
@@ -136,6 +137,7 @@ fun spotFromRow(row: SheetRow): SpotEntity? {
     return SpotEntity(
         meta = meta,
         parentCityId = row.str("parentCityId").trim(),
+        parentCountryId = row.str("parentCountryId").trim(),
         name = row.str("name"),
         type = SpotType.fromSheet(row.str("type")),
         googlePlaceId = row.str("googlePlaceId").trim(),

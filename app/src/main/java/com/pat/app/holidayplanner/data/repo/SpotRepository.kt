@@ -4,6 +4,7 @@ import com.pat.app.holidayplanner.data.local.HeartEntity
 import com.pat.app.holidayplanner.data.local.HeartRow
 import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.local.SpotEntity
+import com.pat.app.holidayplanner.data.local.SpotHome
 import com.pat.app.holidayplanner.data.local.SpotListRow
 import com.pat.app.holidayplanner.data.local.SpotPickerRow
 import com.pat.app.holidayplanner.data.local.SpotRow
@@ -68,6 +69,7 @@ class SpotRepository(
         val spot = SpotEntity(
             meta = SyncMeta.created(id, stamp.now, stamp.userId),
             parentCityId = cityId,
+            parentCountryId = "",
             name = name.trim(),
             type = type,
             googlePlaceId = googlePlaceId,
@@ -77,7 +79,7 @@ class SpotRepository(
             mapsUrl = mapsUrl,
             notes = "",
             status = SpotStatus.UNVISITED,
-            sortKey = SortKey.after(dao.lastSortKey(cityId)),
+            sortKey = SortKey.after(dao.lastSortKey(cityId, countryId = "")),
             priority = Priority.NORMAL,
             imageUrl = "",
         )
@@ -110,9 +112,18 @@ class SpotRepository(
     suspend fun move(id: String, previousKey: String?, nextKey: String?) =
         edit(id) { it.copy(sortKey = SortKey.between(previousKey, nextKey)) }
 
-    /** Moves a spot under a different place, appending it to that place's order. */
-    suspend fun moveToPlace(id: String, cityId: String) =
-        edit(id) { it.copy(parentCityId = cityId, sortKey = SortKey.after(dao.lastSortKey(cityId))) }
+    /**
+     * Files a spot under a city, or straight under a country when [home] names no city, appending it
+     * to the spots already there.
+     */
+    suspend fun moveTo(id: String, home: SpotHome) = edit(id) {
+        val countryId = if (home.isCountry) home.countryId else ""
+        it.copy(
+            parentCityId = home.cityId,
+            parentCountryId = countryId,
+            sortKey = SortKey.after(dao.lastSortKey(home.cityId, countryId)),
+        )
+    }
 
     /**
      * Hearts use a deterministic id, so un-hearting only flips `deleted` and hearting again flips it

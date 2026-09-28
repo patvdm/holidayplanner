@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.CityEntity
-import com.pat.app.holidayplanner.data.local.CityOption
+import com.pat.app.holidayplanner.data.local.SpotHome
 import com.pat.app.holidayplanner.data.local.CityRow
 import com.pat.app.holidayplanner.data.local.CountryEntity
 import com.pat.app.holidayplanner.data.local.LinkEntity
@@ -69,6 +69,10 @@ data class CitySection(
 
 data class CountryUiState(
     val country: CountryEntity? = null,
+    /** Spots that belong to the country itself rather than to a city, filtered and sorted. */
+    val countrySpots: List<SpotRow> = emptyList(),
+    /** Every spot of the country itself, whatever the filters hide. */
+    val countrySpotCount: Int = 0,
     /** Always in the order the cities were dragged into. */
     val sections: List<CitySection> = emptyList(),
     /** What was shared to the country itself rather than to anything in it. */
@@ -77,8 +81,8 @@ data class CountryUiState(
     val spotAttachments: Map<String, List<LinkEntity>> = emptyMap(),
     /** Everywhere in this country a photo or a link could be moved to. */
     val targets: List<AttachmentTarget> = emptyList(),
-    /** Every city anywhere, for moving a spot. */
-    val cityOptions: List<CityOption> = emptyList(),
+    /** Every country and city anywhere, for moving a spot. */
+    val homes: List<SpotHome> = emptyList(),
     val filters: SpotFilters = SpotFilters(),
     val sortMode: SortMode = SortMode.MANUAL,
     val userCount: Int = 0,
@@ -90,6 +94,13 @@ data class CountryUiState(
     val canReorderSpots: Boolean get() = sortMode == SortMode.MANUAL && !filters.any
 
     val anyExpanded: Boolean get() = sections.any { it.expanded }
+
+    /** True when there is nothing in the country at all, not even a spot of its own. */
+    val isEmpty: Boolean get() = sections.isEmpty() && countrySpotCount == 0
+
+    /** The spots of one drag group: a city's, or the country's own for an empty id. */
+    fun spotsOf(cityId: String): List<SpotRow> =
+        if (cityId.isEmpty()) countrySpots else sections.firstOrNull { it.city.meta.id == cityId }?.spots.orEmpty()
 }
 
 /**
@@ -112,7 +123,7 @@ private data class CountryData(
     val cities: List<CityRow>,
     val spots: List<SpotRow>,
     val attachments: CountryAttachments,
-    val cityOptions: List<CityOption>,
+    val homes: List<SpotHome>,
 )
 
 /** How the screen chose to look at that. */
@@ -157,7 +168,7 @@ class CountryViewModel(
         repos.cities.observeRows(countryId),
         spots,
         repos.attachments.observeInCountry(countryId),
-        repos.cities.observeOptions(),
+        repos.cities.observeHomes(),
         ::CountryData,
     )
 
@@ -287,9 +298,9 @@ class CountryViewModel(
         viewModelScope.launch { repos.spots.move(id, previousKey, nextKey) }
     }
 
-    /** Files a spot under another city, at the end of that city's list. */
-    fun moveSpotToCity(spotId: String, cityId: String) {
-        viewModelScope.launch { repos.spots.moveToPlace(spotId, cityId) }
+    /** Files a spot under another city or straight under a country, at the end of the spots there. */
+    fun moveSpotTo(spotId: String, home: SpotHome) {
+        viewModelScope.launch { repos.spots.moveTo(spotId, home) }
     }
 
     /**
@@ -297,9 +308,8 @@ class CountryViewModel(
      * ordered so it opens as a sensible walk with no extra tap.
      */
     fun createRoute(cityId: String, title: String, onCreated: (String) -> Unit) {
-        val section = uiState.value.sections.firstOrNull { it.city.meta.id == cityId } ?: return
         val unvisited = Proximity
-            .orderByProximity(section.spots.filter { it.spot.status == SpotStatus.UNVISITED }) { row ->
+            .orderByProximity(uiState.value.spotsOf(cityId).filter { it.spot.status == SpotStatus.UNVISITED }) { row ->
                 val lat = row.spot.lat
                 val lng = row.spot.lng
                 if (lat != null && lng != null) GeoPoint(lat, lng) else null
@@ -324,8 +334,11 @@ private fun countryUiState(data: CountryData, view: CountryView, pending: Countr
             )
         }
     val country = data.country
+    val ownSpots = spotsByCity[""].orEmpty()
     return CountryUiState(
         country = country,
+        countrySpots = ownSpots.filter(view.filters::matches).sortedSpots(view.sortMode),
+        countrySpotCount = ownSpots.size,
         sections = sections,
         countryAttachments = data.attachments.country,
         spotAttachments = data.attachments.bySpot,
@@ -336,7 +349,7 @@ private fun countryUiState(data: CountryData, view: CountryView, pending: Countr
             val named = country.copy(name = "${CountryCatalog.flag(country.isoCode)} ${country.name}".trim())
             attachmentTargets(named, data.cities.map { it.place }, data.spots.map { it.spot })
         },
-        cityOptions = data.cityOptions,
+        homes = data.homes,
         filters = view.filters,
         sortMode = view.sortMode,
         userCount = view.userCount,
