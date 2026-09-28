@@ -217,9 +217,12 @@ const LATEST_KEY = 'app/latest.json';
 
 async function releases(request, env, url) {
   if (!env.PHOTOS) return new Response('No PHOTOS bucket bound', { status: 500 });
-  const bearer = request.headers.get('Authorization') || '';
-  const reader = env.PHOTO_TOKEN && bearer === `Bearer ${env.PHOTO_TOKEN}`;
-  const publisher = env.RELEASE_TOKEN && bearer === `Bearer ${env.RELEASE_TOKEN}`;
+  const bearer = (request.headers.get('Authorization') || '').trim();
+  // Trimmed, because a secret pasted into the dashboard easily brings a space or line break along.
+  const photoToken = (env.PHOTO_TOKEN || '').trim();
+  const releaseToken = (env.RELEASE_TOKEN || '').trim();
+  const reader = photoToken !== '' && bearer === `Bearer ${photoToken}`;
+  const publisher = releaseToken !== '' && bearer === `Bearer ${releaseToken}`;
   const latest = async () => {
     const object = await env.PHOTOS.get(LATEST_KEY);
     return object ? JSON.parse(await object.text()) : null;
@@ -240,7 +243,11 @@ async function releases(request, env, url) {
     });
   }
   if (request.method === 'PUT' && url.pathname === '/app/release') {
-    if (!publisher) return new Response('Unauthorized', { status: 401 });
+    // Says which half is wrong, and never the secret itself: only whether it is set and its length.
+    if (!releaseToken) return new Response('RELEASE_TOKEN is not set on this Worker', { status: 500 });
+    if (!publisher) {
+      return new Response(`Wrong release token (the Worker's is ${releaseToken.length} characters)`, { status: 401 });
+    }
     const versionCode = Number(request.headers.get('X-Version-Code'));
     const versionName = request.headers.get('X-Version-Name') || String(versionCode);
     const sha256 = (request.headers.get('X-Sha256') || '').toLowerCase();
