@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.domain.TripItemType
+import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -55,6 +56,7 @@ fun TripItemEditorScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val item = state.item
     var pickingSpot by remember { mutableStateOf(false) }
+    var addingSpot by remember { mutableStateOf(false) }
 
     Scaffold(
         // The tab bar below already keeps clear of the system bar; padding for it again left a dead strip.
@@ -154,11 +156,28 @@ fun TripItemEditorScreen(
 
     if (pickingSpot) {
         SpotPickerSheet(
+            allowCreate = true,
+            onCreateNew = {
+                pickingSpot = false
+                addingSpot = true
+            },
             onPick = {
                 pickingSpot = false
                 viewModel.setSpot(it)
             },
             onDismiss = { pickingSpot = false },
+        )
+    }
+
+    if (addingSpot) {
+        PlaceSearchSheet(
+            title = stringResource(R.string.spot_add),
+            knownIsoCode = state.countryIso,
+            onDismiss = { addingSpot = false },
+            onSaved = { spotId ->
+                addingSpot = false
+                viewModel.setSpot(spotId)
+            },
         )
     }
 }

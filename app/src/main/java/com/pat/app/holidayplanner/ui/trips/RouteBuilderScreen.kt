@@ -48,6 +48,7 @@ import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
+import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.Thumbnail
@@ -78,6 +79,7 @@ fun RouteBuilderScreen(
     val snackbars = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var confirmingDelete by remember { mutableStateOf(false) }
+    var addingSpot by remember { mutableStateOf(false) }
 
     val noMapsApp = stringResource(R.string.route_no_maps_app)
     val openInMaps: (List<RouteCandidate>) -> Unit = { part ->
@@ -113,6 +115,7 @@ fun RouteBuilderScreen(
                 onRename = viewModel::rename,
                 onCompleted = viewModel::setCompleted,
                 onSortByProximity = viewModel::sortByProximity,
+                onAddSpot = { addingSpot = true },
             )
             HorizontalDivider()
 
@@ -124,6 +127,19 @@ fun RouteBuilderScreen(
                 RouteFooter(state = state, onOpen = openInMaps)
             }
         }
+    }
+
+    if (addingSpot) {
+        // Filed in the route's own city, and on the walk before the sheet has closed.
+        PlaceSearchSheet(
+            title = stringResource(R.string.spot_add),
+            cityId = state.route?.cityId.orEmpty(),
+            onDismiss = { addingSpot = false },
+            onSaved = { spotId ->
+                addingSpot = false
+                viewModel.addSpot(spotId)
+            },
+        )
     }
 
     if (confirmingDelete) {
@@ -145,6 +161,7 @@ private fun RouteHeader(
     onRename: (String) -> Unit,
     onCompleted: (Boolean) -> Unit,
     onSortByProximity: (fromHere: Boolean) -> Unit,
+    onAddSpot: () -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -172,6 +189,8 @@ private fun RouteHeader(
                 onClick = { onCompleted(!state.completed) },
                 label = { Text(stringResource(R.string.route_completed)) },
             )
+            // A walk often wants somewhere that was never saved; the search knows which city.
+            AssistChip(onClick = onAddSpot, label = { Text(stringResource(R.string.spot_add)) })
             if (state.stops.size > 1) {
                 AssistChip(
                     enabled = !state.sorting,

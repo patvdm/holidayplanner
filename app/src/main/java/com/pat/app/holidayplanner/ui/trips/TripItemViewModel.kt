@@ -12,6 +12,8 @@ import kotlinx.coroutines.launch
 
 data class ItemEditorState(
     val item: TripItemEntity? = null,
+    /** The trip's country, so a spot searched for from here is looked for in the right place. */
+    val countryIso: String = "",
     val saving: Boolean = false,
 ) {
     val type get() = item?.type
@@ -42,6 +44,7 @@ class TripItemViewModel(
                     startTimeZone = zone,
                     endTimeZone = item.endTimeZone.ifBlank { zone },
                 ),
+                countryIso = repository.countryIsoOf(item.tripId),
             )
         }
     }
@@ -57,6 +60,9 @@ class TripItemViewModel(
     fun setSpot(spot: SpotPickerRow) = edit {
         it.copy(spotId = spot.spotId, title = it.title.ifBlank { spot.spotName })
     }
+
+    /** A spot just found through Google; the row reads its name from the spot itself. */
+    fun setSpot(spotId: String) = edit { it.copy(spotId = spotId) }
 
     fun clearSpot() = edit { it.copy(spotId = "") }
 

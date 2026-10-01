@@ -50,12 +50,15 @@ class GooglePlacesSearch(private val context: Context) : PlacesSearch {
         session: PlacesSession,
         biasLat: Double?,
         biasLng: Double?,
+        countryIso: String,
     ): Result<List<PlacePrediction>> {
         val places = client ?: return notConfigured()
         val request = FindAutocompletePredictionsRequest.builder()
             .setQuery(query)
             .setSessionToken((session as? GooglePlacesSession)?.token)
             .apply {
+                // Searching inside a country one is already looking at: a bar in Split, not in Seattle.
+                if (countryIso.isNotBlank()) setCountries(listOf(countryIso))
                 if (biasLat != null && biasLng != null) {
                     setLocationBias(CircularBounds.newInstance(LatLng(biasLat, biasLng), BIAS_RADIUS_M))
                 }

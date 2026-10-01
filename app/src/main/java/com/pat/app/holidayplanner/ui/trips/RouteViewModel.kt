@@ -125,6 +125,11 @@ class RouteViewModel(
         }
     }
 
+    /** A spot that did not exist until a moment ago joins the walk straight away. */
+    fun addSpot(spotId: String) {
+        viewModelScope.launch { routes.addStop(routeId, spotId) }
+    }
+
     fun move(stopId: String, previousKey: String?, nextKey: String?) {
         viewModelScope.launch { routes.move(stopId, previousKey, nextKey) }
     }

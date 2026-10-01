@@ -28,6 +28,16 @@ interface TripDao : SyncDao<TripEntity> {
     )
     fun observeRows(): Flow<List<TripRow>>
 
+    /** The country a trip is to, for a search that should stay inside it. */
+    @Query(
+        """
+        SELECT c.isoCode FROM trips t
+        JOIN countries c ON c.id = t.countryId
+        WHERE t.id = :tripId AND t.deleted = 0
+        """,
+    )
+    suspend fun countryIso(tripId: String): String?
+
     @Query("SELECT COUNT(*) FROM trip_items WHERE tripId = :tripId AND deleted = 0")
     suspend fun countItems(tripId: String): Int
 

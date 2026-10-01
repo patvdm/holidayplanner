@@ -48,6 +48,8 @@ interface PlacesSearch {
         session: PlacesSession,
         biasLat: Double? = null,
         biasLng: Double? = null,
+        /** ISO country code to hold the results to, for a search started from a country or a city. */
+        countryIso: String = "",
     ): Result<List<PlacePrediction>>
 
     /** Fetches the picked place with the smallest field list that answers where it is. */

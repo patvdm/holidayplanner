@@ -321,7 +321,7 @@ class PlaceSearchViewModel(
             return
         }
         state.update { it.copy(searching = true) }
-        search.predictions(query, session, biasLat, biasLng).fold(
+        search.predictions(query, session, biasLat, biasLng, target.knownIsoCode).fold(
             onSuccess = { found ->
                 state.update { it.copy(predictions = found, searching = false, errorDetail = null) }
             },

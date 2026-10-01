@@ -56,6 +56,9 @@ class TripRepository(
 
     suspend fun findItem(id: String): TripItemEntity? = itemDao.find(id)
 
+    /** The ISO code of the country a trip is to, or empty when it has none yet. */
+    suspend fun countryIsoOf(tripId: String): String = dao.countryIso(tripId).orEmpty()
+
     /**
      * A new item on a day of a trip. A spot or route item points at the thing it is; a flight
      * starts empty and is filled in on its own screen.

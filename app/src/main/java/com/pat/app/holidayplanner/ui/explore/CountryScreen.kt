@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SwapVert
@@ -19,6 +20,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -52,6 +54,7 @@ import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.MoveAttachmentDialog
 import com.pat.app.holidayplanner.ui.components.NoteDialog
 import com.pat.app.holidayplanner.ui.components.PhotoViewer
+import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PictureDialog
 import com.pat.app.holidayplanner.ui.components.SortMenu
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
@@ -108,6 +111,7 @@ fun CountryScreen(
             override val onNewRoute: (CityEntity) -> Unit = { city ->
                 viewModel.createRoute(city.meta.id, city.name) { openRoute(it) }
             }
+            override val onAddSpot: (CityEntity) -> Unit = { dialogs.addingSpotIn = it.meta.id }
             override val onCityPriority: (String, Priority) -> Unit = { id, priority ->
                 viewModel.setPriority(AttachmentOwner(cityId = id), priority)
             }
@@ -200,6 +204,14 @@ fun CountryScreen(
                 },
             )
         },
+        floatingActionButton = {
+            // Hidden while the cities are being dragged about: nothing else is tappable then either.
+            if (!arranging) {
+                FloatingActionButton(onClick = { dialogs.addingSpotIn = "" }) {
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.spot_add))
+                }
+            }
+        },
     ) { padding ->
         if (arranging) {
             ArrangeCities(
@@ -271,6 +283,9 @@ private fun CountryTopActions(
 
 /** Which dialog is open, kept together so the screen itself stays readable. */
 private class CountryDialogs {
+    /** The city a new spot is being searched for: empty means anywhere in the country. */
+    var addingSpotIn by mutableStateOf<String?>(null)
+
     var viewingPhoto by mutableStateOf<String?>(null)
     var deletingAttachment by mutableStateOf<LinkEntity?>(null)
     var movingAttachment by mutableStateOf<LinkEntity?>(null)
@@ -287,6 +302,18 @@ private class CountryDialogs {
 
 @Composable
 private fun CountryDialogs(state: CountryUiState, dialogs: CountryDialogs, viewModel: CountryViewModel) {
+    dialogs.addingSpotIn?.let { cityId ->
+        // From a city the search leans on its coordinates; from the country, on the country itself,
+        // and Google's answer decides which city the spot ends up in.
+        PlaceSearchSheet(
+            title = stringResource(R.string.spot_add),
+            cityId = cityId,
+            knownIsoCode = state.country?.isoCode.orEmpty(),
+            onDismiss = { dialogs.addingSpotIn = null },
+            onSaved = { dialogs.addingSpotIn = null },
+        )
+    }
+
     dialogs.viewingPhoto?.let { url ->
         PhotoViewer(url = url, onDismiss = { dialogs.viewingPhoto = null })
     }

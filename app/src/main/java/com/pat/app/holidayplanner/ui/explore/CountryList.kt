@@ -345,6 +345,7 @@ private fun CityMenu(city: CityEntity, actions: CountryActions) {
     val entries = listOf(
         (if (city.notes.isBlank()) R.string.note_add else R.string.note_edit) to
             { actions.onEditNote(owner, city.notes) },
+        R.string.spot_add to { actions.onAddSpot(city) },
         R.string.spot_add_photo to { actions.onAddPhoto(owner) },
         R.string.spot_add_link to { actions.onAddLink(owner) },
         R.string.picture_change to { actions.onChangePicture(city.meta.id) },
@@ -645,6 +646,9 @@ interface CountryActions {
     /** Empty for the country's own picture, a city id for that city's. */
     val onChangePicture: (String) -> Unit
     val onNewRoute: (CityEntity) -> Unit
+
+    /** Adds a spot to one city, searching Google from inside it. */
+    val onAddSpot: (CityEntity) -> Unit
     val onCityPriority: (String, Priority) -> Unit
     val onRenameCity: (CityEntity) -> Unit
     val onDeleteCity: (CityEntity) -> Unit

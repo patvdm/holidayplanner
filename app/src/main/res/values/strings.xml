@@ -95,6 +95,7 @@
     <string name="spot_status">Status</string>
     <string name="spot_notes">Notes</string>
     <string name="spot_photos">Photos</string>
+    <string name="spot_add">Add a spot</string>
     <string name="spot_add_photo">Add photo</string>
     <string name="spot_photos_none">No photos yet. Share one to Holiday Planner, or add one here.</string>
     <string name="photo_open">Open photo</string>

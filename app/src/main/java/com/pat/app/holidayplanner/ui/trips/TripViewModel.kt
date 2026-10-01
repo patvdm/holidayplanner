@@ -103,13 +103,16 @@ class TripViewModel(
         }
     }
 
-    fun addSpot(date: LocalDate, spot: SpotPickerRow) {
+    fun addSpot(date: LocalDate, spot: SpotPickerRow) = addSpot(date, spot.spotId, spot.spotName)
+
+    /** A spot just found through Google: the row reads its name from the spot itself. */
+    fun addSpot(date: LocalDate, spotId: String, name: String = "") {
         viewModelScope.launch {
             repository.addItem(
                 tripId = tripId,
                 type = TripItemType.SPOT,
-                title = spot.spotName,
-                spotId = spot.spotId,
+                title = name,
+                spotId = spotId,
                 startLocal = LocalTimes.writeDate(date),
             )
         }

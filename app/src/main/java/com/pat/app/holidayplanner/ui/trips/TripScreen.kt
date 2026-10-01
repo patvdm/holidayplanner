@@ -49,6 +49,7 @@ import com.pat.app.holidayplanner.data.local.TripItemRow
 import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.domain.TripItemType
 import com.pat.app.holidayplanner.ui.components.PickFromListDialog
+import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
 import com.pat.app.holidayplanner.ui.components.StatusChip
@@ -64,6 +65,7 @@ import org.koin.core.parameter.parametersOf
 private sealed interface Adding {
     data class Kind(val date: LocalDate) : Adding
     data class Spot(val date: LocalDate) : Adding
+    data class NewSpot(val date: LocalDate) : Adding
     data class Route(val date: LocalDate) : Adding
     data class RouteCity(val date: LocalDate) : Adding
 }
@@ -207,11 +209,24 @@ private fun AddingDialogs(
 
         is Adding.Spot -> SpotPickerSheet(
             filter = { it.countryId == countryId },
+            allowCreate = true,
+            onCreateNew = { onChange(Adding.NewSpot(adding.date)) },
             onPick = { spot ->
                 onChange(null)
                 viewModel.addSpot(adding.date, spot)
             },
             onDismiss = { onChange(null) },
+        )
+
+        // Somewhere in this country that nobody has saved yet, straight onto the day.
+        is Adding.NewSpot -> PlaceSearchSheet(
+            title = stringResource(R.string.spot_add),
+            knownIsoCode = state.country?.isoCode.orEmpty(),
+            onDismiss = { onChange(null) },
+            onSaved = { spotId ->
+                onChange(null)
+                viewModel.addSpot(adding.date, spotId)
+            },
         )
 
         is Adding.Route -> RoutePickerDialog(

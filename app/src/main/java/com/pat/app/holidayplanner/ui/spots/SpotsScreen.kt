@@ -18,6 +18,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -30,6 +33,7 @@ import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
+import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SortMenu
 import com.pat.app.holidayplanner.ui.components.StatusChip
@@ -43,9 +47,11 @@ import com.pat.app.holidayplanner.ui.explore.label
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
@@ -60,6 +66,7 @@ fun SpotsScreen(
     viewModel: SpotsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var addingSpot by remember { mutableStateOf(false) }
 
     Scaffold(
         // The tab bar below is already accounted for by the navigation Scaffold.
@@ -78,6 +85,11 @@ fun SpotsScreen(
                     }
                 },
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { addingSpot = true }) {
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.spot_add))
+            }
         },
     ) { padding ->
         SyncRefreshBox(
@@ -114,6 +126,15 @@ fun SpotsScreen(
                 }
             }
         }
+    }
+
+    // Nothing is known about where this one is, so Google answers for the whole world.
+    if (addingSpot) {
+        PlaceSearchSheet(
+            title = stringResource(R.string.spot_add),
+            onDismiss = { addingSpot = false },
+            onSaved = { addingSpot = false },
+        )
     }
 }
 
