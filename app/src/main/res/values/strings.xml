@@ -93,6 +93,8 @@
     <string name="spot_hearts_by">Hearted by %1$s</string>
     <string name="spot_priority">Priority</string>
     <string name="spot_status">Status</string>
+    <string name="spot_marks">Good for</string>
+    <string name="mark_drone">Drone</string>
     <string name="spot_notes">Notes</string>
     <string name="spot_photos">Photos</string>
     <string name="spot_add">Add a spot</string>

@@ -49,6 +49,7 @@ class SpotHomeChoicesTest {
         mapsUrl = "",
         notes = "",
         status = SpotStatus.UNVISITED,
+        marks = "",
         sortKey = "V",
         priority = Priority.NORMAL,
         imageUrl = "",

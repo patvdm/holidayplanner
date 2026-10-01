@@ -19,6 +19,7 @@ import com.pat.app.holidayplanner.domain.LinkSource
 import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.domain.ShareParser
 import com.pat.app.holidayplanner.domain.Priority
+import com.pat.app.holidayplanner.domain.SpotMark
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -136,6 +137,10 @@ class SpotDetailViewModel(
 
     fun setNotes(notes: String) {
         viewModelScope.launch { spotRepository.setNotes(spotId, notes) }
+    }
+
+    fun setMark(mark: SpotMark, on: Boolean) {
+        viewModelScope.launch { spotRepository.setMark(spotId, mark, on) }
     }
 
     fun setStatus(status: SpotStatus) {

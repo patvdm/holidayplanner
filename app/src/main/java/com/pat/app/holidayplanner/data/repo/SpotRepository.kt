@@ -15,7 +15,9 @@ import com.pat.app.holidayplanner.data.local.dao.SpotDao
 import com.pat.app.holidayplanner.data.sync.Transactor
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SortKey
+import com.pat.app.holidayplanner.domain.SpotMark
 import com.pat.app.holidayplanner.domain.SpotStatus
+import com.pat.app.holidayplanner.domain.withMark
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.domain.heartId
 import com.pat.app.holidayplanner.domain.newId
@@ -31,12 +33,7 @@ class SpotRepository(
 
     fun observeSpots(cityId: String): Flow<List<SpotEntity>> = dao.observeByPlace(cityId)
 
-    fun observeAllSpots(): Flow<List<SpotEntity>> = dao.observeAll()
-
     fun observeSpot(id: String): Flow<SpotEntity?> = dao.observeById(id)
-
-    /** The users who have hearted this spot right now. */
-    fun observeHearts(spotId: String): Flow<List<HeartEntity>> = heartDao.observeBySpot(spotId)
 
     /** Who hearted this spot, by name. */
     fun observeHeartNames(spotId: String): Flow<List<HeartRow>> = heartDao.observeNames(spotId)
@@ -81,6 +78,7 @@ class SpotRepository(
             mapsUrl = mapsUrl,
             notes = "",
             status = SpotStatus.UNVISITED,
+            marks = "",
             sortKey = SortKey.after(dao.lastSortKey(cityId, if (cityId.isEmpty()) countryId else "")),
             priority = Priority.NORMAL,
             imageUrl = "",
@@ -100,6 +98,10 @@ class SpotRepository(
     suspend fun setAddress(id: String, address: String) = edit(id) { it.copy(address = address.trim()) }
 
     suspend fun setStatus(id: String, status: SpotStatus) = edit(id) { it.copy(status = status) }
+
+    /** Turns one mark on or off, leaving any others the spot carries alone. */
+    suspend fun setMark(id: String, mark: SpotMark, on: Boolean) =
+        edit(id) { it.copy(marks = it.marks.withMark(mark, on)) }
 
     /** Null clears the type, since saying nothing is a valid answer. */
     suspend fun setType(id: String, type: SpotType) = edit(id) { it.copy(type = type) }

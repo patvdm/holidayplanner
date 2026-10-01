@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.domain.Priority
+import com.pat.app.holidayplanner.domain.SpotMark
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 
@@ -74,6 +75,10 @@ fun WalkedBadge(completed: Boolean, modifier: Modifier = Modifier) {
         foreground = DARK_TEXT,
         modifier = modifier,
     )
+}
+
+fun SpotMark.label(): Int = when (this) {
+    SpotMark.DRONE -> R.string.mark_drone
 }
 
 fun SpotType.label(): Int = when (this) {

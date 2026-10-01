@@ -40,6 +40,7 @@ class ExploreSortingTest {
             mapsUrl = "",
             notes = "",
             status = SpotStatus.UNVISITED,
+            marks = "",
             sortKey = sortKey,
             priority = Priority.NORMAL,
             imageUrl = "",

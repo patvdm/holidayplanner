@@ -21,7 +21,7 @@ var SCHEMA = {
   ]),
   Spots: COMMON_COLUMNS.concat([
     'parentCityId', 'name', 'type', 'googlePlaceId', 'lat', 'lng', 'address', 'mapsUrl', 'notes', 'status',
-    'sortKey', 'priority', 'imageUrl', 'parentCountryId',
+    'sortKey', 'priority', 'imageUrl', 'parentCountryId', 'marks',
   ]),
   Links: COMMON_COLUMNS.concat(['spotId', 'cityId', 'countryId', 'url', 'source', 'note']),
   Hearts: COMMON_COLUMNS.concat(['spotId', 'userId']),

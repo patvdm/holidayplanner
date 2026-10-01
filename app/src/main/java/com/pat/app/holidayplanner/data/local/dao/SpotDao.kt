@@ -21,9 +21,6 @@ interface SpotDao : SyncDao<SpotEntity> {
     @Query("SELECT * FROM spots WHERE id = :id AND deleted = 0")
     fun observeById(id: String): Flow<SpotEntity?>
 
-    @Query("SELECT * FROM spots WHERE deleted = 0 ORDER BY name COLLATE NOCASE")
-    fun observeAll(): Flow<List<SpotEntity>>
-
     /**
      * Every spot in one country's cities, with its heart and link counts and whether the signed-in
      * person hearted it. The country screen groups them under their cities itself.

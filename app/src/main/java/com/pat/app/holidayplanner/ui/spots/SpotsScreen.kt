@@ -30,6 +30,7 @@ import com.pat.app.holidayplanner.data.local.SpotListRow
 import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SortScope
+import com.pat.app.holidayplanner.domain.SpotMark
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
@@ -153,6 +154,13 @@ private fun FilterRow(state: SpotsUiState, viewModel: SpotsViewModel) {
                 selected = state.filters.type == type,
                 onClick = { viewModel.setTypeFilter(type.takeIf { it != state.filters.type }) },
                 label = { Text(stringResource(type.label())) },
+            )
+        }
+        SpotMark.entries.forEach { mark ->
+            FilterChip(
+                selected = state.filters.mark == mark,
+                onClick = { viewModel.setMarkFilter(mark.takeIf { it != state.filters.mark }) },
+                label = { Text(stringResource(mark.label())) },
             )
         }
         FilterChip(

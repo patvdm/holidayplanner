@@ -8,7 +8,9 @@ import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SortMode
 import com.pat.app.holidayplanner.domain.SortScope
+import com.pat.app.holidayplanner.domain.SpotMark
 import com.pat.app.holidayplanner.domain.SpotStatus
+import com.pat.app.holidayplanner.domain.hasMark
 import com.pat.app.holidayplanner.domain.SpotType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,14 +31,17 @@ data class SpotListFilters(
     val status: SpotStatus? = null,
     val priority: Priority? = null,
     val countryId: String? = null,
+    val mark: SpotMark? = null,
 ) {
-    val any: Boolean get() = type != null || status != null || priority != null || countryId != null
+    val any: Boolean
+        get() = type != null || status != null || priority != null || countryId != null || mark != null
 
     fun matches(row: SpotListRow): Boolean =
         (type == null || row.spot.type == type) &&
             (status == null || row.spot.status == status) &&
             (priority == null || row.spot.priority == priority) &&
-            (countryId == null || row.countryId == countryId)
+            (countryId == null || row.countryId == countryId) &&
+            (mark == null || row.spot.marks.hasMark(mark))
 }
 
 data class SpotsUiState(
@@ -86,6 +91,8 @@ class SpotsViewModel(
     fun setPriorityFilter(priority: Priority?) = filters.update { it.copy(priority = priority) }
 
     fun setCountryFilter(countryId: String?) = filters.update { it.copy(countryId = countryId) }
+
+    fun setMarkFilter(mark: SpotMark?) = filters.update { it.copy(mark = mark) }
 
     fun clearFilters() {
         filters.value = SpotListFilters()

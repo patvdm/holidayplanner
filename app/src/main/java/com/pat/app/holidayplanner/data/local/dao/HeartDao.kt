@@ -11,9 +11,6 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface HeartDao : SyncDao<HeartEntity> {
 
-    @Query("SELECT * FROM hearts WHERE spotId = :spotId AND deleted = 0")
-    fun observeBySpot(spotId: String): Flow<List<HeartEntity>>
-
     /** Who hearted this spot, by name. A heart from someone not synced yet shows an empty name. */
     @Query(
         """

@@ -46,7 +46,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.domain.Priority
+import com.pat.app.holidayplanner.domain.SpotMark
 import com.pat.app.holidayplanner.domain.SpotStatus
+import com.pat.app.holidayplanner.domain.hasMark
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.HeroImage
@@ -223,6 +225,21 @@ fun SpotDetailScreen(
                             selected = state.spot?.status == status,
                             onClick = { viewModel.setStatus(status) },
                             label = { Text(stringResource(status.label())) },
+                        )
+                    }
+                }
+
+                SectionLabel(stringResource(R.string.spot_marks))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SpotMark.entries.forEach { mark ->
+                        val on = state.spot?.marks?.hasMark(mark) == true
+                        FilterChip(
+                            selected = on,
+                            onClick = { viewModel.setMark(mark, !on) },
+                            label = { Text(stringResource(mark.label())) },
                         )
                     }
                 }

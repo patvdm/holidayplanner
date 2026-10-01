@@ -76,6 +76,8 @@ data class SpotEntity(
     val mapsUrl: String,
     val notes: String,
     val status: SpotStatus,
+    /** Space-separated [com.pat.app.holidayplanner.domain.SpotMark] keys; empty for most spots. */
+    val marks: String,
     val sortKey: String,
     val priority: Priority,
     val imageUrl: String,
