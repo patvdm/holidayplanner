@@ -32,8 +32,11 @@ enum class AppTab(val rootKey: NavKey, @param:StringRes val label: Int, val icon
 /**
  * One back stack per tab. The stacks of every visited tab are concatenated (in the order the tabs
  * were last selected) into the single list NavDisplay shows, so switching tabs keeps every tab's
- * screens, ViewModels and saved state alive. Back pops the current tab's stack, and at a tab root it
- * returns to the previously used tab.
+ * screens, ViewModels and saved state alive.
+ *
+ * Back pops the current tab's stack and stops there: every tab root is a root, and leaving one is
+ * leaving the app. Walking back through the tabs visited earlier would mean the way out of the app
+ * depends on where you have been, which is no way to find it.
  */
 @Stable
 class TabNavState(
@@ -105,15 +108,12 @@ class TabNavState(
         popToRoot(tab)
     }
 
-    fun back() {
+    /** False when this tab is already at its root, which is the caller's cue to leave the app. */
+    fun back(): Boolean {
         val stack = stacks.getValue(currentTab)
-        when {
-            stack.size > 1 -> stack.removeAt(stack.lastIndex)
-            tabOrder.size > 1 -> {
-                val leaving = tabOrder.removeAt(tabOrder.lastIndex)
-                popToRoot(leaving)
-            }
-        }
+        if (stack.size <= 1) return false
+        stack.removeAt(stack.lastIndex)
+        return true
     }
 
     private fun popToRoot(tab: AppTab) {

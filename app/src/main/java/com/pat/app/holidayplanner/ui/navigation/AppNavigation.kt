@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.navigation
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -39,6 +40,7 @@ private const val MAP_SLOT = 2
 @Composable
 fun AppNavigation() {
     val nav = rememberTabNavState()
+    val activity = LocalActivity.current
     val showTabs = nav.currentKey !is FullScreenKey
 
     Scaffold(
@@ -71,7 +73,8 @@ fun AppNavigation() {
         NavDisplay(
             backStack = nav.backStack,
             modifier = Modifier.padding(padding),
-            onBack = nav::back,
+            // Nothing left to pop means the tab root is showing, and back out of that is out.
+            onBack = { if (!nav.back()) activity?.finish() },
             entryDecorators = listOf(
                 rememberSaveableStateHolderNavEntryDecorator<NavKey>(),
                 rememberViewModelStoreNavEntryDecorator<NavKey>(),
