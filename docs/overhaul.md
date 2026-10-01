@@ -7,11 +7,15 @@ where the two disagree. Four milestones, O1 to O4, each stopping for review.
 
 Four tabs: **Explore, Trips, Routes, Spots.**
 
-**Nothing is created by hand.** The only way a spot exists is an external share. A Google Maps
-share becomes a spot directly. Any other link becomes a spot only once the place is found through
-Google autocomplete and selected, which files it under its city and country. Countries and cities
-exist only as a side effect of that. Every add button on Explore, country, city and trip screens
-goes; the share flow is the front door.
+**Nothing is typed in by hand.** A spot always comes from Google: either an external share (a Maps
+share becomes a spot directly, any other link once the place is found through autocomplete) or the
+app's own search. Countries and cities exist only as a side effect of that.
+
+*Revised 2026-10-01.* Share used to be the only front door, and having to leave the app to save a
+place grew annoying. There is now an add button wherever a spot is wanted — the country screen, a
+city's menu, the Spots tab, a route, and the picker a trip day uses — but each one opens the same
+Google search, held to where it was started from: a city lends its coordinates, a country and a
+trip lend their country.
 
 ## Spots
 
