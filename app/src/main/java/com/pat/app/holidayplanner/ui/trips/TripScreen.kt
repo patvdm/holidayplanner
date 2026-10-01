@@ -52,6 +52,7 @@ import com.pat.app.holidayplanner.ui.components.PickFromListDialog
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
+import com.pat.app.holidayplanner.ui.components.MarkBadges
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.Thumbnail
 import com.pat.app.holidayplanner.ui.components.TypeBadge
@@ -326,6 +327,7 @@ private fun TripItemCard(row: TripItemRow, onClick: () -> Unit, onRemove: () -> 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 row.spotPriority?.let { PriorityBadge(it) }
                 row.spotStatus?.let { StatusChip(it) }
+                row.spotMarks?.let { MarkBadges(it) }
                 row.spotType?.let { TypeBadge(it) }
                 row.routeCompleted?.let { WalkedBadge(it) }
             }

@@ -130,6 +130,7 @@ class TripPlanTest {
         spotPriority = null,
         spotStatus = null,
         spotType = null,
+        spotMarks = null,
         spotImageUrl = null,
         routeName = null,
         routeCompleted = null,

@@ -50,6 +50,7 @@ data class RouteCandidate(
     val priority: Priority,
     val status: SpotStatus,
     val type: SpotType,
+    val marks: String,
     val notes: String,
 ) {
     val selected: Boolean get() = stopId != null
@@ -193,6 +194,7 @@ private fun List<SpotEntity>.asCandidates(stops: List<RouteStopRow>): List<Route
             priority = spot.priority,
             status = spot.status,
             type = spot.type,
+            marks = spot.marks,
             notes = spot.notes,
         )
     }

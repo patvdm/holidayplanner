@@ -21,7 +21,7 @@ interface TripItemDao : SyncDao<TripItemEntity> {
     @Query(
         """
         SELECT i.*,
-            s.name AS spotName, s.priority AS spotPriority, s.status AS spotStatus, s.type AS spotType,
+            s.name AS spotName, s.priority AS spotPriority, s.status AS spotStatus, s.type AS spotType, s.marks AS spotMarks,
             s.imageUrl AS spotImageUrl,
             r.name AS routeName, r.completed AS routeCompleted, rc.name AS routeCityName,
             (SELECT COUNT(*) FROM route_stops st WHERE st.routeId = r.id AND st.deleted = 0) AS routeStopCount

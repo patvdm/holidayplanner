@@ -54,6 +54,7 @@ import com.pat.app.holidayplanner.ui.components.HeartCount
 import com.pat.app.holidayplanner.ui.components.HeroImage
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
+import com.pat.app.holidayplanner.ui.components.MarkBadges
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.Thumbnail
 import com.pat.app.holidayplanner.ui.components.TypeBadge
@@ -479,6 +480,7 @@ private fun SpotRowItem(
                 ) {
                     PriorityBadge(row.spot.priority)
                     StatusChip(row.spot.status)
+                    MarkBadges(row.spot.marks)
                     TypeBadge(row.spot.type)
                 }
                 // The reason a place was saved is usually the first thing written about it.

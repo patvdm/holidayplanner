@@ -50,6 +50,7 @@ import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
+import com.pat.app.holidayplanner.ui.components.MarkBadges
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.Thumbnail
 import com.pat.app.holidayplanner.ui.components.TypeBadge
@@ -262,6 +263,7 @@ private fun CandidateRow(
                 ) {
                     PriorityBadge(candidate.priority)
                     StatusChip(candidate.status)
+                    MarkBadges(candidate.marks)
                     TypeBadge(candidate.type)
                 }
                 candidate.notes.noteOrNull()?.let { note ->

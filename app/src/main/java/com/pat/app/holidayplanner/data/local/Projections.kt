@@ -148,6 +148,7 @@ data class TripItemRow(
     val spotPriority: Priority?,
     val spotStatus: SpotStatus?,
     val spotType: SpotType?,
+    val spotMarks: String?,
     val spotImageUrl: String?,
     val routeName: String?,
     val routeCompleted: Boolean?,

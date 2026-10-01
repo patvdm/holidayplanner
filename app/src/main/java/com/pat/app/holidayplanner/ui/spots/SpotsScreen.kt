@@ -37,6 +37,7 @@ import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SortMenu
+import com.pat.app.holidayplanner.ui.components.MarkBadges
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
 import com.pat.app.holidayplanner.ui.components.SyncStatusIcon
@@ -211,6 +212,7 @@ private fun SpotListItem(row: SpotListRow, onClick: () -> Unit) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     PriorityBadge(row.spot.priority)
                     StatusChip(row.spot.status)
+                    MarkBadges(row.spot.marks)
                     TypeBadge(row.spot.type)
                 }
                 row.spot.notes.noteOrNull()?.let { note ->
