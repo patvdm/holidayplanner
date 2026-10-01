@@ -49,6 +49,7 @@ import com.pat.app.holidayplanner.domain.CountryCatalog
 import com.pat.app.holidayplanner.domain.GENERAL_CITY_NAME
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.explore.CountryPickerSheet
+import java.util.UUID
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -91,14 +92,18 @@ fun PlaceSearchSheet(
     knownIsoCode: String = "",
     onDismiss: () -> Unit,
     onSaved: (String) -> Unit,
-    viewModel: PlaceSearchViewModel = koinViewModel {
+) {
+    // A view model of its own per opening. The sheet sits inside a screen, so one shared with that
+    // screen would hand back the last search, and the city that search was opened for; it also
+    // gives Google a fresh session token, which is what it bills a search as.
+    val opening = remember { UUID.randomUUID().toString() }
+    val viewModel: PlaceSearchViewModel = koinViewModel(key = opening) {
         parametersOf(
             PlaceSearchTarget(
                 cityId, prefillName, knownLat, knownLng, knownAddress, knownMapsUrl, knownCityName, knownIsoCode,
             ),
         )
-    },
-) {
+    }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val focusRequester = remember { FocusRequester() }
