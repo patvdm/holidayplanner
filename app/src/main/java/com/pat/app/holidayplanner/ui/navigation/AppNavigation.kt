@@ -148,7 +148,13 @@ fun AppNavigation() {
                     )
                 }
                 entry<RouteKey> { key ->
-                    RouteBuilderScreen(routeId = key.routeId, onBack = nav::back, onDeleted = nav::back)
+                    RouteBuilderScreen(
+                        routeId = key.routeId,
+                        onBack = nav::back,
+                        onDeleted = nav::back,
+                        // Pushed onto this tab rather than Explore's, so back comes here.
+                        onOpenSpot = { nav.push(SpotKey(it)) },
+                    )
                 }
                 entry<MapKey> { key ->
                     MapScreen(

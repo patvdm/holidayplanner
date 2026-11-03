@@ -1,6 +1,7 @@
 package com.pat.app.holidayplanner.ui.trips
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -88,6 +89,7 @@ fun RouteBuilderScreen(
     routeId: String,
     onBack: () -> Unit,
     onDeleted: () -> Unit,
+    onOpenSpot: (String) -> Unit,
     viewModel: RouteViewModel = koinViewModel { parametersOf(routeId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -142,6 +144,7 @@ fun RouteBuilderScreen(
                     state = state,
                     viewModel = viewModel,
                     onDirections = { open(viewModel.directionsTo(it)) },
+                    onOpenSpot = onOpenSpot,
                     modifier = Modifier.weight(1f),
                 )
                 HorizontalDivider()
@@ -253,6 +256,7 @@ private fun StopList(
     state: RouteUiState,
     viewModel: RouteViewModel,
     onDirections: (RouteStop) -> Unit,
+    onOpenSpot: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ReorderableColumn(
@@ -272,6 +276,7 @@ private fun StopList(
                 position = state.walked.indexOf(stop).takeIf { it >= 0 }?.plus(1),
                 handle = handle,
                 onToggle = { viewModel.setOnMaps(stop, it) },
+                onOpen = { onOpenSpot(stop.spotId) },
                 onDirections = { onDirections(stop) },
                 onRemove = { viewModel.remove(stop) },
             )
@@ -345,7 +350,8 @@ private fun SwipeHint(direction: SwipeToDismissBoxValue) {
 
 /**
  * A stop as a spot looks everywhere else, with the tick that puts it in the directions, a way to
- * walk there on its own, and a way off the route.
+ * walk there on its own, and a way off the route. Tapping the row opens the spot itself, the same
+ * as tapping it in any other list.
  */
 @Composable
 private fun StopRow(
@@ -353,6 +359,7 @@ private fun StopRow(
     position: Int?,
     handle: (@Composable () -> Unit)?,
     onToggle: (Boolean) -> Unit,
+    onOpen: () -> Unit,
     onDirections: () -> Unit,
     onRemove: () -> Unit,
 ) {
@@ -360,6 +367,7 @@ private fun StopRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable(onClick = onOpen)
                 .padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
