@@ -7,6 +7,7 @@ import com.pat.app.holidayplanner.data.local.RouteStopRow
 import com.pat.app.holidayplanner.data.location.DeviceLocation
 import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.RouteRepository
+import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.GeoPoint
 import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.domain.Priority
@@ -89,6 +90,7 @@ data class RouteUiState(
 class RouteViewModel(
     private val routeId: String,
     private val routes: RouteRepository,
+    private val spots: SpotRepository,
     private val location: DeviceLocation,
     cities: CityRepository,
 ) : ViewModel() {
@@ -114,6 +116,21 @@ class RouteViewModel(
     /** Ticking a stop puts it in the directions; unticking leaves it on the walk and out of them. */
     fun setOnMaps(stop: RouteStop, onMaps: Boolean) {
         viewModelScope.launch { routes.setOnMaps(stop.stopId, onMaps) }
+    }
+
+    /**
+     * Says you have been somewhere, and takes it out of the directions at the same time: having
+     * seen it, you do not want Maps walking you past it again, though it stays on the list and
+     * keeps its place. Undoing puts it back in.
+     *
+     * Visited belongs to the spot rather than to this stop, so it shows everywhere the spot does,
+     * on both phones.
+     */
+    fun setVisited(stop: RouteStop, visited: Boolean) {
+        viewModelScope.launch {
+            spots.setStatus(stop.spotId, if (visited) SpotStatus.VISITED else SpotStatus.UNVISITED)
+            routes.setOnMaps(stop.stopId, !visited)
+        }
     }
 
     /** Takes a stop off this route. The spot itself is untouched and stays in its city. */
@@ -162,9 +179,14 @@ class RouteViewModel(
         }
     }
 
-    /** The Maps link for one part of the walk. Routes are always walked. */
-    fun mapsUrl(part: List<RouteStop>): String? =
-        MapsUrls.route(part.map { it.toRoutePoint() }, TravelMode.WALKING)
+    /**
+     * The Maps link for one part of the walk. Routes are always walked.
+     *
+     * [fromHere] off leaves your location out of it, so the link shows the stops on their own,
+     * running from the first to the last.
+     */
+    fun mapsUrl(part: List<RouteStop>, fromHere: Boolean = true): String? =
+        MapsUrls.route(part.map { it.toRoutePoint() }, TravelMode.WALKING, fromHere)
 
     /** Directions to one stop from wherever you are now. */
     fun directionsTo(stop: RouteStop): String = MapsUrls.directionsTo(stop.toRoutePoint(), TravelMode.WALKING)

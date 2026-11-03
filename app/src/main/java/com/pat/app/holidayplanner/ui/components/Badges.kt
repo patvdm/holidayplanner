@@ -103,10 +103,10 @@ fun SpotType.label(): Int = when (this) {
 
 /** Fixed tag colours, the same in both themes so a tag means the same thing everywhere. */
 private val MARK_VIOLET = Color(0xFFD7C4F0)
-private val VISITED_GREEN = Color(0xFFB9E4C0)
+internal val VISITED_GREEN = Color(0xFFB9E4C0)
 private val RESTAURANT_ORANGE = Color(0xFFFFD199)
 private val ACCOMMODATION_BLUE = Color(0xFFB7D4F5)
-private val DARK_TEXT = Color(0xFF1B1B1B)
+internal val DARK_TEXT = Color(0xFF1B1B1B)
 
 /**
  * Heart count. A filled heart means the signed-in person hearted it, and the count is emphasised

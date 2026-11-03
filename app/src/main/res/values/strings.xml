@@ -257,12 +257,15 @@
     <string name="route_pick_city">Which city is this walk in?</string>
     <string name="route_sort_proximity">Shortest walk</string>
     <string name="route_sort_from_here">Start from here</string>
+    <string name="route_open_without_me">Show the stops without your location</string>
     <string name="route_open_in_maps">Open in Maps</string>
     <string name="route_open_part">Open part %1$d of %2$d</string>
     <string name="route_split_warning">Google Maps takes %1$d stops at a time, so this day opens as %2$d routes. Each one starts from where you are when you open it.</string>
     <string name="route_empty">No stops yet. Add the spots this walk should take in.</string>
     <string name="route_add_stop">Add a stop</string>
     <string name="route_directions_to">Walk to this one</string>
+    <string name="route_mark_visited">Been there</string>
+    <string name="route_mark_unvisited">Not yet</string>
     <string name="route_remove_stop">Take off this route</string>
     <string name="route_pick_spots">Which spots does this walk take in?</string>
     <string name="route_pick_spots_empty">Nothing saved in this city yet. Make the route and add places to it.</string>

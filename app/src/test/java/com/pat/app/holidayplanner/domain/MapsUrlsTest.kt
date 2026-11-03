@@ -125,6 +125,46 @@ class MapsUrlsTest {
     }
 
     @Test
+    fun `left to itself the walk starts at its first stop`() {
+        val url = MapsUrls.route(
+            listOf(
+                RoutePoint("Mauritshuis", 52.0802, 4.3146),
+                RoutePoint("Binnenhof", 52.0799, 4.3131),
+                RoutePoint("Peace Palace", 52.0866, 4.2955),
+            ),
+            fromHere = false,
+        )
+
+        assertEquals(
+            "https://www.google.com/maps/dir/?api=1" +
+                "&origin=52.0802%2C4.3146" +
+                "&destination=52.0866%2C4.2955" +
+                "&waypoints=52.0799%2C4.3131" +
+                "&travelmode=walking",
+            url,
+        )
+    }
+
+    @Test
+    fun `a place id pins the first stop when it is the origin`() {
+        val url = MapsUrls.route(
+            listOf(
+                RoutePoint("A", 1.0, 2.0, googlePlaceId = "ChIJstart"),
+                RoutePoint("B", 3.0, 4.0, googlePlaceId = "ChIJend"),
+            ),
+            fromHere = false,
+        )
+
+        assertTrue(url!!.contains("&origin_place_id=ChIJstart"))
+        assertTrue(url.contains("&destination_place_id=ChIJend"))
+    }
+
+    @Test
+    fun `one stop is no walk at all once you are left out of it`() {
+        assertNull(MapsUrls.route(listOf(RoutePoint("Alone", 1.0, 2.0)), fromHere = false))
+    }
+
+    @Test
     fun `no stops is not a route either`() {
         assertNull(MapsUrls.route(emptyList()))
     }

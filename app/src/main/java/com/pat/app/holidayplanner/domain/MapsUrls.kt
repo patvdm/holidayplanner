@@ -59,20 +59,33 @@ object MapsUrls {
      * Directions through every stop in order, or null when there are no stops at all.
      *
      * The origin is left out on purpose. Maps then starts from where the phone is, so the walk
-     * begins where you are standing instead of at a stop you may already have passed. That leaves
+     * begins where you are standing instead of at a stop you may already have passed. With
+     * [fromHere] off it starts at the first stop instead, for looking a day over before you set
+     * out, or from home, where your own location says nothing useful about the walk. That leaves
      * the destination and the nine waypoints Maps allows for the stops themselves, so a longer
      * list has to be split first ([splitForMaps]). The destination's place id is sent when we have
      * it, but the waypoint ids are all or nothing: Maps matches them to the waypoints by position,
      * so a partial list would pin the wrong stops.
      */
-    fun route(stops: List<RoutePoint>, travelMode: TravelMode = TravelMode.WALKING): String? {
+    fun route(
+        stops: List<RoutePoint>,
+        travelMode: TravelMode = TravelMode.WALKING,
+        fromHere: Boolean = true,
+    ): String? {
         if (stops.isEmpty()) return null
+        // Without your location the walk has to start at a stop, and one stop cannot be both ends.
+        if (!fromHere && stops.size < 2) return null
 
+        val origin = if (fromHere) null else stops.first()
         val destination = stops.last()
-        val waypoints = stops.dropLast(1)
+        val waypoints = if (fromHere) stops.dropLast(1) else stops.subList(1, stops.size - 1)
 
         return buildString {
             append(DIR_BASE)
+            if (origin != null) {
+                append("&origin=").append(encode(point(origin)))
+                append(placeIdParam("origin_place_id", origin.googlePlaceId))
+            }
             append("&destination=").append(encode(point(destination)))
             append(placeIdParam("destination_place_id", destination.googlePlaceId))
             if (waypoints.isNotEmpty()) {

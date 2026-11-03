@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.trips
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,9 +14,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -25,12 +29,18 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,8 +56,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.domain.MapsUrls
+import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
+import com.pat.app.holidayplanner.ui.components.DARK_TEXT
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import com.pat.app.holidayplanner.ui.components.MarkBadges
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
@@ -57,6 +69,7 @@ import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.Thumbnail
 import com.pat.app.holidayplanner.ui.components.TypeBadge
+import com.pat.app.holidayplanner.ui.components.VISITED_GREEN
 import com.pat.app.holidayplanner.ui.components.noteOrNull
 import com.pat.app.holidayplanner.ui.components.openExternalUrl
 import kotlinx.coroutines.launch
@@ -132,7 +145,10 @@ fun RouteBuilderScreen(
                     modifier = Modifier.weight(1f),
                 )
                 HorizontalDivider()
-                RouteFooter(state = state, onOpen = { open(viewModel.mapsUrl(it)) })
+                RouteFooter(
+                    state = state,
+                    onOpen = { stops, fromHere -> open(viewModel.mapsUrl(stops, fromHere)) },
+                )
             }
         }
     }
@@ -247,13 +263,82 @@ private fun StopList(
         onMoved = viewModel::move,
         modifier = modifier,
     ) { stop, handle ->
-        StopRow(
-            stop = stop,
-            position = state.walked.indexOf(stop).takeIf { it >= 0 }?.plus(1),
-            handle = handle,
-            onToggle = { viewModel.setOnMaps(stop, it) },
-            onDirections = { onDirections(stop) },
-            onRemove = { viewModel.remove(stop) },
+        SwipeToMarkVisited(
+            visited = stop.status == SpotStatus.VISITED,
+            onVisited = { viewModel.setVisited(stop, it) },
+        ) {
+            StopRow(
+                stop = stop,
+                position = state.walked.indexOf(stop).takeIf { it >= 0 }?.plus(1),
+                handle = handle,
+                onToggle = { viewModel.setOnMaps(stop, it) },
+                onDirections = { onDirections(stop) },
+                onRemove = { viewModel.remove(stop) },
+            )
+        }
+    }
+}
+
+/**
+ * Swipe a stop one way to say you have been there, the other way to take it back.
+ *
+ * The box never dismisses anything. The swipe is read once it has settled, the change is written,
+ * and the row is sent back to where it started, because a stop you have walked still belongs on
+ * the list and flying it off the screen would say the wrong thing.
+ */
+@Composable
+private fun SwipeToMarkVisited(
+    visited: Boolean,
+    onVisited: (Boolean) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val state = rememberSwipeToDismissBoxState()
+    LaunchedEffect(state.currentValue) {
+        when (state.currentValue) {
+            SwipeToDismissBoxValue.StartToEnd -> onVisited(true)
+            SwipeToDismissBoxValue.EndToStart -> onVisited(false)
+            SwipeToDismissBoxValue.Settled -> return@LaunchedEffect
+        }
+        state.reset()
+    }
+    SwipeToDismissBox(
+        state = state,
+        backgroundContent = { SwipeHint(state.dismissDirection) },
+        // Only the swipe that would change something answers the finger.
+        enableDismissFromStartToEnd = !visited,
+        enableDismissFromEndToStart = visited,
+    ) {
+        // The row has to be opaque, or the hint behind it shows through as it slides.
+        Surface(color = MaterialTheme.colorScheme.surface) { content() }
+    }
+}
+
+/** What is about to happen, showing from the edge the finger came from. */
+@Composable
+private fun SwipeHint(direction: SwipeToDismissBoxValue) {
+    if (direction == SwipeToDismissBoxValue.Settled) return
+    val marking = direction == SwipeToDismissBoxValue.StartToEnd
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(if (marking) VISITED_GREEN else MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = if (marking) Arrangement.Start else Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val tint = if (marking) DARK_TEXT else MaterialTheme.colorScheme.onSurfaceVariant
+        Icon(
+            imageVector = if (marking) Icons.Filled.Check else Icons.AutoMirrored.Filled.Undo,
+            contentDescription = null,
+            tint = tint,
+        )
+        Text(
+            text = stringResource(
+                if (marking) R.string.route_mark_visited else R.string.route_mark_unvisited,
+            ),
+            color = tint,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(start = 8.dp),
         )
     }
 }
@@ -323,8 +408,14 @@ private fun StopRow(
 /** Tighter than a standard icon button, so a row still has room for the spot itself. */
 private const val ICON_BUTTON_DP = 40
 
+/** The narrow button beside Open in Maps takes a fifth of the row. */
+private const val PREVIEW_WEIGHT = 0.2f
+
 @Composable
-private fun RouteFooter(state: RouteUiState, onOpen: (List<RouteStop>) -> Unit) {
+private fun RouteFooter(
+    state: RouteUiState,
+    onOpen: (stops: List<RouteStop>, fromHere: Boolean) -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -347,18 +438,51 @@ private fun RouteFooter(state: RouteUiState, onOpen: (List<RouteStop>) -> Unit) 
             state.tooLongForOneRoute -> {
                 Note(stringResource(R.string.route_split_warning, MapsUrls.MAX_ROUTE_STOPS, state.parts.size))
                 state.parts.forEachIndexed { index, part ->
-                    FilledTonalButton(onClick = { onOpen(part) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.route_open_part, index + 1, state.parts.size))
-                    }
+                    OpenButtons(
+                        label = stringResource(R.string.route_open_part, index + 1, state.parts.size),
+                        tonal = true,
+                        onOpen = { onOpen(part, true) },
+                        onPreview = if (part.size >= 2) ({ onOpen(part, false) }) else null,
+                    )
                 }
             }
 
-            else -> Button(onClick = { onOpen(state.walked) }, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Filled.Map, contentDescription = null)
-                Text(
-                    text = stringResource(R.string.route_open_in_maps),
-                    modifier = Modifier.padding(start = 8.dp),
+            else -> OpenButtons(
+                label = stringResource(R.string.route_open_in_maps),
+                tonal = false,
+                onOpen = { onOpen(state.walked, true) },
+                onPreview = if (state.walked.size >= 2) ({ onOpen(state.walked, false) }) else null,
+            )
+        }
+    }
+}
+
+/**
+ * The two ways to open a walk: the wide button starts it from where you are standing, and the
+ * narrow one beside it shows the stops on their own, first to last, which is what you want when
+ * you are looking a day over rather than walking it.
+ *
+ * The narrow button is left out where it would mean nothing: one stop has no walk to show without
+ * you at the other end of it.
+ */
+@Composable
+private fun OpenButtons(label: String, tonal: Boolean, onOpen: () -> Unit, onPreview: (() -> Unit)?) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (onPreview != null) {
+            OutlinedButton(onClick = onPreview, modifier = Modifier.weight(PREVIEW_WEIGHT)) {
+                Icon(
+                    Icons.Filled.Visibility,
+                    contentDescription = stringResource(R.string.route_open_without_me),
                 )
+            }
+        }
+        val rest = Modifier.weight(if (onPreview == null) 1f else 1f - PREVIEW_WEIGHT)
+        if (tonal) {
+            FilledTonalButton(onClick = onOpen, modifier = rest) { Text(label) }
+        } else {
+            Button(onClick = onOpen, modifier = rest) {
+                Icon(Icons.Filled.Map, contentDescription = null)
+                Text(text = label, modifier = Modifier.padding(start = 8.dp))
             }
         }
     }
