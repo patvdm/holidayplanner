@@ -342,7 +342,7 @@ private fun RouteFooter(state: RouteUiState, onOpen: (List<RouteStop>) -> Unit) 
         }
 
         when {
-            !state.canOpen -> Note(stringResource(R.string.route_needs_two))
+            !state.canOpen -> Note(stringResource(R.string.route_needs_a_stop))
 
             state.tooLongForOneRoute -> {
                 Note(stringResource(R.string.route_split_warning, MapsUrls.MAX_ROUTE_STOPS, state.parts.size))

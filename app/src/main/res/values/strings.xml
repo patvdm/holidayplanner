@@ -259,7 +259,7 @@
     <string name="route_sort_from_here">Start from here</string>
     <string name="route_open_in_maps">Open in Maps</string>
     <string name="route_open_part">Open part %1$d of %2$d</string>
-    <string name="route_split_warning">Google Maps takes %1$d stops at a time, so this day opens as %2$d routes. Each one starts where the last one ended.</string>
+    <string name="route_split_warning">Google Maps takes %1$d stops at a time, so this day opens as %2$d routes. Each one starts from where you are when you open it.</string>
     <string name="route_empty">No stops yet. Add the spots this walk should take in.</string>
     <string name="route_add_stop">Add a stop</string>
     <string name="route_directions_to">Walk to this one</string>
@@ -275,7 +275,7 @@
     <string name="routes_empty">No routes yet. Tap + to start one: a route walks the spots of one city.</string>
     <string name="routes_no_cities">Save a spot somewhere first. A route walks the spots of one city.</string>
     <string name="routes_walked_header">Walked</string>
-    <string name="route_needs_two">A route needs at least two stops.</string>
+    <string name="route_needs_a_stop">A route needs at least one stop.</string>
     <string name="route_no_maps_app">Nothing on this device can open Maps.</string>
     <plurals name="route_without_location">
         <item quantity="one">%d stop has no coordinates, so Maps will search for it by name.</item>

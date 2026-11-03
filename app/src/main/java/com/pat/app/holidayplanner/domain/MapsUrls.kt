@@ -26,8 +26,11 @@ data class RoutePoint(
  */
 object MapsUrls {
 
-    /** Origin, destination and the nine waypoints Maps allows between them. */
-    const val MAX_ROUTE_STOPS = 11
+    /**
+     * The destination and the nine waypoints Maps allows before it. The origin is not one of them:
+     * it is the phone's own location, which Maps fills in for us.
+     */
+    const val MAX_ROUTE_STOPS = 10
 
     private const val PIPE = "|"
 
@@ -53,24 +56,23 @@ object MapsUrls {
     }
 
     /**
-     * Directions through every stop in order, or null for a route too short to be one.
+     * Directions through every stop in order, or null when there are no stops at all.
      *
-     * Maps takes an origin, a destination and up to nine waypoints between them, so a longer list
-     * has to be split first ([splitForMaps]). Place ids are sent per end when known, but the
-     * waypoint ids are all or nothing: Maps matches them to the waypoints by position, so a partial
-     * list would pin the wrong stops.
+     * The origin is left out on purpose. Maps then starts from where the phone is, so the walk
+     * begins where you are standing instead of at a stop you may already have passed. That leaves
+     * the destination and the nine waypoints Maps allows for the stops themselves, so a longer
+     * list has to be split first ([splitForMaps]). The destination's place id is sent when we have
+     * it, but the waypoint ids are all or nothing: Maps matches them to the waypoints by position,
+     * so a partial list would pin the wrong stops.
      */
     fun route(stops: List<RoutePoint>, travelMode: TravelMode = TravelMode.WALKING): String? {
-        if (stops.size < 2) return null
+        if (stops.isEmpty()) return null
 
-        val origin = stops.first()
         val destination = stops.last()
-        val waypoints = stops.subList(1, stops.size - 1)
+        val waypoints = stops.dropLast(1)
 
         return buildString {
             append(DIR_BASE)
-            append("&origin=").append(encode(point(origin)))
-            append(placeIdParam("origin_place_id", origin.googlePlaceId))
             append("&destination=").append(encode(point(destination)))
             append(placeIdParam("destination_place_id", destination.googlePlaceId))
             if (waypoints.isNotEmpty()) {
@@ -85,35 +87,20 @@ object MapsUrls {
     }
 
     /**
-     * Directions to one place, starting wherever you happen to be: Maps fills the origin in from
-     * the phone, which is what you want when you are already out and heading to the next stop.
+     * Directions to one place. That is simply a route of one stop, and a route of one stop always
+     * builds, so the empty string here is a case that cannot happen.
      */
-    fun directionsTo(stop: RoutePoint, travelMode: TravelMode = TravelMode.WALKING): String = buildString {
-        append(DIR_BASE)
-        append("&destination=").append(encode(point(stop)))
-        append(placeIdParam("destination_place_id", stop.googlePlaceId))
-        append("&travelmode=").append(travelMode.name.lowercase(Locale.ROOT))
-    }
+    fun directionsTo(stop: RoutePoint, travelMode: TravelMode = TravelMode.WALKING): String =
+        route(listOf(stop), travelMode).orEmpty()
 
     /**
      * Cuts a list of stops into routes Maps will accept.
      *
-     * Each part ends where the next one begins, so walking them back to back covers the same ground
-     * with no gap. A list short enough to send as one route comes back as one part, and anything
-     * under two stops comes back as nothing, since there is no route to walk.
+     * The parts do not overlap. Each one starts from wherever the phone is, and by the time you
+     * open part two you are standing at the end of part one, so repeating that stop would only
+     * send you to where you already are.
      */
-    fun <T> splitForMaps(stops: List<T>): List<List<T>> {
-        if (stops.size < 2) return emptyList()
-
-        val parts = mutableListOf<List<T>>()
-        var start = 0
-        while (start < stops.size - 1) {
-            val end = minOf(start + MAX_ROUTE_STOPS, stops.size)
-            parts += stops.subList(start, end)
-            start = end - 1
-        }
-        return parts
-    }
+    fun <T> splitForMaps(stops: List<T>): List<List<T>> = stops.chunked(MAX_ROUTE_STOPS)
 
     /** What Maps should navigate to: the point itself when we have it, else something to search. */
     private fun point(stop: RoutePoint): String =

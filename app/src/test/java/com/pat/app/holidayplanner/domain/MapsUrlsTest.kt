@@ -83,7 +83,7 @@ class MapsUrlsTest {
     }
 
     @Test
-    fun `a route runs from the first stop to the last through the rest`() {
+    fun `a route walks every stop in order, starting from wherever you are`() {
         val url = MapsUrls.route(
             listOf(
                 RoutePoint("Mauritshuis", 52.0802, 4.3146),
@@ -94,29 +94,34 @@ class MapsUrlsTest {
 
         assertEquals(
             "https://www.google.com/maps/dir/?api=1" +
-                "&origin=52.0802%2C4.3146" +
                 "&destination=52.0866%2C4.2955" +
-                "&waypoints=52.0799%2C4.3131" +
+                "&waypoints=52.0802%2C4.3146|52.0799%2C4.3131" +
                 "&travelmode=walking",
             url,
         )
+        assertFalse("the phone supplies the origin", url!!.contains("origin="))
     }
 
     @Test
-    fun `two stops make a route with no waypoints at all`() {
+    fun `the last stop is the destination and everything before it a waypoint`() {
         val url = MapsUrls.route(
             listOf(RoutePoint("A", 1.0, 2.0), RoutePoint("B", 3.0, 4.0)),
         )
 
         assertEquals(
-            "https://www.google.com/maps/dir/?api=1&origin=1.0%2C2.0&destination=3.0%2C4.0&travelmode=walking",
+            "https://www.google.com/maps/dir/?api=1&destination=3.0%2C4.0&waypoints=1.0%2C2.0&travelmode=walking",
             url,
         )
     }
 
     @Test
-    fun `a single stop is not a route`() {
-        assertNull(MapsUrls.route(listOf(RoutePoint("Alone", 1.0, 2.0))))
+    fun `a single stop is a route, because you are the other end of it`() {
+        val url = MapsUrls.route(listOf(RoutePoint("Alone", 1.0, 2.0)))
+
+        assertEquals(
+            "https://www.google.com/maps/dir/?api=1&destination=1.0%2C2.0&travelmode=walking",
+            url,
+        )
     }
 
     @Test
@@ -147,7 +152,7 @@ class MapsUrlsTest {
     }
 
     @Test
-    fun `place ids pin each end of the route`() {
+    fun `place ids pin the destination and the stops before it`() {
         val url = MapsUrls.route(
             listOf(
                 RoutePoint("A", 1.0, 2.0, googlePlaceId = "ChIJstart"),
@@ -155,22 +160,22 @@ class MapsUrlsTest {
             ),
         )
 
-        assertTrue(url!!.contains("&origin_place_id=ChIJstart"))
-        assertTrue(url.contains("&destination_place_id=ChIJend"))
+        assertTrue(url!!.contains("&destination_place_id=ChIJend"))
+        assertTrue(url.contains("&waypoint_place_ids=ChIJstart"))
     }
 
     @Test
     fun `waypoint place ids are sent only when every waypoint has one`() {
         val known = MapsUrls.route(
             listOf(
-                RoutePoint("A", 1.0, 2.0),
+                RoutePoint("A", 1.0, 2.0, googlePlaceId = "ChIJa"),
                 RoutePoint("B", 3.0, 4.0, googlePlaceId = "ChIJb"),
                 RoutePoint("C", 5.0, 6.0, googlePlaceId = "ChIJc"),
                 RoutePoint("D", 7.0, 8.0),
             ),
         )
 
-        assertTrue(known!!.contains("&waypoint_place_ids=ChIJb|ChIJc"))
+        assertTrue(known!!.contains("&waypoint_place_ids=ChIJa|ChIJb|ChIJc"))
     }
 
     @Test
@@ -193,7 +198,7 @@ class MapsUrlsTest {
             listOf(RoutePoint("Bar & Cafe, Lisbon"), RoutePoint("B", 3.0, 4.0)),
         )
 
-        assertTrue(url!!.contains("&origin=Bar%20%26%20Cafe%2C%20Lisbon"))
+        assertTrue(url!!.contains("&waypoints=Bar%20%26%20Cafe%2C%20Lisbon"))
     }
 
     @Test
@@ -207,24 +212,24 @@ class MapsUrlsTest {
             ),
         )
 
-        assertTrue(url!!.contains("&waypoints=3.0%2C4.0|5.0%2C6.0"))
+        assertTrue(url!!.contains("&waypoints=1.0%2C2.0|3.0%2C4.0|5.0%2C6.0"))
     }
 
     @Test
-    fun `eleven stops still go out as a single route`() {
-        val parts = MapsUrls.splitForMaps((1..11).toList())
+    fun `ten stops still go out as a single route`() {
+        val parts = MapsUrls.splitForMaps((1..10).toList())
 
         assertEquals(1, parts.size)
-        assertEquals((1..11).toList(), parts.single())
+        assertEquals((1..10).toList(), parts.single())
     }
 
     @Test
-    fun `a twelfth stop splits the route, with part one ending where part two begins`() {
-        val parts = MapsUrls.splitForMaps((1..12).toList())
+    fun `an eleventh stop splits the route, and the parts do not repeat a stop`() {
+        val parts = MapsUrls.splitForMaps((1..11).toList())
 
         assertEquals(2, parts.size)
-        assertEquals((1..11).toList(), parts[0])
-        assertEquals(listOf(11, 12), parts[1])
+        assertEquals((1..10).toList(), parts[0])
+        assertEquals(listOf(11), parts[1])
     }
 
     @Test
@@ -237,16 +242,15 @@ class MapsUrlsTest {
     }
 
     @Test
-    fun `a split route covers every stop with no gaps between the parts`() {
+    fun `a split route covers every stop exactly once`() {
         val parts = MapsUrls.splitForMaps((1..25).toList())
 
-        val walked = parts.flatMapIndexed { index, part -> if (index == 0) part else part.drop(1) }
-        assertEquals((1..25).toList(), walked)
+        assertEquals((1..25).toList(), parts.flatten())
     }
 
     @Test
-    fun `there is nothing to split when there is no route`() {
-        assertEquals(emptyList<List<Int>>(), MapsUrls.splitForMaps(listOf(1)))
+    fun `one stop is a route of its own, and no stops is nothing to open`() {
+        assertEquals(listOf(listOf(1)), MapsUrls.splitForMaps(listOf(1)))
         assertEquals(emptyList<List<Int>>(), MapsUrls.splitForMaps(emptyList<Int>()))
     }
 

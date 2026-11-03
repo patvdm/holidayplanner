@@ -70,12 +70,12 @@ data class RouteUiState(
     /** The stops Google is asked to walk, in the order the list has them. */
     val walked: List<RouteStop> get() = stops.filter { it.onMaps }
 
-    /** Maps takes eleven stops at a time, so a longer walk has to go out as several routes. */
+    /** Maps takes ten stops at a time, so a longer walk has to go out as several routes. */
     val parts: List<List<RouteStop>> get() = MapsUrls.splitForMaps(walked)
 
     val tooLongForOneRoute: Boolean get() = parts.size > 1
 
-    val canOpen: Boolean get() = walked.size >= 2
+    val canOpen: Boolean get() = walked.isNotEmpty()
 
     val stopsWithoutCoordinates: Int get() = walked.count { it.lat == null || it.lng == null }
 }
