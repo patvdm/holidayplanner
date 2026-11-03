@@ -45,16 +45,16 @@ data class SpotFilters(
     val status: SpotStatus? = null,
     val priority: Priority? = null,
     val type: SpotType? = null,
-    /** Anything attached at all: a link or a photo. */
-    val hasAttachments: Boolean = false,
+    /** Somewhere with a link saved on it. Pictures do not count: nearly everywhere has one. */
+    val hasLinks: Boolean = false,
 ) {
-    val any: Boolean get() = status != null || priority != null || type != null || hasAttachments
+    val any: Boolean get() = status != null || priority != null || type != null || hasLinks
 
     fun matches(row: SpotRow): Boolean =
         (status == null || row.spot.status == status) &&
             (priority == null || row.spot.priority == priority) &&
             (type == null || row.spot.type == type) &&
-            (!hasAttachments || row.linkCount > 0)
+            (!hasLinks || row.webLinkCount > 0)
 }
 
 /** One city on the country screen: its own row, what hangs on it, and the spots under it. */

@@ -24,12 +24,17 @@ interface SpotDao : SyncDao<SpotEntity> {
     /**
      * Every spot in one country's cities, with its heart and link counts and whether the signed-in
      * person hearted it. The country screen groups them under their cities itself.
+     *
+     * Links are counted twice over: everything attached, which is what a delete takes with it, and
+     * the links proper, which is what someone filtering for them means.
      */
     @Query(
         """
         SELECT s.*,
             (SELECT COUNT(*) FROM hearts h WHERE h.spotId = s.id AND h.deleted = 0) AS heartCount,
             (SELECT COUNT(*) FROM links l WHERE l.spotId = s.id AND l.deleted = 0) AS linkCount,
+            (SELECT COUNT(*) FROM links w WHERE w.spotId = s.id AND w.deleted = 0 AND w.source <> 'PHOTO')
+                AS webLinkCount,
             (SELECT COUNT(*) FROM hearts m WHERE m.spotId = s.id AND m.userId = :userId AND m.deleted = 0) > 0
                 AS heartedByMe
         FROM spots s

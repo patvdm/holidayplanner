@@ -426,9 +426,9 @@ private fun FilterRow(filters: SpotFilters, onChange: (SpotFilters) -> Unit) {
             )
         }
         FilterChip(
-            selected = filters.hasAttachments,
-            onClick = { onChange(filters.copy(hasAttachments = !filters.hasAttachments)) },
-            label = { Text(stringResource(R.string.filter_has_attachments)) },
+            selected = filters.hasLinks,
+            onClick = { onChange(filters.copy(hasLinks = !filters.hasLinks)) },
+            label = { Text(stringResource(R.string.filter_has_links)) },
         )
         FilterChip(
             selected = filters.priority == Priority.HIGH,

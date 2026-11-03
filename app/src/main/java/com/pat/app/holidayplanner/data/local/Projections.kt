@@ -25,6 +25,8 @@ data class SpotRow(
     val heartCount: Int,
     /** Everything attached, photos included; what a delete takes with it. */
     val linkCount: Int,
+    /** The links proper, with the photos left out. */
+    val webLinkCount: Int,
     val heartedByMe: Boolean,
 )
 
