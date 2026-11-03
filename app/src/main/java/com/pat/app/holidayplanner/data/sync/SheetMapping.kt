@@ -285,6 +285,7 @@ fun routeStopToRow(entity: RouteStopEntity): Map<String, String> = buildRow(enti
     put("routeId", entity.routeId)
     put("spotId", entity.spotId)
     put("sortKey", entity.sortKey)
+    put("onMaps", entity.onMaps.toString())
 }
 
 fun routeStopFromRow(row: SheetRow): RouteStopEntity? {
@@ -294,5 +295,7 @@ fun routeStopFromRow(row: SheetRow): RouteStopEntity? {
         routeId = row.str("routeId").trim(),
         spotId = row.str("spotId").trim(),
         sortKey = row.str("sortKey").trim(),
+        // Stops written before the column existed were all in the directions, which is what blank means.
+        onMaps = row.str("onMaps").isBlank() || row.bool("onMaps"),
     )
 }

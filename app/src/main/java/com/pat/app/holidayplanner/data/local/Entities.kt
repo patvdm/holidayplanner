@@ -175,6 +175,12 @@ data class RouteStopEntity(
     val routeId: String,
     val spotId: String,
     val sortKey: String,
+    /**
+     * Whether this stop goes into the Google Maps route. A stop that is on the walk but not in the
+     * directions — somewhere already seen, or somewhere to decide about later — stays in the list
+     * and keeps its place in the order.
+     */
+    val onMaps: Boolean,
 ) : SyncEntity
 
 /**

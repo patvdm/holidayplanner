@@ -22,9 +22,7 @@ import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
 import com.pat.app.holidayplanner.data.repo.attachmentTargets
 import com.pat.app.holidayplanner.domain.CountryCatalog
-import com.pat.app.holidayplanner.domain.GeoPoint
 import com.pat.app.holidayplanner.domain.Priority
-import com.pat.app.holidayplanner.domain.Proximity
 import com.pat.app.holidayplanner.domain.SortMode
 import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.domain.SpotStatus
@@ -323,15 +321,9 @@ class CountryViewModel(
      * Starts a route through a city with every spot nobody has visited yet already on it,
      * ordered so it opens as a sensible walk with no extra tap.
      */
-    fun createRoute(cityId: String, title: String, onCreated: (String) -> Unit) {
-        val unvisited = Proximity
-            .orderByProximity(uiState.value.spotsOf(cityId).filter { it.spot.status == SpotStatus.UNVISITED }) { row ->
-                val lat = row.spot.lat
-                val lng = row.spot.lng
-                if (lat != null && lng != null) GeoPoint(lat, lng) else null
-            }
-            .map { it.spot.meta.id }
-        viewModelScope.launch { onCreated(repos.routes.create(cityId, title, unvisited)) }
+    /** A new route through one of this country's cities, holding the spots chosen for it. */
+    fun createRoute(cityId: String, title: String, spotIds: List<String>, onCreated: (String) -> Unit) {
+        viewModelScope.launch { onCreated(repos.routes.create(cityId, title, spotIds)) }
     }
 }
 

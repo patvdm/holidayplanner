@@ -86,6 +86,8 @@ class RouteRepository(
                     routeId = routeId,
                     spotId = spotId,
                     sortKey = SortKey.after(stopDao.lastSortKey(routeId)),
+                    // Somewhere just added is somewhere you mean to go, so it is in the directions.
+                    onMaps = true,
                 ),
             ),
         )
@@ -100,23 +102,25 @@ class RouteRepository(
         writer.requestSync()
     }
 
+    /** Puts a stop into the Google Maps route, or leaves it out while keeping it on the walk. */
+    suspend fun setOnMaps(id: String, onMaps: Boolean) = editStop(id) { it.copy(onMaps = onMaps) }
+
     suspend fun move(id: String, previousKey: String?, nextKey: String?) =
         editStop(id) { it.copy(sortKey = SortKey.between(previousKey, nextKey)) }
 
     /**
-     * Rewrites the order of a whole route, which is what sorting by proximity does. Every stop gets
-     * a fresh key so the list reads in the given order, one write each.
+     * Rearranges some of a route's stops among the places they already occupy, which is what
+     * sorting by proximity does. Only the stops given move, and they land on their own keys in the
+     * new order, so the stops left out of the sort keep exactly where they were in the list.
      */
     suspend fun reorder(stopIdsInOrder: List<String>) {
+        val stops = stopIdsInOrder.mapNotNull { stopDao.find(it) }
+        if (stops.isEmpty()) return
+        val keys = stops.map { it.sortKey }.sorted()
         val stamp = writer.stamp()
-        var previous: String? = null
-        val updated = stopIdsInOrder.mapNotNull { id ->
-            val stop = stopDao.find(id) ?: return@mapNotNull null
-            val key = SortKey.after(previous)
-            previous = key
-            stop.copy(sortKey = key, meta = stop.meta.touched(stamp.now, stamp.userId))
+        val updated = stops.mapIndexed { index, stop ->
+            stop.copy(sortKey = keys[index], meta = stop.meta.touched(stamp.now, stamp.userId))
         }
-        if (updated.isEmpty()) return
         stopDao.upsert(updated)
         writer.requestSync()
     }

@@ -44,11 +44,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.data.local.CityOption
 import com.pat.app.holidayplanner.data.local.RouteRow
 import com.pat.app.holidayplanner.data.local.TripItemRow
 import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.domain.TripItemType
 import com.pat.app.holidayplanner.ui.components.PickFromListDialog
+import com.pat.app.holidayplanner.ui.components.PickSpotsSheet
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
@@ -69,6 +71,7 @@ private sealed interface Adding {
     data class NewSpot(val date: LocalDate) : Adding
     data class Route(val date: LocalDate) : Adding
     data class RouteCity(val date: LocalDate) : Adding
+    data class RouteSpots(val date: LocalDate, val city: CityOption) : Adding
 }
 
 /**
@@ -244,10 +247,18 @@ private fun AddingDialogs(
             title = stringResource(R.string.route_pick_city),
             options = state.cities.map { it.cityId to it.cityName },
             onPick = { cityId ->
+                val city = state.cities.firstOrNull { it.cityId == cityId }
+                onChange(city?.let { Adding.RouteSpots(adding.date, it) })
+            },
+            onDismiss = { onChange(null) },
+        )
+
+        // The city first, then what the walk takes in, then it opens to be ordered.
+        is Adding.RouteSpots -> PickSpotsSheet(
+            cityId = adding.city.cityId,
+            onConfirm = { spotIds ->
                 onChange(null)
-                state.cities.firstOrNull { it.cityId == cityId }?.let { city ->
-                    viewModel.addNewRoute(adding.date, city, onOpenRoute)
-                }
+                viewModel.addNewRoute(adding.date, adding.city, spotIds, onOpenRoute)
             },
             onDismiss = { onChange(null) },
         )

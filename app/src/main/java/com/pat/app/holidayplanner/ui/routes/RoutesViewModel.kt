@@ -37,7 +37,8 @@ class RoutesViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), RoutesUiState())
 
     /** A new, empty route through [city], named after it until somebody has a better idea. */
-    fun create(city: CityOption, onCreated: (String) -> Unit) {
-        viewModelScope.launch { onCreated(routes.create(city.cityId, city.cityName)) }
+    /** A new route through [city], holding the spots chosen for it. */
+    fun create(city: CityOption, spotIds: List<String>, onCreated: (String) -> Unit) {
+        viewModelScope.launch { onCreated(routes.create(city.cityId, city.cityName, spotIds)) }
     }
 }

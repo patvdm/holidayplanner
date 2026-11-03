@@ -249,4 +249,28 @@ class MapsUrlsTest {
         assertEquals(emptyList<List<Int>>(), MapsUrls.splitForMaps(listOf(1)))
         assertEquals(emptyList<List<Int>>(), MapsUrls.splitForMaps(emptyList<Int>()))
     }
+
+    @Test
+    fun `directions to one stop leave the origin to the phone`() {
+        val url = MapsUrls.directionsTo(RoutePoint(label = "Vredespaleis", lat = 52.0864, lng = 4.2956))
+
+        assertTrue(url.startsWith("https://www.google.com/maps/dir/?api=1"))
+        assertTrue(url.contains("destination=52.0864%2C4.2956"))
+        assertFalse(url.contains("origin="))
+        assertTrue(url.endsWith("travelmode=walking"))
+    }
+
+    @Test
+    fun `a stop with no coordinates is searched for by name`() {
+        val url = MapsUrls.directionsTo(RoutePoint(label = "Cafe de Klos, Kerkstraat 41"))
+
+        assertTrue(url.contains("destination=Cafe%20de%20Klos%2C%20Kerkstraat%2041"))
+    }
+
+    @Test
+    fun `a place id pins the exact business to walk to`() {
+        val url = MapsUrls.directionsTo(RoutePoint(label = "Klos", googlePlaceId = "abc123"))
+
+        assertTrue(url.contains("destination_place_id=abc123"))
+    }
 }

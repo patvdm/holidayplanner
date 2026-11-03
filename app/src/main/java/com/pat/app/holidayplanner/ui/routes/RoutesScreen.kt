@@ -29,8 +29,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.data.local.CityOption
 import com.pat.app.holidayplanner.data.local.RouteRow
 import com.pat.app.holidayplanner.ui.components.PickFromListDialog
+import com.pat.app.holidayplanner.ui.components.PickSpotsSheet
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
 import com.pat.app.holidayplanner.ui.components.TabTopBar
@@ -47,6 +49,7 @@ fun RoutesScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pickingCity by remember { mutableStateOf(false) }
+    var pickingSpotsIn by remember { mutableStateOf<CityOption?>(null) }
 
     Scaffold(
         // The tab bar below is already accounted for by the navigation Scaffold.
@@ -103,9 +106,21 @@ fun RoutesScreen(
             options = state.cities.map { it.cityId to "${it.countryName} \u203a ${it.cityName}" },
             onPick = { cityId ->
                 pickingCity = false
-                state.cities.firstOrNull { it.cityId == cityId }?.let { viewModel.create(it, onOpenRoute) }
+                pickingSpotsIn = state.cities.firstOrNull { it.cityId == cityId }
             },
             onDismiss = { pickingCity = false },
+        )
+    }
+
+    // The city first, then what the walk takes in.
+    pickingSpotsIn?.let { city ->
+        PickSpotsSheet(
+            cityId = city.cityId,
+            onConfirm = { spotIds ->
+                pickingSpotsIn = null
+                viewModel.create(city, spotIds, onOpenRoute)
+            },
+            onDismiss = { pickingSpotsIn = null },
         )
     }
 }

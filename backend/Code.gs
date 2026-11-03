@@ -31,7 +31,7 @@ var SCHEMA = {
     'spotId', 'routeId', 'bookingRef', 'notes',
   ]),
   Routes: COMMON_COLUMNS.concat(['cityId', 'name', 'completed', 'notes']),
-  RouteStops: COMMON_COLUMNS.concat(['routeId', 'spotId', 'sortKey']),
+  RouteStops: COMMON_COLUMNS.concat(['routeId', 'spotId', 'sortKey', 'onMaps']),
 };
 
 /** Whitelist of tabs the API touches. Any other tab in the spreadsheet is ignored. */

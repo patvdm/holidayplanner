@@ -84,6 +84,7 @@ data class SpotPickerRow(
 data class RouteStopRow(
     val stopId: String,
     val sortKey: String,
+    val onMaps: Boolean,
     val spotId: String,
     val name: String,
     val cityId: String,
@@ -92,6 +93,12 @@ data class RouteStopRow(
     val lat: Double?,
     val lng: Double?,
     val googlePlaceId: String,
+    val imageUrl: String,
+    val notes: String,
+    val marks: String,
+    val priority: Priority,
+    val status: SpotStatus,
+    val type: SpotType,
 )
 
 /**

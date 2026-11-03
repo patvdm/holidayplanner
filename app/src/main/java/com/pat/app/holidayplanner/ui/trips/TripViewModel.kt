@@ -135,9 +135,14 @@ class TripViewModel(
      * stops can be ticked. This is the "add new route" on a trip day, and it funnels into the same
      * route screen as everything else.
      */
-    fun addNewRoute(date: LocalDate, city: CityOption, onCreated: (routeId: String) -> Unit) {
+    fun addNewRoute(
+        date: LocalDate,
+        city: CityOption,
+        spotIds: List<String>,
+        onCreated: (routeId: String) -> Unit,
+    ) {
         viewModelScope.launch {
-            val routeId = routeRepository.create(city.cityId, city.cityName)
+            val routeId = routeRepository.create(city.cityId, city.cityName, spotIds)
             repository.addItem(
                 tripId = tripId,
                 type = TripItemType.ROUTE,

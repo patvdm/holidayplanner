@@ -54,6 +54,7 @@ import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.MoveAttachmentDialog
 import com.pat.app.holidayplanner.ui.components.NoteDialog
 import com.pat.app.holidayplanner.ui.components.PhotoViewer
+import com.pat.app.holidayplanner.ui.components.PickSpotsSheet
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PictureDialog
 import com.pat.app.holidayplanner.ui.components.SortMenu
@@ -108,9 +109,7 @@ fun CountryScreen(
                 dialogs.editingNote = owner to note
             }
             override val onChangePicture: (String) -> Unit = { dialogs.changingPictureOf = it }
-            override val onNewRoute: (CityEntity) -> Unit = { city ->
-                viewModel.createRoute(city.meta.id, city.name) { openRoute(it) }
-            }
+            override val onNewRoute: (CityEntity) -> Unit = { dialogs.newRouteIn = it }
             override val onAddSpot: (CityEntity) -> Unit = { dialogs.addingSpotIn = it.meta.id }
             override val onCityPriority: (String, Priority) -> Unit = { id, priority ->
                 viewModel.setPriority(AttachmentOwner(cityId = id), priority)
@@ -233,7 +232,7 @@ fun CountryScreen(
         }
     }
 
-    CountryDialogs(state = state, dialogs = dialogs, viewModel = viewModel)
+    CountryDialogs(state = state, dialogs = dialogs, viewModel = viewModel, onOpenRoute = { openRoute(it) })
 }
 
 /** The country's own buttons: a photo of it, the spot order, arranging the cities, and the rest. */
@@ -283,6 +282,9 @@ private fun CountryTopActions(
 
 /** Which dialog is open, kept together so the screen itself stays readable. */
 private class CountryDialogs {
+    /** The city a route is being made for, while its spots are being chosen. */
+    var newRouteIn by mutableStateOf<CityEntity?>(null)
+
     /** The city a new spot is being searched for: empty means anywhere in the country. */
     var addingSpotIn by mutableStateOf<String?>(null)
 
@@ -300,8 +302,26 @@ private class CountryDialogs {
     var editingNote by mutableStateOf<Pair<AttachmentOwner, String>?>(null)
 }
 
+/** The two sheets that make something new: a route through a city, and a spot found on Google. */
 @Composable
-private fun CountryDialogs(state: CountryUiState, dialogs: CountryDialogs, viewModel: CountryViewModel) {
+private fun CountryAddSheets(
+    state: CountryUiState,
+    dialogs: CountryDialogs,
+    viewModel: CountryViewModel,
+    onOpenRoute: (String) -> Unit,
+) {
+    // A route starts with the city it walks, then the spots it takes in.
+    dialogs.newRouteIn?.let { city ->
+        PickSpotsSheet(
+            cityId = city.meta.id,
+            onConfirm = { spotIds ->
+                dialogs.newRouteIn = null
+                viewModel.createRoute(city.meta.id, city.name, spotIds, onOpenRoute)
+            },
+            onDismiss = { dialogs.newRouteIn = null },
+        )
+    }
+
     dialogs.addingSpotIn?.let { cityId ->
         // From a city the search leans on its coordinates; from the country, on the country itself,
         // and Google's answer decides which city the spot ends up in.
@@ -313,6 +333,16 @@ private fun CountryDialogs(state: CountryUiState, dialogs: CountryDialogs, viewM
             onSaved = { dialogs.addingSpotIn = null },
         )
     }
+}
+
+@Composable
+private fun CountryDialogs(
+    state: CountryUiState,
+    dialogs: CountryDialogs,
+    viewModel: CountryViewModel,
+    onOpenRoute: (String) -> Unit,
+) {
+    CountryAddSheets(state, dialogs, viewModel, onOpenRoute)
 
     dialogs.viewingPhoto?.let { url ->
         PhotoViewer(url = url, onDismiss = { dialogs.viewingPhoto = null })

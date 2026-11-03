@@ -260,6 +260,14 @@
     <string name="route_open_in_maps">Open in Maps</string>
     <string name="route_open_part">Open part %1$d of %2$d</string>
     <string name="route_split_warning">Google Maps takes %1$d stops at a time, so this day opens as %2$d routes. Each one starts where the last one ended.</string>
+    <string name="route_empty">No stops yet. Add the spots this walk should take in.</string>
+    <string name="route_add_stop">Add a stop</string>
+    <string name="route_directions_to">Walk to this one</string>
+    <string name="route_remove_stop">Take off this route</string>
+    <string name="route_pick_spots">Which spots does this walk take in?</string>
+    <string name="route_pick_spots_empty">Nothing saved in this city yet. Make the route and add places to it.</string>
+    <string name="route_create_empty">Create the route</string>
+    <string name="route_create_with">Create with %1$d spots</string>
     <string name="route_city_empty">No spots saved in this city yet. Add some and they appear here to tick.</string>
     <string name="route_delete_message">Any trip day pointing at it loses the route. The spots themselves are untouched.</string>
     <string name="route_row_detail">%1$s, %2$s \u00b7 %3$d stops</string>

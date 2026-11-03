@@ -8,15 +8,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.foundation.clickable
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -48,24 +49,25 @@ import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
+import com.pat.app.holidayplanner.ui.components.MarkBadges
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PriorityBadge
-import com.pat.app.holidayplanner.ui.components.MarkBadges
+import com.pat.app.holidayplanner.ui.components.ReorderableColumn
+import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
 import com.pat.app.holidayplanner.ui.components.StatusChip
 import com.pat.app.holidayplanner.ui.components.Thumbnail
 import com.pat.app.holidayplanner.ui.components.TypeBadge
 import com.pat.app.holidayplanner.ui.components.noteOrNull
-import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.openExternalUrl
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * A route: a name, whether it has been walked, and which of the city's spots are on it.
+ * A route: a name, whether it has been walked, and the spots put on it in the order they are walked.
  *
- * Every spot in the city is listed and ticking one puts it on the walk, so choosing a day is a
- * matter of looking at what is nearby rather than searching for things one at a time. Everything
+ * Only this route's stops are listed. The tick against each one says whether Google is asked to
+ * walk you past it, so a stop can sit on the plan without being in today's directions. Everything
  * written here takes effect at once, so there is no Save button: the list is the plan.
  */
 @Composable
@@ -80,11 +82,11 @@ fun RouteBuilderScreen(
     val snackbars = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var confirmingDelete by remember { mutableStateOf(false) }
-    var addingSpot by remember { mutableStateOf(false) }
+    var pickingSpot by remember { mutableStateOf(false) }
+    var searchingSpot by remember { mutableStateOf(false) }
 
     val noMapsApp = stringResource(R.string.route_no_maps_app)
-    val openInMaps: (List<RouteCandidate>) -> Unit = { part ->
-        val url = viewModel.mapsUrl(part)
+    val open: (String?) -> Unit = { url ->
         if (url == null || !context.openExternalUrl(url)) {
             scope.launch { snackbars.showSnackbar(noMapsApp) }
         }
@@ -116,28 +118,51 @@ fun RouteBuilderScreen(
                 onRename = viewModel::rename,
                 onCompleted = viewModel::setCompleted,
                 onSortByProximity = viewModel::sortByProximity,
-                onAddSpot = { addingSpot = true },
+                onAddStop = { pickingSpot = true },
             )
             HorizontalDivider()
 
-            if (state.candidates.isEmpty()) {
-                EmptyListMessage(stringResource(R.string.route_city_empty))
+            if (state.isEmpty) {
+                EmptyListMessage(stringResource(R.string.route_empty))
             } else {
-                StopList(state = state, viewModel = viewModel, modifier = Modifier.weight(1f))
+                StopList(
+                    state = state,
+                    viewModel = viewModel,
+                    onDirections = { open(viewModel.directionsTo(it)) },
+                    modifier = Modifier.weight(1f),
+                )
                 HorizontalDivider()
-                RouteFooter(state = state, onOpen = openInMaps)
+                RouteFooter(state = state, onOpen = { open(viewModel.mapsUrl(it)) })
             }
         }
     }
 
-    if (addingSpot) {
+    // One sheet for both ways of adding: the city's other spots, and a search for somewhere new.
+    if (pickingSpot) {
+        val alreadyOn = state.stops.map { it.spotId }.toSet()
+        SpotPickerSheet(
+            filter = { it.cityId == state.cityId && it.spotId !in alreadyOn },
+            allowCreate = true,
+            onCreateNew = {
+                pickingSpot = false
+                searchingSpot = true
+            },
+            onPick = {
+                pickingSpot = false
+                viewModel.addSpot(it.spotId)
+            },
+            onDismiss = { pickingSpot = false },
+        )
+    }
+
+    if (searchingSpot) {
         // Filed in the route's own city, and on the walk before the sheet has closed.
         PlaceSearchSheet(
             title = stringResource(R.string.spot_add),
-            cityId = state.route?.cityId.orEmpty(),
-            onDismiss = { addingSpot = false },
+            cityId = state.cityId,
+            onDismiss = { searchingSpot = false },
             onSaved = { spotId ->
-                addingSpot = false
+                searchingSpot = false
                 viewModel.addSpot(spotId)
             },
         )
@@ -162,7 +187,7 @@ private fun RouteHeader(
     onRename: (String) -> Unit,
     onCompleted: (Boolean) -> Unit,
     onSortByProximity: (fromHere: Boolean) -> Unit,
-    onAddSpot: () -> Unit,
+    onAddStop: () -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -190,9 +215,8 @@ private fun RouteHeader(
                 onClick = { onCompleted(!state.completed) },
                 label = { Text(stringResource(R.string.route_completed)) },
             )
-            // A walk often wants somewhere that was never saved; the search knows which city.
-            AssistChip(onClick = onAddSpot, label = { Text(stringResource(R.string.spot_add)) })
-            if (state.stops.size > 1) {
+            AssistChip(onClick = onAddStop, label = { Text(stringResource(R.string.route_add_stop)) })
+            if (state.walked.size > 1) {
                 AssistChip(
                     enabled = !state.sorting,
                     onClick = { onSortByProximity(false) },
@@ -209,69 +233,86 @@ private fun RouteHeader(
 }
 
 @Composable
-private fun StopList(state: RouteUiState, viewModel: RouteViewModel, modifier: Modifier = Modifier) {
+private fun StopList(
+    state: RouteUiState,
+    viewModel: RouteViewModel,
+    onDirections: (RouteStop) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     ReorderableColumn(
-        items = state.candidates,
-        idOf = { it.spotId },
+        items = state.stops,
+        idOf = { it.stopId },
         sortKeyOf = { it.sortKey },
-        // Only the walk has an order; the rest are just spots that happen to be in this city.
         reorderable = true,
-        onMoved = { id, previous, next ->
-            state.candidates.firstOrNull { it.spotId == id }?.stopId?.let { viewModel.move(it, previous, next) }
-        },
+        onMoved = viewModel::move,
         modifier = modifier,
-    ) { candidate, handle ->
-        CandidateRow(
-            candidate = candidate,
-            position = if (candidate.selected) state.stops.indexOf(candidate) + 1 else null,
-            handle = handle.takeIf { candidate.selected },
-            onToggle = { viewModel.setOnRoute(candidate, it) },
+    ) { stop, handle ->
+        StopRow(
+            stop = stop,
+            position = state.walked.indexOf(stop).takeIf { it >= 0 }?.plus(1),
+            handle = handle,
+            onToggle = { viewModel.setOnMaps(stop, it) },
+            onDirections = { onDirections(stop) },
+            onRemove = { viewModel.remove(stop) },
         )
     }
 }
 
-/** A spot as it looks everywhere else in the app, with a tick and its place on the walk in front. */
+/**
+ * A stop as a spot looks everywhere else, with the tick that puts it in the directions, a way to
+ * walk there on its own, and a way off the route.
+ */
 @Composable
-private fun CandidateRow(
-    candidate: RouteCandidate,
+private fun StopRow(
+    stop: RouteStop,
     position: Int?,
     handle: (@Composable () -> Unit)?,
     onToggle: (Boolean) -> Unit,
+    onDirections: () -> Unit,
+    onRemove: () -> Unit,
 ) {
     Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onToggle(!candidate.selected) }
                 .padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Checkbox(checked = candidate.selected, onCheckedChange = onToggle)
-            Text(
-                text = position?.toString().orEmpty(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.width(POSITION_WIDTH_DP.dp),
-            )
-            Thumbnail(candidate.imageUrl, size = 48.dp)
+            Checkbox(checked = stop.onMaps, onCheckedChange = onToggle)
+            Thumbnail(stop.imageUrl, size = 44.dp)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(candidate.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    // The number is where this stop comes in the directions, so it skips the unticked.
+                    text = position?.let { "$it. ${stop.name}" } ?: stop.name,
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    PriorityBadge(candidate.priority)
-                    StatusChip(candidate.status)
-                    MarkBadges(candidate.marks)
-                    TypeBadge(candidate.type)
+                    PriorityBadge(stop.priority)
+                    StatusChip(stop.status)
+                    MarkBadges(stop.marks)
+                    TypeBadge(stop.type)
                 }
-                candidate.notes.noteOrNull()?.let { note ->
-                    Text(
-                        text = note,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                stop.notes.noteOrNull()?.let { note ->
+                    Text(text = note, style = MaterialTheme.typography.bodySmall)
                 }
+            }
+            IconButton(onClick = onDirections, modifier = Modifier.size(ICON_BUTTON_DP.dp)) {
+                Icon(
+                    Icons.AutoMirrored.Filled.DirectionsWalk,
+                    contentDescription = stringResource(R.string.route_directions_to),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+            IconButton(onClick = onRemove, modifier = Modifier.size(ICON_BUTTON_DP.dp)) {
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.route_remove_stop),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             handle?.invoke()
         }
@@ -279,11 +320,11 @@ private fun CandidateRow(
     }
 }
 
-/** Room for a two-digit stop number, so the rows line up whether or not a spot is on the walk. */
-private const val POSITION_WIDTH_DP = 20
+/** Tighter than a standard icon button, so a row still has room for the spot itself. */
+private const val ICON_BUTTON_DP = 40
 
 @Composable
-private fun RouteFooter(state: RouteUiState, onOpen: (List<RouteCandidate>) -> Unit) {
+private fun RouteFooter(state: RouteUiState, onOpen: (List<RouteStop>) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -312,7 +353,7 @@ private fun RouteFooter(state: RouteUiState, onOpen: (List<RouteCandidate>) -> U
                 }
             }
 
-            else -> Button(onClick = { onOpen(state.stops) }, modifier = Modifier.fillMaxWidth()) {
+            else -> Button(onClick = { onOpen(state.walked) }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.Map, contentDescription = null)
                 Text(
                     text = stringResource(R.string.route_open_in_maps),

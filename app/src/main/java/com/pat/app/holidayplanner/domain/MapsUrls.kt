@@ -85,6 +85,17 @@ object MapsUrls {
     }
 
     /**
+     * Directions to one place, starting wherever you happen to be: Maps fills the origin in from
+     * the phone, which is what you want when you are already out and heading to the next stop.
+     */
+    fun directionsTo(stop: RoutePoint, travelMode: TravelMode = TravelMode.WALKING): String = buildString {
+        append(DIR_BASE)
+        append("&destination=").append(encode(point(stop)))
+        append(placeIdParam("destination_place_id", stop.googlePlaceId))
+        append("&travelmode=").append(travelMode.name.lowercase(Locale.ROOT))
+    }
+
+    /**
      * Cuts a list of stops into routes Maps will accept.
      *
      * Each part ends where the next one begins, so walking them back to back covers the same ground

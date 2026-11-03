@@ -214,7 +214,7 @@ class SheetMappingTest {
 
     @Test
     fun `route stop round trips`() {
-        val entity = RouteStopEntity(meta, routeId = "r1", spotId = "s1", sortKey = "V")
+        val entity = RouteStopEntity(meta, routeId = "r1", spotId = "s1", sortKey = "V", onMaps = true)
         assertEquals(entity, routeStopFromRow(SheetRow(routeStopToRow(entity))))
     }
 
