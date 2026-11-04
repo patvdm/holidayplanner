@@ -66,6 +66,8 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material.icons.outlined.AddRoad
+import com.pat.app.holidayplanner.ui.routes.AddToRouteSheet
 import androidx.compose.material3.CircularProgressIndicator
 import com.pat.app.holidayplanner.ui.components.openExternalUrl
 import kotlinx.coroutines.delay
@@ -102,6 +104,10 @@ fun SpotDetailScreen(
                     }
                 },
                 actions = {
+                    // First in the bar: putting a spot on a walk is the quick thing to do here.
+                    IconButton(onClick = { dialogs.addingToRoute = true }) {
+                        Icon(Icons.Outlined.AddRoad, contentDescription = stringResource(R.string.add_to_route))
+                    }
                     if (state.savingPhoto) {
                         CircularProgressIndicator(modifier = Modifier.padding(horizontal = 16.dp))
                     } else {
@@ -292,6 +298,7 @@ private class SpotDialogs {
     var viewing by mutableStateOf<String?>(null)
     var deletingPhoto by mutableStateOf<LinkEntity?>(null)
     var moving by mutableStateOf<LinkEntity?>(null)
+    var addingToRoute by mutableStateOf(false)
 }
 
 /** The photos of this spot. They are added from the button in the top bar. */
@@ -393,6 +400,10 @@ private fun SpotDialogs(
     }
 
     val spot = state.spot
+    if (dialogs.addingToRoute && spot != null) {
+        AddToRouteSheet(spotId = spot.meta.id, spotName = spot.name, onDismiss = { dialogs.addingToRoute = false })
+    }
+
     if (dialogs.movingSpot && spot != null) {
         MoveSpotDialog(
             spot = spot,

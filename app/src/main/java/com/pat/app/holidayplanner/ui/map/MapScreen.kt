@@ -11,6 +11,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddRoad
+import androidx.compose.material3.Icon
+import com.pat.app.holidayplanner.data.local.LinkEntity
+import com.pat.app.holidayplanner.ui.components.LinkList
+import com.pat.app.holidayplanner.ui.components.openExternalUrl
+import com.pat.app.holidayplanner.ui.routes.AddToRouteSheet
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -65,6 +75,8 @@ fun MapScreen(
     viewModel: MapViewModel = koinViewModel { parametersOf(scope) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val detail by viewModel.selection.collectAsStateWithLifecycle()
+    var addingToRoute by remember { mutableStateOf<SpotPin?>(null) }
     val context = LocalContext.current
     var locationAllowed by remember {
         mutableStateOf(
@@ -92,10 +104,18 @@ fun MapScreen(
             pins = state.pins,
             focus = state.focus,
             showMyLocation = locationAllowed,
+            detail = detail,
+            onSelect = viewModel::select,
             onOpenSpot = onOpenSpot,
+            onAddToRoute = { addingToRoute = it },
+            onOpenLink = { context.openExternalUrl(it.url) },
             onSettled = viewModel::rememberView,
             modifier = Modifier.padding(padding),
         )
+    }
+
+    addingToRoute?.let { pin ->
+        AddToRouteSheet(spotId = pin.spotId, spotName = pin.name, onDismiss = { addingToRoute = null })
     }
 }
 
@@ -104,11 +124,17 @@ private fun SpotMap(
     pins: List<SpotPin>,
     focus: MapFocus?,
     showMyLocation: Boolean,
+    detail: PinDetail?,
+    onSelect: (String?) -> Unit,
     onOpenSpot: (String) -> Unit,
+    onAddToRoute: (SpotPin) -> Unit,
+    onOpenLink: (LinkEntity) -> Unit,
     onSettled: (MapView) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selected by remember { mutableStateOf<SpotPin?>(null) }
+    // The card's notes and links load for whichever pin is up.
+    LaunchedEffect(selected?.spotId) { onSelect(selected?.spotId) }
     // Both survive a trip to a spot and back, so the map is left where it was, not re-aimed.
     val camera = rememberCameraPositionState()
     var aimed by rememberSaveable { mutableStateOf(false) }
@@ -150,6 +176,7 @@ private fun SpotMap(
                     pin.name,
                     pin.pinStyle(),
                     pin.type,
+                    pin.onRoute,
                     state = rememberUpdatedMarkerState(position = LatLng(pin.lat, pin.lng)),
                     title = pin.name,
                     snippet = pin.cityName.ifBlank { pin.countryName },
@@ -169,7 +196,10 @@ private fun SpotMap(
         selected?.let { pin ->
             SpotCard(
                 pin = pin,
+                detail = detail?.takeIf { it.spotId == pin.spotId },
                 onOpen = { onOpenSpot(pin.spotId) },
+                onAddToRoute = { onAddToRoute(pin) },
+                onOpenLink = onOpenLink,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(16.dp),
@@ -178,15 +208,25 @@ private fun SpotMap(
     }
 }
 
+/**
+ * The tapped pin: its name and town, everything written about it, and its saved links, which open
+ * straight from here. Long notes scroll inside the card so it never covers the whole map.
+ */
 @Composable
-private fun SpotCard(pin: SpotPin, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+private fun SpotCard(
+    pin: SpotPin,
+    detail: PinDetail?,
+    onOpen: () -> Unit,
+    onAddToRoute: () -> Unit,
+    onOpenLink: (LinkEntity) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Card(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+        Column(
+            modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.padding(end = 8.dp)) {
                 Text(pin.name, style = MaterialTheme.typography.titleMedium)
                 Text(
                     text = pin.cityName.ifBlank { pin.countryName },
@@ -194,7 +234,35 @@ private fun SpotCard(pin: SpotPin, onOpen: () -> Unit, modifier: Modifier = Modi
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            TextButton(onClick = onOpen) { Text(stringResource(R.string.map_open_spot)) }
+            val hasBody = detail != null && (detail.notes.isNotEmpty() || detail.links.isNotEmpty())
+            if (detail != null && hasBody) {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = CARD_BODY_MAX_HEIGHT)
+                        .verticalScroll(rememberScrollState())
+                        .padding(end = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (detail.notes.isNotEmpty()) {
+                        Text(detail.notes, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    LinkList(links = detail.links, onOpen = onOpenLink)
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onAddToRoute) {
+                    Icon(Icons.Outlined.AddRoad, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text(stringResource(R.string.add_to_route))
+                }
+                TextButton(onClick = onOpen) { Text(stringResource(R.string.map_open_spot)) }
+            }
         }
     }
 }
+
+/** About a third of a phone screen: room for a good note, with the pin still in view above it. */
+private val CARD_BODY_MAX_HEIGHT = 220.dp

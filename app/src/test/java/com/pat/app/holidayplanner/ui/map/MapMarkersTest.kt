@@ -11,7 +11,8 @@ class MapMarkersTest {
 
     private fun pin(status: SpotStatus = SpotStatus.UNVISITED, priority: Priority = Priority.NORMAL) = SpotPin(
         spotId = "s", name = "Micropia", lat = 52.0, lng = 4.0, status = status, priority = priority,
-        type = SpotType.POI, cityId = "c", cityName = "Amsterdam", countryId = "nl", countryName = "Netherlands",
+        type = SpotType.POI, onRoute = false,
+        cityId = "c", cityName = "Amsterdam", countryId = "nl", countryName = "Netherlands",
     )
 
     @Test

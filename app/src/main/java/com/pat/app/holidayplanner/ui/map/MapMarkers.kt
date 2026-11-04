@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,7 +67,12 @@ private val LabelBackground = Color(0xEBFFFFFF)
 private val LabelInk = Color(0xFF1C1B17)
 private val PinHead = 26.dp
 private val HighPinHead = 32.dp
-private val TickSize = 12.dp
+private val TickSize = 14.dp
+private val BadgeSize = 14.dp
+
+/** Badges sit half over the head's rim, so they read as attached rather than inside it. */
+private val BadgeNudge = 4.dp
+private val RouteBlue = Color(0xFF1A73E8)
 private const val ICON_SHARE_OF_HEAD = 0.6f
 
 /** Head colour, what is drawn on it, and its rim, in that order. */
@@ -90,7 +97,8 @@ private val LabelText = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medi
 /**
  * One pin as drawn on the map: the start of the name in a white tag, a round head carrying the
  * spot's kind, and a point underneath whose tip is the exact position. A high-priority pin is a
- * little larger so it still stands out where pins crowd together; a visited one wears a tick.
+ * little larger so it still stands out where pins crowd together; a visited one wears a tick, and
+ * one that is a stop on a walk still to do wears a small blue route sign.
  */
 @Composable
 fun PinMarker(pin: SpotPin) {
@@ -107,7 +115,8 @@ fun PinMarker(pin: SpotPin) {
                 .background(LabelBackground, RoundedCornerShape(4.dp))
                 .padding(horizontal = 4.dp, vertical = 1.dp),
         )
-        Box(modifier = Modifier.padding(top = 2.dp)) {
+        // Room around the head for the badges that overhang it.
+        Box(modifier = Modifier.padding(top = 2.dp + BadgeNudge, start = BadgeNudge, end = BadgeNudge)) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -122,6 +131,21 @@ fun PinMarker(pin: SpotPin) {
                     modifier = Modifier.size(head * ICON_SHARE_OF_HEAD),
                 )
             }
+            if (pin.onRoute) {
+                // On a walk still to do: a small blue road sign at the head's top left.
+                Icon(
+                    imageVector = Icons.Filled.Route,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .offset(x = -BadgeNudge, y = -BadgeNudge)
+                        .size(BadgeSize)
+                        .background(RouteBlue, CircleShape)
+                        .border(1.dp, Color.White, CircleShape)
+                        .padding(2.dp),
+                )
+            }
             if (style == PinStyle.VISITED) {
                 Icon(
                     imageVector = Icons.Filled.CheckCircle,
@@ -129,6 +153,7 @@ fun PinMarker(pin: SpotPin) {
                     tint = Charcoal,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
+                        .offset(x = BadgeNudge, y = -BadgeNudge)
                         .size(TickSize)
                         .background(Color.White, CircleShape),
                 )

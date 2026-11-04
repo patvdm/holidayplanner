@@ -39,6 +39,16 @@ interface RouteStopDao : SyncDao<RouteStopEntity> {
     )
     suspend fun findBySpot(routeId: String, spotId: String): String?
 
+    /** The routes a spot is a stop on, so a picker can tick them. */
+    @Query(
+        """
+        SELECT DISTINCT st.routeId FROM route_stops st
+        JOIN routes r ON r.id = st.routeId
+        WHERE st.spotId = :spotId AND st.deleted = 0 AND r.deleted = 0
+        """,
+    )
+    fun observeRouteIdsWithSpot(spotId: String): Flow<List<String>>
+
     @Query(
         """
         SELECT sortKey FROM route_stops

@@ -2,14 +2,21 @@ package com.pat.app.holidayplanner.ui.map
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.SpotPin
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
+import com.pat.app.holidayplanner.data.repo.LinkRepository
 import com.pat.app.holidayplanner.data.repo.SpotPinRepository
+import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.GeoPoint
 import com.pat.app.holidayplanner.domain.MapView
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
@@ -38,6 +45,9 @@ data class MapScope(
 /** Where the camera starts, and how close; [spotId] when the map was opened for one spot. */
 data class MapFocus(val centre: GeoPoint, val zoom: Float, val spotId: String = "")
 
+/** What a pin's card shows beyond the pin itself: what was written about it and where to read more. */
+data class PinDetail(val spotId: String, val notes: String, val links: List<LinkEntity>)
+
 data class MapUiState(
     val pins: List<SpotPin> = emptyList(),
     val focus: MapFocus? = null,
@@ -53,7 +63,33 @@ class MapViewModel(
     private val scope: MapScope,
     pins: SpotPinRepository,
     private val prefs: AppPreferences,
+    spots: SpotRepository,
+    links: LinkRepository,
 ) : ViewModel() {
+
+    private val selectedId = MutableStateFlow<String?>(null)
+
+    /** The full notes and saved links of the pin tapped last, for its card. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val selection: StateFlow<PinDetail?> = selectedId
+        .flatMapLatest { id ->
+            if (id == null) {
+                flowOf(null)
+            } else {
+                combine(spots.observeSpot(id), links.observeLinks(id)) { spot, all ->
+                    PinDetail(
+                        spotId = id,
+                        notes = spot?.notes.orEmpty().trim(),
+                        links = all.filterNot { it.source.isPhoto },
+                    )
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    fun select(spotId: String?) {
+        selectedId.value = spotId
+    }
 
     // The remembered view is read once, on opening: following it live would pull the camera back
     // to wherever it was saved a moment ago, every time the map settles.

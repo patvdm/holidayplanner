@@ -32,6 +32,14 @@ class RouteRepository(
 
     suspend fun findRoute(id: String): RouteEntity? = dao.find(id)
 
+    /** The ids of the routes [spotId] is a stop on. */
+    fun observeRouteIdsWithSpot(spotId: String): Flow<List<String>> = stopDao.observeRouteIdsWithSpot(spotId)
+
+    /** Takes a spot off one route, if it is on it. The spot itself is untouched. */
+    suspend fun removeSpot(routeId: String, spotId: String) {
+        stopDao.findBySpot(routeId, spotId)?.let { removeStop(it) }
+    }
+
     /**
      * A new route through [cityId], with [spotIds] already on it in the order given. Every entry
      * point creates a route this way, whether the spots were preselected or the list is empty.

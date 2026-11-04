@@ -255,6 +255,11 @@
     <!-- Day routes -->
     <string name="route_title">Route</string>
     <string name="route_new">New route</string>
+    <string name="add_to_route">Add to a route</string>
+    <string name="add_to_route_title">Put %1$s on a route</string>
+    <string name="add_to_route_none">No routes through here yet. Start one below.</string>
+    <string name="add_to_route_new">New route through %1$s</string>
+    <string name="add_to_route_walked">%1$s · walked</string>
     <string name="route_completed">Walked</string>
     <string name="route_pick_city">Which city is this walk in?</string>
     <string name="route_sort_proximity">Shortest walk</string>

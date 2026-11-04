@@ -127,6 +127,8 @@ data class SpotPin(
     val status: SpotStatus,
     val priority: Priority,
     val type: SpotType,
+    /** A stop on at least one route not yet walked. */
+    val onRoute: Boolean,
     val cityId: String,
     val cityName: String,
     val countryId: String,
