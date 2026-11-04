@@ -149,6 +149,7 @@ fun AppNavigation() {
                         itemId = key.itemId,
                         onBack = nav::back,
                         onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
+                        onShowSpotOnMap = { nav.push(MapKey(spotId = it)) },
                     )
                 }
                 entry<RouteKey> { key ->

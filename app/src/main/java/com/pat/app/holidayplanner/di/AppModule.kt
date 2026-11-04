@@ -145,7 +145,7 @@ val appModule = module {
     viewModel { (countryId: String) -> CountryViewModel(countryId, get(), get()) }
     viewModel { (spotId: String) -> SpotDetailViewModel(spotId, get(), get(), get(), get(), get()) }
     viewModel { (tripId: String) -> TripViewModel(tripId, get(), get(), get(), get()) }
-    viewModel { (itemId: String) -> TripItemViewModel(itemId, get()) }
+    viewModel { (itemId: String) -> TripItemViewModel(itemId, get(), get()) }
     viewModel { (routeId: String) -> RouteViewModel(routeId, get(), get(), get(), get()) }
     viewModel { (spotId: String) -> AddToRouteViewModel(spotId, get(), get()) }
     viewModel { (scope: MapScope) -> MapViewModel(scope, get(), get(), get(), get(), get()) }

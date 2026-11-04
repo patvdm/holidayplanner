@@ -38,6 +38,9 @@ import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.domain.TripItemType
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.SpotPickerSheet
+import androidx.compose.ui.platform.LocalContext
+import com.pat.app.holidayplanner.ui.components.MapButtonRow
+import com.pat.app.holidayplanner.ui.components.openExternalUrl
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -51,9 +54,12 @@ fun TripItemEditorScreen(
     itemId: String,
     onBack: () -> Unit,
     onOpenSpot: (String) -> Unit,
+    onShowSpotOnMap: (String) -> Unit,
     viewModel: TripItemViewModel = koinViewModel { parametersOf(itemId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val place by viewModel.spotPlace.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val item = state.item
     var pickingSpot by remember { mutableStateOf(false) }
     var addingSpot by remember { mutableStateOf(false) }
@@ -120,6 +126,14 @@ fun TripItemEditorScreen(
                     FilledTonalButton(onClick = { onOpenSpot(item.spotId) }, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.item_open_spot))
                     }
+                }
+                // The same three as on a route: our map, a look in Google Maps, and going there now.
+                place?.let { spot ->
+                    MapButtonRow(
+                        onOurMap = if (spot.onOurMap) ({ onShowSpotOnMap(spot.spotId) }) else null,
+                        onPreview = { context.openExternalUrl(spot.previewUrl) },
+                        onNavigate = { context.openExternalUrl(spot.navigateUrl) },
+                    )
                 }
                 OutlinedButton(onClick = { pickingSpot = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(

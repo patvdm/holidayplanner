@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,18 +19,13 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -59,6 +53,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.domain.SpotStatus
+import com.pat.app.holidayplanner.ui.components.MapButtonRow
+import com.pat.app.holidayplanner.ui.components.MapsNavigateButton
+import com.pat.app.holidayplanner.ui.components.MapsPreviewButton
+import com.pat.app.holidayplanner.ui.components.OurMapButton
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.DARK_TEXT
@@ -420,9 +418,6 @@ private fun StopRow(
 /** Tighter than a standard icon button, so a row still has room for the spot itself. */
 private const val ICON_BUTTON_DP = 40
 
-/** Room inside each of the three buttons, tighter than standard so all three fit across a phone. */
-private val FooterButtonPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-
 /**
  * The three ways to look at or set off on a walk: our own map, zoomed to the route with its line
  * picked out; a preview in Google Maps of the stops on their own, first to last, for looking a day
@@ -474,47 +469,22 @@ private fun RouteFooter(
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.weight(1f),
                         )
-                        PreviewButton(enabled = part.size >= 2, onClick = { onPreview(part) }, Modifier.weight(1f))
-                        NavigateButton(onClick = { onNavigate(part) }, Modifier.weight(1f))
+                        MapsPreviewButton(
+                            onClick = if (part.size >= 2) ({ onPreview(part) }) else null,
+                            modifier = Modifier.weight(1f),
+                        )
+                        MapsNavigateButton(onClick = { onNavigate(part) }, Modifier.weight(1f))
                     }
                 }
             }
 
-            else -> Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OurMapButton(onShowOnMap, Modifier.weight(1f))
-                // One stop has no walk to show without you at the other end of it.
-                PreviewButton(
-                    enabled = state.walked.size >= 2,
-                    onClick = { onPreview(state.walked) },
-                    modifier = Modifier.weight(1f),
-                )
-                NavigateButton(onClick = { onNavigate(state.walked) }, Modifier.weight(1f))
-            }
+            // One stop has no walk to show without you at the other end of it.
+            else -> MapButtonRow(
+                onOurMap = onShowOnMap,
+                onPreview = if (state.walked.size >= 2) ({ onPreview(state.walked) }) else null,
+                onNavigate = { onNavigate(state.walked) },
+            )
         }
-    }
-}
-
-@Composable
-private fun OurMapButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedButton(onClick = onClick, modifier = modifier, contentPadding = FooterButtonPadding) {
-        Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.size(18.dp))
-        Text(stringResource(R.string.route_our_map), modifier = Modifier.padding(start = 6.dp), maxLines = 1)
-    }
-}
-
-@Composable
-private fun PreviewButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier, contentPadding = FooterButtonPadding) {
-        Icon(Icons.Filled.Visibility, contentDescription = null, modifier = Modifier.size(18.dp))
-        Text(stringResource(R.string.route_preview), modifier = Modifier.padding(start = 6.dp), maxLines = 1)
-    }
-}
-
-@Composable
-private fun NavigateButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Button(onClick = onClick, modifier = modifier, contentPadding = FooterButtonPadding) {
-        Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
-        Text(stringResource(R.string.route_navigate), modifier = Modifier.padding(start = 6.dp), maxLines = 1)
     }
 }
 
