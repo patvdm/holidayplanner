@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,11 +21,11 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -90,6 +91,7 @@ fun RouteBuilderScreen(
     onBack: () -> Unit,
     onDeleted: () -> Unit,
     onOpenSpot: (String) -> Unit,
+    onShowOnMap: () -> Unit,
     viewModel: RouteViewModel = koinViewModel { parametersOf(routeId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -150,7 +152,9 @@ fun RouteBuilderScreen(
                 HorizontalDivider()
                 RouteFooter(
                     state = state,
-                    onOpen = { stops, fromHere -> open(viewModel.mapsUrl(stops, fromHere)) },
+                    onShowOnMap = onShowOnMap,
+                    onPreview = { stops -> open(viewModel.mapsUrl(stops, fromHere = false)) },
+                    onNavigate = { stops -> open(viewModel.mapsUrl(stops, fromHere = true, navigate = true)) },
                 )
             }
         }
@@ -416,13 +420,23 @@ private fun StopRow(
 /** Tighter than a standard icon button, so a row still has room for the spot itself. */
 private const val ICON_BUTTON_DP = 40
 
-/** The narrow button beside Open in Maps takes a fifth of the row. */
-private const val PREVIEW_WEIGHT = 0.2f
+/** Room inside each of the three buttons, tighter than standard so all three fit across a phone. */
+private val FooterButtonPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
 
+/**
+ * The three ways to look at or set off on a walk: our own map, zoomed to the route with its line
+ * picked out; a preview in Google Maps of the stops on their own, first to last, for looking a day
+ * over; and turn-by-turn in Google Maps from where you are standing, for walking it now.
+ *
+ * Google takes ten stops at a time, so a longer walk keeps one button for our map, which shows all
+ * of it, and gets Preview and Navigate per part.
+ */
 @Composable
 private fun RouteFooter(
     state: RouteUiState,
-    onOpen: (stops: List<RouteStop>, fromHere: Boolean) -> Unit,
+    onShowOnMap: () -> Unit,
+    onPreview: (List<RouteStop>) -> Unit,
+    onNavigate: (List<RouteStop>) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -441,58 +455,66 @@ private fun RouteFooter(
         }
 
         when {
-            !state.canOpen -> Note(stringResource(R.string.route_needs_a_stop))
+            !state.canOpen -> {
+                Note(stringResource(R.string.route_needs_a_stop))
+                OurMapButton(onShowOnMap, Modifier.fillMaxWidth())
+            }
 
             state.tooLongForOneRoute -> {
                 Note(stringResource(R.string.route_split_warning, MapsUrls.MAX_ROUTE_STOPS, state.parts.size))
+                OurMapButton(onShowOnMap, Modifier.fillMaxWidth())
                 state.parts.forEachIndexed { index, part ->
-                    OpenButtons(
-                        label = stringResource(R.string.route_open_part, index + 1, state.parts.size),
-                        tonal = true,
-                        onOpen = { onOpen(part, true) },
-                        onPreview = if (part.size >= 2) ({ onOpen(part, false) }) else null,
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.route_open_part, index + 1, state.parts.size),
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        PreviewButton(enabled = part.size >= 2, onClick = { onPreview(part) }, Modifier.weight(1f))
+                        NavigateButton(onClick = { onNavigate(part) }, Modifier.weight(1f))
+                    }
                 }
             }
 
-            else -> OpenButtons(
-                label = stringResource(R.string.route_open_in_maps),
-                tonal = false,
-                onOpen = { onOpen(state.walked, true) },
-                onPreview = if (state.walked.size >= 2) ({ onOpen(state.walked, false) }) else null,
-            )
+            else -> Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OurMapButton(onShowOnMap, Modifier.weight(1f))
+                // One stop has no walk to show without you at the other end of it.
+                PreviewButton(
+                    enabled = state.walked.size >= 2,
+                    onClick = { onPreview(state.walked) },
+                    modifier = Modifier.weight(1f),
+                )
+                NavigateButton(onClick = { onNavigate(state.walked) }, Modifier.weight(1f))
+            }
         }
     }
 }
 
-/**
- * The two ways to open a walk: the wide button starts it from where you are standing, and the
- * narrow one beside it shows the stops on their own, first to last, which is what you want when
- * you are looking a day over rather than walking it.
- *
- * The narrow button is left out where it would mean nothing: one stop has no walk to show without
- * you at the other end of it.
- */
 @Composable
-private fun OpenButtons(label: String, tonal: Boolean, onOpen: () -> Unit, onPreview: (() -> Unit)?) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (onPreview != null) {
-            OutlinedButton(onClick = onPreview, modifier = Modifier.weight(PREVIEW_WEIGHT)) {
-                Icon(
-                    Icons.Filled.Visibility,
-                    contentDescription = stringResource(R.string.route_open_without_me),
-                )
-            }
-        }
-        val rest = Modifier.weight(if (onPreview == null) 1f else 1f - PREVIEW_WEIGHT)
-        if (tonal) {
-            FilledTonalButton(onClick = onOpen, modifier = rest) { Text(label) }
-        } else {
-            Button(onClick = onOpen, modifier = rest) {
-                Icon(Icons.Filled.Map, contentDescription = null)
-                Text(text = label, modifier = Modifier.padding(start = 8.dp))
-            }
-        }
+private fun OurMapButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedButton(onClick = onClick, modifier = modifier, contentPadding = FooterButtonPadding) {
+        Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.size(18.dp))
+        Text(stringResource(R.string.route_our_map), modifier = Modifier.padding(start = 6.dp), maxLines = 1)
+    }
+}
+
+@Composable
+private fun PreviewButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier, contentPadding = FooterButtonPadding) {
+        Icon(Icons.Filled.Visibility, contentDescription = null, modifier = Modifier.size(18.dp))
+        Text(stringResource(R.string.route_preview), modifier = Modifier.padding(start = 6.dp), maxLines = 1)
+    }
+}
+
+@Composable
+private fun NavigateButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Button(onClick = onClick, modifier = modifier, contentPadding = FooterButtonPadding) {
+        Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
+        Text(stringResource(R.string.route_navigate), modifier = Modifier.padding(start = 6.dp), maxLines = 1)
     }
 }
 

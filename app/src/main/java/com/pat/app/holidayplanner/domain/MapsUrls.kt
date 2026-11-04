@@ -71,6 +71,7 @@ object MapsUrls {
         stops: List<RoutePoint>,
         travelMode: TravelMode = TravelMode.WALKING,
         fromHere: Boolean = true,
+        navigate: Boolean = false,
     ): String? {
         if (stops.isEmpty()) return null
         // Without your location the walk has to start at a stop, and one stop cannot be both ends.
@@ -96,6 +97,8 @@ object MapsUrls {
                 }
             }
             append("&travelmode=").append(travelMode.name.lowercase(Locale.ROOT))
+            // Straight into turn-by-turn rather than the overview, for setting off now.
+            if (navigate) append("&dir_action=navigate")
         }
     }
 
@@ -105,6 +108,18 @@ object MapsUrls {
      */
     fun directionsTo(stop: RoutePoint, travelMode: TravelMode = TravelMode.WALKING): String =
         route(listOf(stop), travelMode).orEmpty()
+
+    /**
+     * Turn-by-turn navigation to one place, from wherever the phone is. Unlike a route this names
+     * no travel mode, so Maps uses whatever you usually travel by: a spot across the country is not
+     * a walk, and Maps knows better than we do how you are getting there.
+     */
+    fun navigateTo(stop: RoutePoint): String = buildString {
+        append(DIR_BASE)
+        append("&destination=").append(encode(point(stop)))
+        append(placeIdParam("destination_place_id", stop.googlePlaceId))
+        append("&dir_action=navigate")
+    }
 
     /**
      * Cuts a list of stops into routes Maps will accept.

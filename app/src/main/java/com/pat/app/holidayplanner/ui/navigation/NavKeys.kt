@@ -46,12 +46,17 @@ data class MapKey(
     val countryId: String = "",
     val cityId: String = "",
     val spotId: String = "",
+    val routeId: String = "",
 ) : NavKey {
     companion object {
-        /** The map for a screen: a country or spot screen centres on itself, anything else shows all. */
+        /**
+         * The map for a screen: a country, spot or route screen centres on itself, anything else
+         * carries on where the map was last left.
+         */
         fun forScreen(key: NavKey): MapKey = when (key) {
             is CountryKey -> MapKey(countryId = key.countryId)
             is SpotKey -> MapKey(spotId = key.spotId)
+            is RouteKey -> MapKey(routeId = key.routeId)
             is MapKey -> key
             else -> MapKey()
         }

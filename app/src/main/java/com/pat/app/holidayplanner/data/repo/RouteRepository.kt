@@ -33,7 +33,7 @@ class RouteRepository(
 
     suspend fun findRoute(id: String): RouteEntity? = dao.find(id)
 
-    /** The positioned stops of every route still to walk, in walking order, for drawing on the map. */
+    /** The positioned stops of every route, in walking order, for drawing on the map. */
     fun observeLinePoints(): Flow<List<RouteLinePoint>> = stopDao.observeLinePoints()
 
     /** The ids of the routes [spotId] is a stop on. */

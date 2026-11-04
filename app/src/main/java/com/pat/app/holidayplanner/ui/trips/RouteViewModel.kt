@@ -183,10 +183,10 @@ class RouteViewModel(
      * The Maps link for one part of the walk. Routes are always walked.
      *
      * [fromHere] off leaves your location out of it, so the link shows the stops on their own,
-     * running from the first to the last.
+     * running from the first to the last. [navigate] goes straight into turn-by-turn.
      */
-    fun mapsUrl(part: List<RouteStop>, fromHere: Boolean = true): String? =
-        MapsUrls.route(part.map { it.toRoutePoint() }, TravelMode.WALKING, fromHere)
+    fun mapsUrl(part: List<RouteStop>, fromHere: Boolean = true, navigate: Boolean = false): String? =
+        MapsUrls.route(part.map { it.toRoutePoint() }, TravelMode.WALKING, fromHere, navigate)
 
     /** Directions to one stop from wherever you are now. */
     fun directionsTo(stop: RouteStop): String = MapsUrls.directionsTo(stop.toRoutePoint(), TravelMode.WALKING)

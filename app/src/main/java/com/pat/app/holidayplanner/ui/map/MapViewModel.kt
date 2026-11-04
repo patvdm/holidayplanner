@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
+import kotlin.math.log2
 
 private const val STOP_TIMEOUT_MS = 5_000L
 
@@ -41,13 +42,19 @@ data class MapScope(
     val countryId: String = "",
     val cityId: String = "",
     val spotId: String = "",
+    val routeId: String = "",
 )
 
-/** Where the camera starts, and how close; [spotId] when the map was opened for one spot. */
-data class MapFocus(val centre: GeoPoint, val zoom: Float, val spotId: String = "")
+/** Where the camera starts, and how close; [spotId] or [routeId] when opened for one of those. */
+data class MapFocus(val centre: GeoPoint, val zoom: Float, val spotId: String = "", val routeId: String = "")
 
 /** What a pin's card shows beyond the pin itself: what was written about it and where to read more. */
-data class PinDetail(val spotId: String, val notes: String, val links: List<LinkEntity>)
+data class PinDetail(
+    val spotId: String,
+    val notes: String,
+    val links: List<LinkEntity>,
+    val googlePlaceId: String = "",
+)
 
 data class MapUiState(
     val pins: List<SpotPin> = emptyList(),
@@ -86,6 +93,7 @@ class MapViewModel(
                         spotId = id,
                         notes = spot?.notes.orEmpty().trim(),
                         links = all.filterNot { it.source.isPhoto },
+                        googlePlaceId = spot?.googlePlaceId.orEmpty(),
                     )
                 }
             }
@@ -104,10 +112,15 @@ class MapViewModel(
         routes.observeLinePoints(),
         prefs.mapShowsRoutes,
     ) { all, saved, stops, showsRoutes ->
+        val shown = if (showsRoutes) stops.filterNot { it.completed }.toRouteLines() else emptyList()
+        // The route the map was opened for is drawn whatever else is: even walked, even switched off.
+        val askedStops = stops.filter { scope.routeId.isNotEmpty() && it.routeId == scope.routeId }
+        val asked = askedStops.toRouteLines().firstOrNull()
+            ?.takeIf { line -> shown.none { it.routeId == line.routeId } }
         MapUiState(
             pins = all,
-            focus = all.focus(saved),
-            lines = if (showsRoutes) stops.toRouteLines() else emptyList(),
+            focus = all.focus(saved, askedStops.map { GeoPoint(it.lat, it.lng) }),
+            lines = shown + listOfNotNull(asked),
             showsRoutes = showsRoutes,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MapUiState())
@@ -122,12 +135,12 @@ class MapViewModel(
     }
 
     /**
-     * Narrowest wins: a named spot, then its city, then its country. Opened for nothing in
+     * Narrowest wins: a named spot, then a named route's stops, then a city, then a country. Opened for nothing in
      * particular, it carries on where it was last left, and only the very first time shows
      * everything. Each step falls through when nothing matches, so a stale id cannot leave the map
      * pointing at the sea.
      */
-    private fun List<SpotPin>.focus(saved: MapView?): MapFocus? {
+    private fun List<SpotPin>.focus(saved: MapView?, routeStops: List<GeoPoint>): MapFocus? {
         if (isEmpty()) return null
 
         val spot = firstOrNull { it.spotId == scope.spotId }
@@ -136,6 +149,7 @@ class MapViewModel(
 
         return when {
             spot != null -> MapFocus(GeoPoint(spot.lat, spot.lng), SPOT_ZOOM, spot.spotId)
+            routeStops.isNotEmpty() -> MapFocus(routeStops.middle(), routeStops.zoomToFit(), routeId = scope.routeId)
             inCity.isNotEmpty() -> MapFocus(inCity.centre(), CITY_ZOOM)
             inCountry.isNotEmpty() -> MapFocus(inCountry.centre(), inCountry.zoomForSpread())
             saved != null -> MapFocus(GeoPoint(saved.lat, saved.lng), saved.zoom)
@@ -143,6 +157,27 @@ class MapViewModel(
         }
     }
 }
+
+private fun List<GeoPoint>.middle(): GeoPoint =
+    GeoPoint((maxOf { it.lat } + minOf { it.lat }) / 2, (maxOf { it.lng } + minOf { it.lng }) / 2)
+
+/**
+ * Roughly the zoom at which a phone screen holds the points with a margin: each zoom step halves
+ * the degrees across the screen, and about [FIT_DEGREES_AT_ZOOM_0] of longitude fit at zoom 0 once
+ * the margin is allowed for. Latitude is stretched because the screen is taller than it is wide
+ * but a degree of latitude covers more of it at these latitudes.
+ */
+internal fun List<GeoPoint>.zoomToFit(): Float {
+    val span = maxOf(
+        maxOf { it.lng } - minOf { it.lng },
+        (maxOf { it.lat } - minOf { it.lat }) * LAT_STRETCH,
+    )
+    if (span <= 0.0) return SPOT_ZOOM
+    return log2(FIT_DEGREES_AT_ZOOM_0 / span).toFloat().coerceIn(WORLD_ZOOM, SPOT_ZOOM)
+}
+
+private const val FIT_DEGREES_AT_ZOOM_0 = 400.0
+private const val LAT_STRETCH = 1.6
 
 private fun List<SpotPin>.centre(): GeoPoint =
     GeoPoint(sumOf { it.lat } / size, sumOf { it.lng } / size)

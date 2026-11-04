@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -43,6 +45,7 @@ fun AddToRouteSheet(
     spotId: String,
     spotName: String,
     onDismiss: () -> Unit,
+    onOpenRoute: (String) -> Unit,
     // Keyed by spot: the map opens this for one pin after another within the same screen.
     viewModel: AddToRouteViewModel = koinViewModel(key = "add-to-route:$spotId") { parametersOf(spotId) },
 ) {
@@ -68,7 +71,15 @@ fun AddToRouteSheet(
             }
             LazyColumn(modifier = Modifier.heightIn(max = LIST_MAX_HEIGHT_DP.dp)) {
                 items(state.routes, key = { it.routeId }) { choice ->
-                    RouteChoiceRow(choice = choice, onToggle = { viewModel.toggle(choice) })
+                    RouteChoiceRow(
+                        choice = choice,
+                        onToggle = { viewModel.toggle(choice) },
+                        // Closed first, so coming back from the route does not find it still up.
+                        onOpen = {
+                            onDismiss()
+                            onOpenRoute(choice.routeId)
+                        },
+                    )
                 }
             }
             if (state.canCreate) {
@@ -93,7 +104,7 @@ fun AddToRouteSheet(
 }
 
 @Composable
-private fun RouteChoiceRow(choice: RouteChoice, onToggle: () -> Unit) {
+private fun RouteChoiceRow(choice: RouteChoice, onToggle: () -> Unit, onOpen: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -110,6 +121,12 @@ private fun RouteChoiceRow(choice: RouteChoice, onToggle: () -> Unit) {
                 text = if (choice.walked) stringResource(R.string.add_to_route_walked, detail) else detail,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = onOpen) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = stringResource(R.string.map_open_route),
             )
         }
     }

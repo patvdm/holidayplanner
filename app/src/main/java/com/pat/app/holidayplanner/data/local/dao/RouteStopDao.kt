@@ -41,17 +41,17 @@ interface RouteStopDao : SyncDao<RouteStopEntity> {
     suspend fun findBySpot(routeId: String, spotId: String): String?
 
     /**
-     * Every stop with a position on every route still to walk, route by route in walking order,
-     * which is what the map draws its lines through.
+     * Every stop with a position on every route, route by route in walking order, which is what
+     * the map draws its lines through. Walked routes come too, marked, for showing one on request.
      */
     @Query(
         """
         SELECT r.id AS routeId, r.name AS routeName, r.cityId AS cityId, r.createdAt AS createdAt,
-            s.lat AS lat, s.lng AS lng
+            r.completed AS completed, s.lat AS lat, s.lng AS lng
         FROM route_stops st
         JOIN routes r ON r.id = st.routeId
         JOIN spots s ON s.id = st.spotId
-        WHERE st.deleted = 0 AND r.deleted = 0 AND r.completed = 0 AND s.deleted = 0
+        WHERE st.deleted = 0 AND r.deleted = 0 AND s.deleted = 0
             AND s.lat IS NOT NULL AND s.lng IS NOT NULL
         ORDER BY r.id, st.sortKey, st.id
         """,

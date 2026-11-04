@@ -18,6 +18,34 @@ class MapsUrlsTest {
     }
 
     @Test
+    fun `navigating goes straight into directions and leaves the travel mode to Maps`() {
+        val url = MapsUrls.navigateTo(RoutePoint("Micropia", lat = 52.367, lng = 4.9128, googlePlaceId = "ChIJabc"))
+
+        assertEquals(
+            "https://www.google.com/maps/dir/?api=1&destination=52.367%2C4.9128" +
+                "&destination_place_id=ChIJabc&dir_action=navigate",
+            url,
+        )
+        assertFalse(url.contains("travelmode"))
+    }
+
+    @Test
+    fun `navigating to somewhere without a position searches for it`() {
+        assertEquals(
+            "https://www.google.com/maps/dir/?api=1&destination=Cabron%2C%20Amsterdam&dir_action=navigate",
+            MapsUrls.navigateTo(RoutePoint("Cabron, Amsterdam")),
+        )
+    }
+
+    @Test
+    fun `a route only goes straight into navigation when asked`() {
+        val stops = listOf(RoutePoint("A", 1.0, 2.0), RoutePoint("B", 3.0, 4.0))
+
+        assertTrue(MapsUrls.route(stops, navigate = true)!!.endsWith("&travelmode=walking&dir_action=navigate"))
+        assertFalse(MapsUrls.route(stops)!!.contains("dir_action"))
+    }
+
+    @Test
     fun `coordinates and a place id give an exact link`() {
         val url = MapsUrls.spot(lat = 52.0801, lng = 4.3145, googlePlaceId = "ChIJabc")
 

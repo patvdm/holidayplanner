@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.outlined.AddRoad
 import androidx.compose.material3.Icon
 import com.pat.app.holidayplanner.data.local.LinkEntity
@@ -52,6 +54,8 @@ import com.google.maps.android.compose.rememberUpdatedMarkerState
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.SpotPin
 import com.pat.app.holidayplanner.domain.MapView
+import com.pat.app.holidayplanner.domain.MapsUrls
+import com.pat.app.holidayplanner.domain.RoutePoint
 import kotlinx.coroutines.flow.filter
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
@@ -116,13 +120,21 @@ fun MapScreen(
             onOpenSpot = onOpenSpot,
             onAddToRoute = { addingToRoute = it },
             onOpenLink = { context.openExternalUrl(it.url) },
+            onNavigate = { pin, placeId ->
+                context.openExternalUrl(MapsUrls.navigateTo(RoutePoint(pin.name, pin.lat, pin.lng, placeId)))
+            },
             onSettled = viewModel::rememberView,
             modifier = Modifier.padding(padding),
         )
     }
 
     addingToRoute?.let { pin ->
-        AddToRouteSheet(spotId = pin.spotId, spotName = pin.name, onDismiss = { addingToRoute = null })
+        AddToRouteSheet(
+            spotId = pin.spotId,
+            spotName = pin.name,
+            onDismiss = { addingToRoute = null },
+            onOpenRoute = onOpenRoute,
+        )
     }
 }
 
@@ -137,6 +149,7 @@ private fun SpotMap(
     onOpenSpot: (String) -> Unit,
     onAddToRoute: (SpotPin) -> Unit,
     onOpenLink: (LinkEntity) -> Unit,
+    onNavigate: (SpotPin, String) -> Unit,
     onSettled: (MapView) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -159,8 +172,9 @@ private fun SpotMap(
                 CameraPosition.fromLatLngZoom(LatLng(target.centre.lat, target.centre.lng), target.zoom),
             ),
         )
-        // Opened for one spot: its card is up too, so it is plain which pin is meant.
+        // Opened for one spot or route: its card is up too, so it is plain which one is meant.
         if (target.spotId.isNotEmpty()) selected = pins.firstOrNull { it.spotId == target.spotId }
+        if (target.routeId.isNotEmpty()) chosenRoute = routes.lines.firstOrNull { it.routeId == target.routeId }
     }
 
     // Each time the map comes to rest after being aimed, remember the view for the next opening.
@@ -241,6 +255,7 @@ private fun SpotMap(
                 detail = detail?.takeIf { it.spotId == pin.spotId },
                 onOpen = { onOpenSpot(pin.spotId) },
                 onAddToRoute = { onAddToRoute(pin) },
+                onNavigate = { onNavigate(pin, detail?.takeIf { it.spotId == pin.spotId }?.googlePlaceId.orEmpty()) },
                 onOpenLink = onOpenLink,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -268,6 +283,7 @@ private fun SpotCard(
     detail: PinDetail?,
     onOpen: () -> Unit,
     onAddToRoute: () -> Unit,
+    onNavigate: () -> Unit,
     onOpenLink: (LinkEntity) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -299,14 +315,18 @@ private fun SpotCard(
                     LinkList(links = detail.links, onOpen = onOpenLink)
                 }
             }
-            Row(
+            // Wraps rather than squeezing a label when the screen is narrow.
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(onClick = onAddToRoute) {
                     Icon(Icons.Outlined.AddRoad, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                     Text(stringResource(R.string.add_to_route))
+                }
+                TextButton(onClick = onNavigate) {
+                    Icon(Icons.Filled.Directions, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text(stringResource(R.string.map_navigate))
                 }
                 TextButton(onClick = onOpen) { Text(stringResource(R.string.map_open_spot)) }
             }

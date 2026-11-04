@@ -103,6 +103,7 @@ fun AppNavigation() {
                         onBack = nav::back,
                         // The same map as the middle button, which from a spot opens on that spot.
                         onShowOnMap = nav::openMap,
+                        onOpenRoute = { nav.push(RouteKey(it)) },
                     )
                 }
                 entry<SpotsRootKey> {
@@ -157,11 +158,12 @@ fun AppNavigation() {
                         onDeleted = nav::back,
                         // Pushed onto this tab rather than Explore's, so back comes here.
                         onOpenSpot = { nav.push(SpotKey(it)) },
+                        onShowOnMap = nav::openMap,
                     )
                 }
                 entry<MapKey> { key ->
                     MapScreen(
-                        scope = MapScope(key.countryId, key.cityId, key.spotId),
+                        scope = MapScope(key.countryId, key.cityId, key.spotId, key.routeId),
                         onBack = nav::back,
                         // Over the map rather than on Explore, so back from the spot comes back here.
                         onOpenSpot = { nav.push(SpotKey(it)) },

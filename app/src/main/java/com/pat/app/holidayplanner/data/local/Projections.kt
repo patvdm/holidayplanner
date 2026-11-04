@@ -141,6 +141,7 @@ data class RouteLinePoint(
     val routeName: String,
     val cityId: String,
     val createdAt: Long,
+    val completed: Boolean,
     val lat: Double,
     val lng: Double,
 )

@@ -80,6 +80,7 @@ fun SpotDetailScreen(
     spotId: String,
     onBack: () -> Unit,
     onShowOnMap: () -> Unit,
+    onOpenRoute: (String) -> Unit,
     viewModel: SpotDetailViewModel = koinViewModel { parametersOf(spotId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -285,7 +286,7 @@ fun SpotDetailScreen(
         }
     }
 
-    SpotDialogs(state = state, dialogs = dialogs, viewModel = viewModel, onBack = onBack)
+    SpotDialogs(state = state, dialogs = dialogs, viewModel = viewModel, onBack = onBack, onOpenRoute = onOpenRoute)
 }
 
 /** Which dialog is open, kept together so the screen itself stays readable. */
@@ -334,6 +335,7 @@ private fun SpotDialogs(
     dialogs: SpotDialogs,
     viewModel: SpotDetailViewModel,
     onBack: () -> Unit,
+    onOpenRoute: (String) -> Unit,
 ) {
     if (dialogs.renaming) {
         TextInputDialog(
@@ -401,7 +403,12 @@ private fun SpotDialogs(
 
     val spot = state.spot
     if (dialogs.addingToRoute && spot != null) {
-        AddToRouteSheet(spotId = spot.meta.id, spotName = spot.name, onDismiss = { dialogs.addingToRoute = false })
+        AddToRouteSheet(
+            spotId = spot.meta.id,
+            spotName = spot.name,
+            onDismiss = { dialogs.addingToRoute = false },
+            onOpenRoute = onOpenRoute,
+        )
     }
 
     if (dialogs.movingSpot && spot != null) {

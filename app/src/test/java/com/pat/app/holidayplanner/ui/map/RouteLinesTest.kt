@@ -8,7 +8,8 @@ import org.junit.Test
 class RouteLinesTest {
 
     private fun stop(route: String, city: String, made: Long, lat: Double) = RouteLinePoint(
-        routeId = route, routeName = "Walk $route", cityId = city, createdAt = made, lat = lat, lng = 4.9,
+        routeId = route, routeName = "Walk $route", cityId = city, createdAt = made,
+        completed = false, lat = lat, lng = 4.9,
     )
 
     @Test
