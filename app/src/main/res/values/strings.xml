@@ -324,6 +324,12 @@
     <string name="map_title">Map</string>
     <string name="map_no_pins">Nothing here has a position yet, so there is nothing to map.</string>
     <string name="map_open_spot">Open</string>
+    <string name="map_routes">Routes</string>
+    <string name="map_open_route">Open route</string>
+    <plurals name="map_route_stops">
+        <item quantity="one">%1$d stop on the map</item>
+        <item quantity="other">%1$d stops on the map</item>
+    </plurals>
 
     <!-- Pictures -->
     <string name="picture_change">Change picture</string>

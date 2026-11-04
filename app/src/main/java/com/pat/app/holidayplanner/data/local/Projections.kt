@@ -135,6 +135,16 @@ data class SpotPin(
     val countryName: String,
 )
 
+/** One stop of a route as the map draws it: where it is, and which route it belongs to. */
+data class RouteLinePoint(
+    val routeId: String,
+    val routeName: String,
+    val cityId: String,
+    val createdAt: Long,
+    val lat: Double,
+    val lng: Double,
+)
+
 /** A route as the Routes tab lists it. */
 data class RouteRow(
     @Embedded val route: RouteEntity,

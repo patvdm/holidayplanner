@@ -1,6 +1,7 @@
 package com.pat.app.holidayplanner.data.repo
 
 import com.pat.app.holidayplanner.data.local.RouteEntity
+import com.pat.app.holidayplanner.data.local.RouteLinePoint
 import com.pat.app.holidayplanner.data.local.RouteRow
 import com.pat.app.holidayplanner.data.local.RouteStopEntity
 import com.pat.app.holidayplanner.data.local.RouteStopRow
@@ -31,6 +32,9 @@ class RouteRepository(
     fun observeStops(routeId: String): Flow<List<RouteStopRow>> = stopDao.observeRows(routeId)
 
     suspend fun findRoute(id: String): RouteEntity? = dao.find(id)
+
+    /** The positioned stops of every route still to walk, in walking order, for drawing on the map. */
+    fun observeLinePoints(): Flow<List<RouteLinePoint>> = stopDao.observeLinePoints()
 
     /** The ids of the routes [spotId] is a stop on. */
     fun observeRouteIdsWithSpot(spotId: String): Flow<List<String>> = stopDao.observeRouteIdsWithSpot(spotId)

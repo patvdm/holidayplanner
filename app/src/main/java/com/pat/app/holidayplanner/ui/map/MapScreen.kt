@@ -72,6 +72,7 @@ fun MapScreen(
     scope: MapScope,
     onBack: () -> Unit,
     onOpenSpot: (String) -> Unit,
+    onOpenRoute: (String) -> Unit,
     viewModel: MapViewModel = koinViewModel { parametersOf(scope) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -105,6 +106,12 @@ fun MapScreen(
             focus = state.focus,
             showMyLocation = locationAllowed,
             detail = detail,
+            routes = RouteLayerState(
+                lines = state.lines,
+                showing = state.showsRoutes,
+                onShow = viewModel::setShowsRoutes,
+                onOpen = onOpenRoute,
+            ),
             onSelect = viewModel::select,
             onOpenSpot = onOpenSpot,
             onAddToRoute = { addingToRoute = it },
@@ -125,6 +132,7 @@ private fun SpotMap(
     focus: MapFocus?,
     showMyLocation: Boolean,
     detail: PinDetail?,
+    routes: RouteLayerState,
     onSelect: (String?) -> Unit,
     onOpenSpot: (String) -> Unit,
     onAddToRoute: (SpotPin) -> Unit,
@@ -133,6 +141,8 @@ private fun SpotMap(
     modifier: Modifier = Modifier,
 ) {
     var selected by remember { mutableStateOf<SpotPin?>(null) }
+    // A tapped route line; a pin and a route are never both up at once.
+    var chosenRoute by remember { mutableStateOf<RouteLine?>(null) }
     // The card's notes and links load for whichever pin is up.
     LaunchedEffect(selected?.spotId) { onSelect(selected?.spotId) }
     // Both survive a trip to a spot and back, so the map is left where it was, not re-aimed.
@@ -168,8 +178,15 @@ private fun SpotMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = camera,
             properties = MapProperties(isMyLocationEnabled = showMyLocation),
-            onMapClick = { selected = null },
+            onMapClick = {
+                selected = null
+                chosenRoute = null
+            },
         ) {
+            RouteLinesLayer(lines = routes.lines, chosenId = chosenRoute?.routeId) {
+                chosenRoute = it
+                selected = null
+            }
             pins.forEach { pin ->
                 // Keyed on what the picture shows, so a pin is only redrawn when its look changes.
                 MarkerComposable(
@@ -184,6 +201,7 @@ private fun SpotMap(
                     zIndex = if (pin.pinStyle() == PinStyle.HIGH) 1f else 0f,
                     onClick = {
                         selected = pin
+                        chosenRoute = null
                         // Consume it, so the map does not also recentre and hide the card.
                         true
                     },
@@ -191,6 +209,30 @@ private fun SpotMap(
                     PinMarker(pin)
                 }
             }
+        }
+
+        // Shown while there is something to switch, and always while switched off, to switch back.
+        if (routes.lines.isNotEmpty() || !routes.showing) {
+            RoutesChip(
+                showing = routes.showing,
+                onChange = {
+                    routes.onShow(it)
+                    if (!it) chosenRoute = null
+                },
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(12.dp),
+            )
+        }
+
+        chosenRoute?.let { route ->
+            RouteCard(
+                route = route,
+                onOpen = { routes.onOpen(route.routeId) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp),
+            )
         }
 
         selected?.let { pin ->
@@ -207,6 +249,14 @@ private fun SpotMap(
         }
     }
 }
+
+/** The route lines and what they can do, handed to the map as one. */
+private class RouteLayerState(
+    val lines: List<RouteLine>,
+    val showing: Boolean,
+    val onShow: (Boolean) -> Unit,
+    val onOpen: (String) -> Unit,
+)
 
 /**
  * The tapped pin: its name and town, everything written about it, and its saved links, which open

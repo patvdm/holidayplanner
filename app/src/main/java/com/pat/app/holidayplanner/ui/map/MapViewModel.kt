@@ -6,6 +6,7 @@ import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.SpotPin
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.repo.LinkRepository
+import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.SpotPinRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.GeoPoint
@@ -51,6 +52,9 @@ data class PinDetail(val spotId: String, val notes: String, val links: List<Link
 data class MapUiState(
     val pins: List<SpotPin> = emptyList(),
     val focus: MapFocus? = null,
+    /** The routes still to walk, as lines; empty while they are switched off. */
+    val lines: List<RouteLine> = emptyList(),
+    val showsRoutes: Boolean = true,
 )
 
 /**
@@ -65,6 +69,7 @@ class MapViewModel(
     private val prefs: AppPreferences,
     spots: SpotRepository,
     links: LinkRepository,
+    routes: RouteRepository,
 ) : ViewModel() {
 
     private val selectedId = MutableStateFlow<String?>(null)
@@ -93,9 +98,23 @@ class MapViewModel(
 
     // The remembered view is read once, on opening: following it live would pull the camera back
     // to wherever it was saved a moment ago, every time the map settles.
-    val uiState: StateFlow<MapUiState> = combine(pins.observeAll(), prefs.mapView.take(1)) { all, saved ->
-        MapUiState(pins = all, focus = all.focus(saved))
+    val uiState: StateFlow<MapUiState> = combine(
+        pins.observeAll(),
+        prefs.mapView.take(1),
+        routes.observeLinePoints(),
+        prefs.mapShowsRoutes,
+    ) { all, saved, stops, showsRoutes ->
+        MapUiState(
+            pins = all,
+            focus = all.focus(saved),
+            lines = if (showsRoutes) stops.toRouteLines() else emptyList(),
+            showsRoutes = showsRoutes,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MapUiState())
+
+    fun setShowsRoutes(show: Boolean) {
+        viewModelScope.launch { prefs.setMapShowsRoutes(show) }
+    }
 
     /** Called each time the map comes to rest, so the next plain opening carries on from here. */
     fun rememberView(view: MapView) {

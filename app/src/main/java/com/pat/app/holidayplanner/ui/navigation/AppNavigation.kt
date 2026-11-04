@@ -165,6 +165,7 @@ fun AppNavigation() {
                         onBack = nav::back,
                         // Over the map rather than on Explore, so back from the spot comes back here.
                         onOpenSpot = { nav.push(SpotKey(it)) },
+                        onOpenRoute = { nav.push(RouteKey(it)) },
                     )
                 }
                 entry<SearchKey> {

@@ -3,6 +3,7 @@ package com.pat.app.holidayplanner.data.local.dao
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
+import com.pat.app.holidayplanner.data.local.RouteLinePoint
 import com.pat.app.holidayplanner.data.local.RouteStopEntity
 import com.pat.app.holidayplanner.data.local.RouteStopRow
 import com.pat.app.holidayplanner.data.local.SyncDao
@@ -38,6 +39,24 @@ interface RouteStopDao : SyncDao<RouteStopEntity> {
         """,
     )
     suspend fun findBySpot(routeId: String, spotId: String): String?
+
+    /**
+     * Every stop with a position on every route still to walk, route by route in walking order,
+     * which is what the map draws its lines through.
+     */
+    @Query(
+        """
+        SELECT r.id AS routeId, r.name AS routeName, r.cityId AS cityId, r.createdAt AS createdAt,
+            s.lat AS lat, s.lng AS lng
+        FROM route_stops st
+        JOIN routes r ON r.id = st.routeId
+        JOIN spots s ON s.id = st.spotId
+        WHERE st.deleted = 0 AND r.deleted = 0 AND r.completed = 0 AND s.deleted = 0
+            AND s.lat IS NOT NULL AND s.lng IS NOT NULL
+        ORDER BY r.id, st.sortKey, st.id
+        """,
+    )
+    fun observeLinePoints(): Flow<List<RouteLinePoint>>
 
     /** The routes a spot is a stop on, so a picker can tick them. */
     @Query(
