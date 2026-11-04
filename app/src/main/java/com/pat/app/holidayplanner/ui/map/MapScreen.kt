@@ -30,24 +30,23 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerComposable
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.SpotPin
-import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * Every spot on one map, red for unvisited and green for visited.
+ * Every spot on one map. Each pin carries the start of its name and an icon for its kind; colour
+ * says green for visited, red for high priority, teal for the rest (see MapMarkers.kt).
  *
  * It always shows everything and only differs in where it opens, so a spot just over a city border
  * is visible rather than mysteriously missing. Your own position is drawn when location is allowed,
@@ -113,6 +112,8 @@ private fun SpotMap(
                 CameraPosition.fromLatLngZoom(LatLng(target.centre.lat, target.centre.lng), target.zoom),
             ),
         )
+        // Opened for one spot: its card is up too, so it is plain which pin is meant.
+        if (target.spotId.isNotEmpty()) selected = pins.firstOrNull { it.spotId == target.spotId }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -123,17 +124,24 @@ private fun SpotMap(
             onMapClick = { selected = null },
         ) {
             pins.forEach { pin ->
-                Marker(
+                // Keyed on what the picture shows, so a pin is only redrawn when its look changes.
+                MarkerComposable(
+                    pin.name,
+                    pin.pinColour(),
+                    pin.type,
                     state = rememberUpdatedMarkerState(position = LatLng(pin.lat, pin.lng)),
                     title = pin.name,
                     snippet = pin.cityName.ifBlank { pin.countryName },
-                    icon = BitmapDescriptorFactory.defaultMarker(pin.status.markerHue()),
+                    // High priority draws over the rest where pins overlap.
+                    zIndex = if (pin.pinColour() == PinColour.HIGH) 1f else 0f,
                     onClick = {
                         selected = pin
                         // Consume it, so the map does not also recentre and hide the card.
                         true
                     },
-                )
+                ) {
+                    PinMarker(pin)
+                }
             }
         }
 
@@ -168,10 +176,4 @@ private fun SpotCard(pin: SpotPin, onOpen: () -> Unit, modifier: Modifier = Modi
             TextButton(onClick = onOpen) { Text(stringResource(R.string.map_open_spot)) }
         }
     }
-}
-
-/** Green for somewhere you have been, red for somewhere still on the list. */
-private fun SpotStatus.markerHue(): Float = when (this) {
-    SpotStatus.VISITED -> BitmapDescriptorFactory.HUE_GREEN
-    SpotStatus.UNVISITED -> BitmapDescriptorFactory.HUE_RED
 }

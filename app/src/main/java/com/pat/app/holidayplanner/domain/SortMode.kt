@@ -19,11 +19,12 @@ enum class SortScope(val prefKey: String, val options: List<SortMode>) {
         prefKey = "countries",
         options = listOf(SortMode.MANUAL, SortMode.PRIORITY, SortMode.RECENT, SortMode.ALPHABETICAL),
     ),
+    // No PRIORITY: a city's own order already puts high priority first. A saved PRIORITY reads as
+    // MANUAL through parse, which is the same order.
     SPOTS(
         prefKey = "spots",
         options = listOf(
             SortMode.MANUAL,
-            SortMode.PRIORITY,
             SortMode.HEARTS,
             SortMode.RECENT,
             SortMode.ALPHABETICAL,

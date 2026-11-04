@@ -118,13 +118,15 @@ data class SearchHit(
 )
 
 
-/** A spot with a known position, as Near me and the map need it. */
+/** A spot with a known position, as the map needs it: where, what kind, and how much it matters. */
 data class SpotPin(
     val spotId: String,
     val name: String,
     val lat: Double,
     val lng: Double,
     val status: SpotStatus,
+    val priority: Priority,
+    val type: SpotType,
     val cityId: String,
     val cityName: String,
     val countryId: String,

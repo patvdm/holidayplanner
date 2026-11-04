@@ -130,7 +130,12 @@ private fun buildEntries(
  * [cityId]) are in while it is. The order is held on to
  * after the finger lifts until the database answers, or the row would jump back for a moment.
  */
-private data class SpotDrag(val cityId: String, val order: List<SpotRow>, val movedId: String? = null)
+private data class SpotDrag(
+    val cityId: String,
+    val priority: Priority,
+    val order: List<SpotRow>,
+    val movedId: String? = null,
+)
 
 /**
  * The whole country on one screen: its picture and its own photos and links, then every city with
@@ -160,7 +165,8 @@ fun CountryContent(
         val current = drag ?: return@rememberReorderableLazyListState
         val fromIndex = current.order.indexOfFirst { spotKey(it.spot.meta.id) == from.key }
         val toIndex = current.order.indexOfFirst { spotKey(it.spot.meta.id) == to.key }
-        if (fromIndex >= 0 && toIndex >= 0) {
+        // High-priority spots stay above the rest, so a spot only swaps places within its own group.
+        if (fromIndex >= 0 && toIndex >= 0 && current.order[toIndex].spot.priority == current.priority) {
             val order = current.order.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
             drag = current.copy(order = order, movedId = order[toIndex].spot.meta.id)
         }
@@ -177,12 +183,14 @@ fun CountryContent(
                 row = entry.row,
                 reorderState = reorderState,
                 state = state,
-                // Only the spots of the group being dragged in make way, so a spot never changes city by dragging.
-                enabled = state.canReorderSpots && drag.let { it == null || it.cityId == cityId },
+                // Only the spots of the group being dragged in make way, so a spot never changes city
+                // or priority group by dragging.
+                enabled = state.canReorderSpots &&
+                    drag.let { it == null || (it.cityId == cityId && it.priority == entry.row.spot.priority) },
                 actions = actions,
                 onDragStarted = {
                     dragging = true
-                    drag = SpotDrag(cityId, state.spotsOf(cityId))
+                    drag = SpotDrag(cityId, entry.row.spot.priority, state.spotsOf(cityId))
                 },
                 onDragStopped = {
                     dragging = false
@@ -260,13 +268,8 @@ private fun LazyItemScope.DraggableSpot(
 /** Turns where the spot was dropped into a sort key between its two new neighbours in its city. */
 private fun persistSpotMove(drag: SpotDrag, onMoved: (String, String?, String?) -> Unit) {
     val movedId = drag.movedId ?: return
-    val index = drag.order.indexOfFirst { it.spot.meta.id == movedId }
-    if (index < 0) return
-    onMoved(
-        movedId,
-        drag.order.getOrNull(index - 1)?.spot?.sortKey,
-        drag.order.getOrNull(index + 1)?.spot?.sortKey,
-    )
+    val (before, after) = drag.order.dropNeighbours(movedId) ?: return
+    onMoved(movedId, before, after)
 }
 
 /**

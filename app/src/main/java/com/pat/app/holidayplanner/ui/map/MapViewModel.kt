@@ -31,8 +31,8 @@ data class MapScope(
     val spotId: String = "",
 )
 
-/** Where the camera starts, and how close. */
-data class MapFocus(val centre: GeoPoint, val zoom: Float)
+/** Where the camera starts, and how close; [spotId] when the map was opened for one spot. */
+data class MapFocus(val centre: GeoPoint, val zoom: Float, val spotId: String = "")
 
 data class MapUiState(
     val pins: List<SpotPin> = emptyList(),
@@ -66,7 +66,7 @@ class MapViewModel(
         val inCountry = filter { scope.countryId.isNotEmpty() && it.countryId == scope.countryId }
 
         return when {
-            spot != null -> MapFocus(GeoPoint(spot.lat, spot.lng), SPOT_ZOOM)
+            spot != null -> MapFocus(GeoPoint(spot.lat, spot.lng), SPOT_ZOOM, spot.spotId)
             inCity.isNotEmpty() -> MapFocus(inCity.centre(), CITY_ZOOM)
             inCountry.isNotEmpty() -> MapFocus(inCountry.centre(), inCountry.zoomForSpread())
             else -> MapFocus(centre(), zoomForSpread())

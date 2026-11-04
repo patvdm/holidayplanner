@@ -88,6 +88,7 @@
     <string name="spot_breadcrumb">%1$s › %2$s</string>
     <string name="spot_location">Location</string>
     <string name="spot_open_in_maps">Open in Maps</string>
+    <string name="spot_show_on_map">Our map</string>
     <string name="spot_heart">Heart this spot</string>
     <string name="spot_hearts_none">Nobody has hearted this yet.</string>
     <string name="spot_hearts_by">Hearted by %1$s</string>

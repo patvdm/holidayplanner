@@ -100,6 +100,8 @@ fun AppNavigation() {
                     SpotDetailScreen(
                         spotId = key.spotId,
                         onBack = nav::back,
+                        // The same map as the middle button, which from a spot opens on that spot.
+                        onShowOnMap = nav::openMap,
                     )
                 }
                 entry<SpotsRootKey> {

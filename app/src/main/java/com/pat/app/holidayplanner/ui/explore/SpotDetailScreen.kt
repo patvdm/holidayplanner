@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -75,6 +76,7 @@ import org.koin.core.parameter.parametersOf
 fun SpotDetailScreen(
     spotId: String,
     onBack: () -> Unit,
+    onShowOnMap: () -> Unit,
     viewModel: SpotDetailViewModel = koinViewModel { parametersOf(spotId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -180,9 +182,19 @@ fun SpotDetailScreen(
                         maxLines = 1,
                     )
                 }
-                FilledTonalButton(onClick = { context.openExternalUrl(state.mapsUrl) }) {
-                    Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                    Text(stringResource(R.string.spot_open_in_maps))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalButton(onClick = { context.openExternalUrl(state.mapsUrl) }) {
+                        Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                        Text(stringResource(R.string.spot_open_in_maps))
+                    }
+                    // Our own map, opened on this spot. A spot with no position has no pin to show.
+                    OutlinedButton(
+                        onClick = onShowOnMap,
+                        enabled = state.spot?.let { it.lat != null && it.lng != null } == true,
+                    ) {
+                        Icon(Icons.Filled.Place, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                        Text(stringResource(R.string.spot_show_on_map))
+                    }
                 }
                 HeartsSection(names = state.hearts.map { it.name }.filter { it.isNotBlank() })
                 HorizontalDivider()

@@ -117,7 +117,7 @@ interface SpotDao : SyncDao<SpotEntity> {
     @Query(
         """
         SELECT s.id AS spotId, s.name AS name, s.lat AS lat, s.lng AS lng, s.status AS status,
-            s.parentCityId AS cityId, COALESCE(p.name, '') AS cityName, c.id AS countryId,
+            s.priority AS priority, s.type AS type, s.parentCityId AS cityId, COALESCE(p.name, '') AS cityName, c.id AS countryId,
             c.name AS countryName
         FROM spots s
         LEFT JOIN cities p ON p.id = s.parentCityId
