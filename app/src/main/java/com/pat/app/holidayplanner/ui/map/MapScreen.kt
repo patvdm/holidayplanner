@@ -21,7 +21,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -39,6 +41,8 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.SpotPin
+import com.pat.app.holidayplanner.domain.MapView
+import kotlinx.coroutines.flow.filter
 import com.pat.app.holidayplanner.ui.components.BackTopBar
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
 import org.koin.compose.viewmodel.koinViewModel
@@ -46,7 +50,8 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * Every spot on one map. Each pin carries the start of its name and an icon for its kind; colour
- * says green for visited, red for high priority, teal for the rest (see MapMarkers.kt).
+ * says charcoal for a normal spot, orange for high priority, faded with a tick once visited
+ * (see MapMarkers.kt).
  *
  * It always shows everything and only differs in where it opens, so a spot just over a city border
  * is visible rather than mysteriously missing. Your own position is drawn when location is allowed,
@@ -88,6 +93,7 @@ fun MapScreen(
             focus = state.focus,
             showMyLocation = locationAllowed,
             onOpenSpot = onOpenSpot,
+            onSettled = viewModel::rememberView,
             modifier = Modifier.padding(padding),
         )
     }
@@ -99,14 +105,19 @@ private fun SpotMap(
     focus: MapFocus?,
     showMyLocation: Boolean,
     onOpenSpot: (String) -> Unit,
+    onSettled: (MapView) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selected by remember { mutableStateOf<SpotPin?>(null) }
+    // Both survive a trip to a spot and back, so the map is left where it was, not re-aimed.
     val camera = rememberCameraPositionState()
+    var aimed by rememberSaveable { mutableStateOf(false) }
 
     // The pins arrive after the first composition, so the camera follows once they are known.
     LaunchedEffect(focus) {
         val target = focus ?: return@LaunchedEffect
+        if (aimed) return@LaunchedEffect
+        aimed = true
         camera.move(
             CameraUpdateFactory.newCameraPosition(
                 CameraPosition.fromLatLngZoom(LatLng(target.centre.lat, target.centre.lng), target.zoom),
@@ -114,6 +125,16 @@ private fun SpotMap(
         )
         // Opened for one spot: its card is up too, so it is plain which pin is meant.
         if (target.spotId.isNotEmpty()) selected = pins.firstOrNull { it.spotId == target.spotId }
+    }
+
+    // Each time the map comes to rest after being aimed, remember the view for the next opening.
+    LaunchedEffect(camera) {
+        snapshotFlow { camera.isMoving }
+            .filter { moving -> !moving && aimed }
+            .collect {
+                val at = camera.position
+                onSettled(MapView(at.target.latitude, at.target.longitude, at.zoom))
+            }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -127,13 +148,13 @@ private fun SpotMap(
                 // Keyed on what the picture shows, so a pin is only redrawn when its look changes.
                 MarkerComposable(
                     pin.name,
-                    pin.pinColour(),
+                    pin.pinStyle(),
                     pin.type,
                     state = rememberUpdatedMarkerState(position = LatLng(pin.lat, pin.lng)),
                     title = pin.name,
                     snippet = pin.cityName.ifBlank { pin.countryName },
                     // High priority draws over the rest where pins overlap.
-                    zIndex = if (pin.pinColour() == PinColour.HIGH) 1f else 0f,
+                    zIndex = if (pin.pinStyle() == PinStyle.HIGH) 1f else 0f,
                     onClick = {
                         selected = pin
                         // Consume it, so the map does not also recentre and hide the card.

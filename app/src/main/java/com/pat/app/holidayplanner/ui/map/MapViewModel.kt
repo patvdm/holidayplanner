@@ -3,12 +3,16 @@ package com.pat.app.holidayplanner.ui.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.SpotPin
+import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.repo.SpotPinRepository
 import com.pat.app.holidayplanner.domain.GeoPoint
+import com.pat.app.holidayplanner.domain.MapView
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.launch
 
 private const val STOP_TIMEOUT_MS = 5_000L
 
@@ -48,17 +52,27 @@ data class MapUiState(
 class MapViewModel(
     private val scope: MapScope,
     pins: SpotPinRepository,
+    private val prefs: AppPreferences,
 ) : ViewModel() {
 
-    val uiState: StateFlow<MapUiState> = pins.observeAll()
-        .map { all -> MapUiState(pins = all, focus = all.focus()) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MapUiState())
+    // The remembered view is read once, on opening: following it live would pull the camera back
+    // to wherever it was saved a moment ago, every time the map settles.
+    val uiState: StateFlow<MapUiState> = combine(pins.observeAll(), prefs.mapView.take(1)) { all, saved ->
+        MapUiState(pins = all, focus = all.focus(saved))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MapUiState())
+
+    /** Called each time the map comes to rest, so the next plain opening carries on from here. */
+    fun rememberView(view: MapView) {
+        viewModelScope.launch { prefs.setMapView(view) }
+    }
 
     /**
-     * Narrowest wins: a named spot, then its city, then its country, then everything. Each step
-     * falls through when nothing matches, so a stale id cannot leave the map pointing at the sea.
+     * Narrowest wins: a named spot, then its city, then its country. Opened for nothing in
+     * particular, it carries on where it was last left, and only the very first time shows
+     * everything. Each step falls through when nothing matches, so a stale id cannot leave the map
+     * pointing at the sea.
      */
-    private fun List<SpotPin>.focus(): MapFocus? {
+    private fun List<SpotPin>.focus(saved: MapView?): MapFocus? {
         if (isEmpty()) return null
 
         val spot = firstOrNull { it.spotId == scope.spotId }
@@ -69,6 +83,7 @@ class MapViewModel(
             spot != null -> MapFocus(GeoPoint(spot.lat, spot.lng), SPOT_ZOOM, spot.spotId)
             inCity.isNotEmpty() -> MapFocus(inCity.centre(), CITY_ZOOM)
             inCountry.isNotEmpty() -> MapFocus(inCountry.centre(), inCountry.zoomForSpread())
+            saved != null -> MapFocus(GeoPoint(saved.lat, saved.lng), saved.zoom)
             else -> MapFocus(centre(), zoomForSpread())
         }
     }

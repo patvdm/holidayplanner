@@ -3,6 +3,7 @@ package com.pat.app.holidayplanner.ui.explore
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -182,7 +183,11 @@ fun SpotDetailScreen(
                         maxLines = 1,
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Wraps on a narrow screen rather than squeezing either label.
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     FilledTonalButton(onClick = { context.openExternalUrl(state.mapsUrl) }) {
                         Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                         Text(stringResource(R.string.spot_open_in_maps))

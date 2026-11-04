@@ -39,13 +39,13 @@ class MapMarkersTest {
     }
 
     @Test
-    fun `visited is green whatever the priority`() {
-        assertEquals(PinColour.VISITED, pin(SpotStatus.VISITED, Priority.HIGH).pinColour())
+    fun `visited looks done whatever the priority`() {
+        assertEquals(PinStyle.VISITED, pin(SpotStatus.VISITED, Priority.HIGH).pinStyle())
     }
 
     @Test
     fun `an unvisited high priority spot stands out`() {
-        assertEquals(PinColour.HIGH, pin(priority = Priority.HIGH).pinColour())
-        assertEquals(PinColour.NORMAL, pin().pinColour())
+        assertEquals(PinStyle.HIGH, pin(priority = Priority.HIGH).pinStyle())
+        assertEquals(PinStyle.NORMAL, pin().pinStyle())
     }
 }

@@ -60,6 +60,7 @@
 
     <string name="city_no_matches">No spots match these filters.</string>
     <string name="city_expand">Show spots</string>
+    <string name="city_show_on_map">Show this city on our map</string>
     <string name="city_collapse">Hide spots</string>
     <string name="city_expand_all">Open every city</string>
     <string name="city_collapse_all">Fold every city</string>
@@ -87,7 +88,7 @@
 
     <string name="spot_breadcrumb">%1$s › %2$s</string>
     <string name="spot_location">Location</string>
-    <string name="spot_open_in_maps">Open in Maps</string>
+    <string name="spot_open_in_maps">Open in Google Maps</string>
     <string name="spot_show_on_map">Our map</string>
     <string name="spot_heart">Heart this spot</string>
     <string name="spot_hearts_none">Nobody has hearted this yet.</string>

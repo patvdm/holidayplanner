@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -315,6 +316,9 @@ private fun CityHeader(section: CitySection, actions: CountryActions) {
                 }
             }
             PriorityBadge(city.priority)
+            IconButton(onClick = { actions.onShowCityOnMap(city.meta.id) }) {
+                Icon(Icons.Outlined.Map, contentDescription = stringResource(R.string.city_show_on_map))
+            }
             CityMenu(city = city, actions = actions)
             Icon(
                 imageVector = if (section.expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
@@ -636,6 +640,9 @@ fun ArrangeCities(
 interface CountryActions {
     val onOpenSpot: (String) -> Unit
     val onToggleCity: (String) -> Unit
+
+    /** Opens our own map on one city, by its id. */
+    val onShowCityOnMap: (String) -> Unit
     val onFilters: (SpotFilters) -> Unit
     val onOpenPhoto: (LinkEntity) -> Unit
     val onOpenLink: (LinkEntity) -> Unit

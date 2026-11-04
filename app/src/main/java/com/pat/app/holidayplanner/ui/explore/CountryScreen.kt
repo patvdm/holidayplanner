@@ -77,6 +77,7 @@ fun CountryScreen(
     onBack: () -> Unit,
     onOpenSpot: (String) -> Unit,
     onOpenRoute: (String) -> Unit,
+    onShowCityOnMap: (String) -> Unit,
     viewModel: CountryViewModel = koinViewModel { parametersOf(countryId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -89,11 +90,13 @@ fun CountryScreen(
     }
     val openSpot by rememberUpdatedState(onOpenSpot)
     val openRoute by rememberUpdatedState(onOpenRoute)
+    val showCityOnMap by rememberUpdatedState(onShowCityOnMap)
 
     val actions = remember(viewModel, dialogs) {
         object : CountryActions {
             override val onOpenSpot: (String) -> Unit = { openSpot(it) }
             override val onToggleCity: (String) -> Unit = viewModel::toggleExpanded
+            override val onShowCityOnMap: (String) -> Unit = { showCityOnMap(it) }
             override val onFilters: (SpotFilters) -> Unit = viewModel::setFilters
             override val onOpenPhoto: (LinkEntity) -> Unit = { dialogs.viewingPhoto = it.url }
             override val onOpenLink: (LinkEntity) -> Unit = { context.openExternalUrl(it.url) }

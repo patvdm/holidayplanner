@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Restaurant
@@ -44,30 +45,37 @@ fun markerLabel(name: String, max: Int = MARKER_LABEL_CHARS): String {
 }
 
 /**
- * What a pin looks like. Visited is green whatever else is true, since done is done; otherwise a
- * high-priority spot is red, like the High badge in the lists, and everything else is the app's teal.
+ * What a pin looks like. One quiet colour for the ordinary, one loud one for what matters, and
+ * done pins fade out rather than taking a third colour, so nothing competes with the map's own
+ * greens and blues: charcoal for a normal spot, orange for high priority, white with a tick once
+ * visited. The icon inside always says what kind of place it is.
  */
-enum class PinColour { VISITED, HIGH, NORMAL }
+enum class PinStyle { VISITED, HIGH, NORMAL }
 
-fun SpotPin.pinColour(): PinColour = when {
-    status == SpotStatus.VISITED -> PinColour.VISITED
-    priority == Priority.HIGH -> PinColour.HIGH
-    else -> PinColour.NORMAL
+fun SpotPin.pinStyle(): PinStyle = when {
+    status == SpotStatus.VISITED -> PinStyle.VISITED
+    priority == Priority.HIGH -> PinStyle.HIGH
+    else -> PinStyle.NORMAL
 }
 
-private val PinGreen = Color(0xFF2E7D32)
-private val PinRed = Color(0xFFD32F2F)
-private val PinTeal = Color(0xFF006A69)
+private val Charcoal = Color(0xFF3C4043)
+private val Orange = Color(0xFFF4511E)
+private val Faded = Color(0xFF9AA0A6)
 private val LabelBackground = Color(0xEBFFFFFF)
+private val LabelInk = Color(0xFF1C1B17)
 private val PinHead = 26.dp
 private val HighPinHead = 32.dp
+private val TickSize = 12.dp
 private const val ICON_SHARE_OF_HEAD = 0.6f
 
-private val PinColour.fill: Color
+/** Head colour, what is drawn on it, and its rim, in that order. */
+private data class PinColours(val head: Color, val ink: Color, val rim: Color)
+
+private val PinStyle.colours: PinColours
     get() = when (this) {
-        PinColour.VISITED -> PinGreen
-        PinColour.HIGH -> PinRed
-        PinColour.NORMAL -> PinTeal
+        PinStyle.VISITED -> PinColours(head = Color.White, ink = Faded, rim = Faded)
+        PinStyle.HIGH -> PinColours(head = Orange, ink = Color.White, rim = Color.White)
+        PinStyle.NORMAL -> PinColours(head = Charcoal, ink = Color.White, rim = Color.White)
     }
 
 private val SpotType.icon: ImageVector
@@ -77,41 +85,54 @@ private val SpotType.icon: ImageVector
         SpotType.POI -> Icons.Filled.Place
     }
 
-private val LabelText = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1C1B17))
+private val LabelText = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium)
 
 /**
  * One pin as drawn on the map: the start of the name in a white tag, a round head carrying the
  * spot's kind, and a point underneath whose tip is the exact position. A high-priority pin is a
- * little larger so it still stands out where pins crowd together.
+ * little larger so it still stands out where pins crowd together; a visited one wears a tick.
  */
 @Composable
 fun PinMarker(pin: SpotPin) {
-    val colour = pin.pinColour()
-    val fill = colour.fill
-    val head = if (colour == PinColour.HIGH) HighPinHead else PinHead
+    val style = pin.pinStyle()
+    val colours = style.colours
+    val head = if (style == PinStyle.HIGH) HighPinHead else PinHead
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = markerLabel(pin.name),
             style = LabelText,
+            color = if (style == PinStyle.VISITED) Faded else LabelInk,
             maxLines = 1,
             modifier = Modifier
                 .background(LabelBackground, RoundedCornerShape(4.dp))
                 .padding(horizontal = 4.dp, vertical = 1.dp),
         )
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .padding(top = 2.dp)
-                .size(head)
-                .background(fill, CircleShape)
-                .border(2.dp, Color.White, CircleShape),
-        ) {
-            Icon(
-                imageVector = pin.type.icon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(head * ICON_SHARE_OF_HEAD),
-            )
+        Box(modifier = Modifier.padding(top = 2.dp)) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(head)
+                    .background(colours.head, CircleShape)
+                    .border(2.dp, colours.rim, CircleShape),
+            ) {
+                Icon(
+                    imageVector = pin.type.icon,
+                    contentDescription = null,
+                    tint = colours.ink,
+                    modifier = Modifier.size(head * ICON_SHARE_OF_HEAD),
+                )
+            }
+            if (style == PinStyle.VISITED) {
+                Icon(
+                    imageVector = Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    tint = Charcoal,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(TickSize)
+                        .background(Color.White, CircleShape),
+                )
+            }
         }
         Canvas(modifier = Modifier.size(width = 10.dp, height = 7.dp)) {
             val point = Path().apply {
@@ -120,7 +141,7 @@ fun PinMarker(pin: SpotPin) {
                 lineTo(size.width / 2, size.height)
                 close()
             }
-            drawPath(point, fill)
+            drawPath(point, colours.rim.takeIf { style == PinStyle.VISITED } ?: colours.head)
         }
     }
 }

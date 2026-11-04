@@ -94,6 +94,7 @@ fun AppNavigation() {
                         onBack = nav::back,
                         onOpenSpot = { nav.push(SpotKey(it)) },
                         onOpenRoute = { nav.push(RouteKey(it)) },
+                        onShowCityOnMap = { cityId -> nav.push(MapKey(countryId = key.countryId, cityId = cityId)) },
                     )
                 }
                 entry<SpotKey> { key ->
@@ -162,7 +163,8 @@ fun AppNavigation() {
                     MapScreen(
                         scope = MapScope(key.countryId, key.cityId, key.spotId),
                         onBack = nav::back,
-                        onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
+                        // Over the map rather than on Explore, so back from the spot comes back here.
+                        onOpenSpot = { nav.push(SpotKey(it)) },
                     )
                 }
                 entry<SearchKey> {

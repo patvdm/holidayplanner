@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pat.app.holidayplanner.data.sync.SyncOutcomeStore
+import com.pat.app.holidayplanner.domain.MapView
 import com.pat.app.holidayplanner.domain.SortMode
 import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.domain.ThemeMode
@@ -64,6 +65,13 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
         store.edit { it[KEY_THEME_MODE] = mode.name }
     }
 
+    /** Where the map was last looking; null until it has been moved once. */
+    val mapView: Flow<MapView?> = store.data.map { prefs -> MapView.parse(prefs[KEY_MAP_VIEW]) }
+
+    suspend fun setMapView(view: MapView) {
+        store.edit { it[KEY_MAP_VIEW] = view.format() }
+    }
+
     fun sortMode(scope: SortScope): Flow<SortMode> = store.data.map { prefs ->
         scope.parse(prefs[sortModeKey(scope)])
     }
@@ -103,6 +111,7 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
 
         val KEY_CURRENT_USER_ID = stringPreferencesKey("current_user_id")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_MAP_VIEW = stringPreferencesKey("map_view")
         // Renamed when the search learns something new, so spots it gave up on get one more try.
         val KEY_SPOT_PICTURE_RETRY = booleanPreferencesKey("spot_picture_retry_town_named_spots")
         val KEY_BACKEND_URL = stringPreferencesKey("backend_url")
