@@ -1,8 +1,10 @@
 # "Add this to my travel plans", from any Claude chat
 
 `worker.js` is a small MCP server that runs as a Cloudflare Worker (free tier is plenty). Added to
-claude.ai as a custom connector, it gives Claude two tools in every chat, on the web and in the
-phone app:
+claude.ai as a custom connector, it gives Claude these tools in every chat, on the web and in the
+phone app.
+
+Places:
 
 - **add_places**: files places into the backend through the sheet's Inbox (see `docs/import.md`),
   so "tell me about Kasteeltuinen Arcen" followed by "add it to my travel plans" just works.
@@ -15,7 +17,21 @@ phone app:
   I have in Croatia?". With `details` it also lists notes and the picture each entry is using,
   which is what to look at before changing one.
 
-Trips, routes and links are not exposed: they are made in the app.
+Trips and routes, so "plan our Amsterdam weekend" can be done from a chat:
+
+- **list_plans**: every trip and route; or one trip day by day, with each route's stops; or one
+  route in full. Claude reads this before changing anything.
+- **create_trip** / **update_trip**: name, country, dates and notes.
+- **add_to_trip**: a saved spot (with a time, for a booking), a saved route, or a flight or train
+  onto one day.
+- **update_trip_item**: move something to another day or time, change its notes, or take it off
+  the trip (the spot or route itself stays saved).
+- **create_route** / **update_route**: a walk through one city from saved spots in order, which
+  can put itself on a trip day; later rename it, reorder or replace the stops, add or remove some,
+  change the notes, or mark it walked. Stop order uses the same keys as the app.
+
+Spots on a route or trip must be saved first (add_places). Links, and deleting a whole trip or
+route, stay in the app.
 
 Nothing here touches the phones directly; they pick the rows up on their next sync.
 
