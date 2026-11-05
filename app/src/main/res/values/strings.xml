@@ -295,6 +295,12 @@
     <string name="routes_empty">No routes yet. Tap + to start one: a route walks the spots of one city.</string>
     <string name="routes_no_cities">Save a spot somewhere first. A route walks the spots of one city.</string>
     <string name="routes_walked_header">Walked</string>
+    <string name="walk_estimate">About %1$s, roughly %2$s on foot</string>
+    <string name="walk_metres">%1$d m</string>
+    <string name="walk_km">%1$s km</string>
+    <string name="walk_minutes">%1$d min</string>
+    <string name="walk_hours">%1$d h</string>
+    <string name="walk_hours_minutes">%1$d h %2$d min</string>
     <string name="route_needs_a_stop">A route needs at least one stop.</string>
     <string name="route_no_maps_app">Nothing on this device can open Maps.</string>
     <plurals name="route_without_location">

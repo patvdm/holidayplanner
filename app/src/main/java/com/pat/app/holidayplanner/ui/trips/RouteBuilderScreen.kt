@@ -54,6 +54,7 @@ import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.ui.components.MapButtonRow
+import com.pat.app.holidayplanner.ui.components.walkEstimateText
 import com.pat.app.holidayplanner.ui.components.MapsNavigateButton
 import com.pat.app.holidayplanner.ui.components.MapsPreviewButton
 import com.pat.app.holidayplanner.ui.components.OurMapButton
@@ -439,6 +440,7 @@ private fun RouteFooter(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        state.estimate?.let { Text(walkEstimateText(it), style = MaterialTheme.typography.titleSmall) }
         if (state.stopsWithoutCoordinates > 0) {
             Note(
                 pluralStringResource(

@@ -16,7 +16,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.size
+import com.pat.app.holidayplanner.domain.SpotStatus
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.outlined.AddRoad
@@ -124,6 +128,7 @@ fun MapScreen(
             onSelect = viewModel::select,
             onOpenSpot = onOpenSpot,
             onAddToRoute = { addingToRoute = it },
+            onSetVisited = viewModel::setVisited,
             onOpenLink = { context.openExternalUrl(it.url) },
             onNavigate = { pin, placeId ->
                 context.openExternalUrl(MapsUrls.navigateTo(RoutePoint(pin.name, pin.lat, pin.lng, placeId)))
@@ -155,6 +160,7 @@ private fun SpotMap(
     onSelect: (String?) -> Unit,
     onOpenSpot: (String) -> Unit,
     onAddToRoute: (SpotPin) -> Unit,
+    onSetVisited: (String, Boolean) -> Unit,
     onOpenLink: (LinkEntity) -> Unit,
     onNavigate: (SpotPin, String) -> Unit,
     onSettled: (MapView) -> Unit,
@@ -255,9 +261,11 @@ private fun SpotMap(
             )
         }
 
-        selected?.let { pin ->
+        // The live pin rather than the one tapped, so the card follows a change made from it.
+        selected?.let { tapped -> pins.firstOrNull { it.spotId == tapped.spotId } ?: tapped }?.let { pin ->
             SpotCard(
                 pin = pin,
+                onSetVisited = { onSetVisited(pin.spotId, it) },
                 detail = detail?.takeIf { it.spotId == pin.spotId },
                 onOpen = { onOpenSpot(pin.spotId) },
                 onAddToRoute = { onAddToRoute(pin) },
@@ -332,6 +340,7 @@ private class RouteLayerState(
 private fun SpotCard(
     pin: SpotPin,
     detail: PinDetail?,
+    onSetVisited: (Boolean) -> Unit,
     onOpen: () -> Unit,
     onAddToRoute: () -> Unit,
     onNavigate: () -> Unit,
@@ -343,12 +352,26 @@ private fun SpotCard(
             modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Column(modifier = Modifier.padding(end = 8.dp)) {
-                Text(pin.name, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = pin.cityName.ifBlank { pin.countryName },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Row(modifier = Modifier.padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(pin.name, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = pin.cityName.ifBlank { pin.countryName },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                // Standing in front of it is when you know, so it can be ticked off right here.
+                val visited = pin.status == SpotStatus.VISITED
+                FilterChip(
+                    selected = visited,
+                    onClick = { onSetVisited(!visited) },
+                    label = { Text(stringResource(R.string.route_mark_visited)) },
+                    leadingIcon = if (visited) {
+                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        null
+                    },
                 )
             }
             val hasBody = detail != null && (detail.notes.isNotEmpty() || detail.links.isNotEmpty())

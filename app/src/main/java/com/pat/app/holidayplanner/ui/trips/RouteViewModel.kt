@@ -10,6 +10,7 @@ import com.pat.app.holidayplanner.data.repo.RouteRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.GeoPoint
 import com.pat.app.holidayplanner.domain.MapsUrls
+import com.pat.app.holidayplanner.domain.WalkEstimate
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.Proximity
 import com.pat.app.holidayplanner.domain.RoutePoint
@@ -79,6 +80,12 @@ data class RouteUiState(
     val canOpen: Boolean get() = walked.isNotEmpty()
 
     val stopsWithoutCoordinates: Int get() = walked.count { it.lat == null || it.lng == null }
+
+    /** How far the walk Google is asked for runs, stop to stop; null below two positioned stops. */
+    val estimate: WalkEstimate?
+        get() = WalkEstimate.of(
+            walked.mapNotNull { stop -> stop.lat?.let { lat -> stop.lng?.let { GeoPoint(lat, it) } } },
+        )
 }
 
 /**

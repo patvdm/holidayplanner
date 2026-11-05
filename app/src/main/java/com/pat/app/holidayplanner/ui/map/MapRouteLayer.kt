@@ -30,6 +30,8 @@ import com.google.android.gms.maps.model.RoundCap
 import com.google.maps.android.compose.GoogleMapComposable
 import com.google.maps.android.compose.Polyline
 import com.pat.app.holidayplanner.R
+import com.pat.app.holidayplanner.domain.WalkEstimate
+import com.pat.app.holidayplanner.ui.components.walkEstimateText
 
 /**
  * Colours for the route lines, picked to stand apart from each other, from the pins (charcoal and
@@ -167,6 +169,13 @@ fun RouteCard(route: RouteLine, onOpen: () -> Unit, modifier: Modifier = Modifie
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                WalkEstimate.of(route.points)?.let {
+                    Text(
+                        text = walkEstimateText(it),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             TextButton(onClick = onOpen) { Text(stringResource(R.string.map_open_route)) }
         }

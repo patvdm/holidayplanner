@@ -13,6 +13,7 @@ import com.pat.app.holidayplanner.domain.GeoPoint
 import com.pat.app.holidayplanner.domain.MapView
 import com.pat.app.holidayplanner.domain.MapPinFilter
 import com.pat.app.holidayplanner.domain.SpotMark
+import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.domain.hasMark
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -84,7 +85,7 @@ class MapViewModel(
     private val scope: MapScope,
     pins: SpotPinRepository,
     private val prefs: AppPreferences,
-    spots: SpotRepository,
+    private val spots: SpotRepository,
     links: LinkRepository,
     routes: RouteRepository,
 ) : ViewModel() {
@@ -142,6 +143,10 @@ class MapViewModel(
 
     fun setShowsRoutes(show: Boolean) {
         viewModelScope.launch { prefs.setMapShowsRoutes(show) }
+    }
+
+    fun setVisited(spotId: String, visited: Boolean) {
+        viewModelScope.launch { spots.setStatus(spotId, if (visited) SpotStatus.VISITED else SpotStatus.UNVISITED) }
     }
 
     fun setFilter(filter: MapPinFilter) {
