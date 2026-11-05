@@ -52,11 +52,11 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
     }
 
     /** The sort mode chosen for one list. Unknown or unset values fall back to manual order. */
-    /** Whether this phone has given the spots without a picture their second, wider search. */
-    val spotPictureRetryDone: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_SPOT_PICTURE_RETRY] == true }
+    /** Whether this phone has run the spots' automatic pictures through the latest search once. */
+    val spotPictureRecheckDone: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_SPOT_PICTURE_RECHECK] == true }
 
-    suspend fun markSpotPictureRetryDone() {
-        store.edit { it[KEY_SPOT_PICTURE_RETRY] = true }
+    suspend fun markSpotPictureRecheckDone() {
+        store.edit { it[KEY_SPOT_PICTURE_RECHECK] = true }
     }
 
     /** Dark unless Light or Match phone was picked in Settings. */
@@ -129,8 +129,8 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
         val KEY_MAP_VIEW = stringPreferencesKey("map_view")
         val KEY_MAP_SHOWS_ROUTES = booleanPreferencesKey("map_shows_routes")
         val KEY_MAP_PIN_FILTER = stringPreferencesKey("map_pin_filter")
-        // Renamed when the search learns something new, so spots it gave up on get one more try.
-        val KEY_SPOT_PICTURE_RETRY = booleanPreferencesKey("spot_picture_retry_town_named_spots")
+        // Renamed when the search learns something new, so the automatic pictures get one more look.
+        val KEY_SPOT_PICTURE_RECHECK = booleanPreferencesKey("spot_picture_recheck_near_and_website")
         val KEY_BACKEND_URL = stringPreferencesKey("backend_url")
         val KEY_BACKEND_SECRET = stringPreferencesKey("backend_secret")
         val KEY_LAST_SYNC_AT = longPreferencesKey("last_sync_at")

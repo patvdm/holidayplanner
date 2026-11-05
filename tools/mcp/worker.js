@@ -569,7 +569,12 @@ async function updatePlace(args, env) {
   if (text(args.new_name)) changes.name = text(args.new_name);
   if (text(args.priority)) changes.priority = text(args.priority).toUpperCase();
   // An empty string is a real value here: it clears the picture and starts a fresh search.
-  if (args.image_url !== undefined && args.image_url !== null) changes.imageUrl = text(args.image_url);
+  if (args.image_url !== undefined && args.image_url !== null) {
+    changes.imageUrl = text(args.image_url);
+    // A picture given here was chosen by somebody, so the app never swaps it for one it found;
+    // cleared, it has no origin and the app looks for one again.
+    changes.imageSource = changes.imageUrl ? 'CHOSEN' : '';
+  }
   if (kind === 'spot') {
     if (text(args.status)) changes.status = text(args.status).toUpperCase();
     if (text(args.type)) changes.type = text(args.type).toUpperCase();

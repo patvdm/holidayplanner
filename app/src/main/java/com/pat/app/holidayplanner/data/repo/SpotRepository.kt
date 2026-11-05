@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.repo
 
+import com.pat.app.holidayplanner.domain.PictureOrigin
 import com.pat.app.holidayplanner.data.local.SpotContext
 import com.pat.app.holidayplanner.data.local.SpotEntity
 import com.pat.app.holidayplanner.data.local.SpotHome
@@ -128,11 +129,14 @@ class SpotRepository(
         setPriority(id, if (current.priority == Priority.HIGH) Priority.NORMAL else Priority.HIGH)
     }
 
-    /** A picture chosen by hand. Blank asks for one to be found again. */
-    suspend fun setImageUrl(id: String, url: String) = edit(id, byHand = true) { it.copy(imageUrl = url.trim()) }
-
-    /** A picture the app found by itself, which moves nothing. */
-    suspend fun setFoundImageUrl(id: String, url: String) = edit(id) { it.copy(imageUrl = url.trim()) }
+    /**
+     * A new main picture and where it came from. Blank lets the automatic search have another go.
+     * One somebody chose lifts the spot's city like any edit; one the app found moves nothing.
+     */
+    suspend fun setPicture(id: String, url: String, origin: PictureOrigin) =
+        edit(id, byHand = origin != PictureOrigin.AUTO) {
+            it.copy(imageUrl = url.trim(), imageSource = origin.stored(url))
+        }
 
     suspend fun setOpeningHours(id: String, hours: String) = edit(id) { it.copy(openingHours = hours) }
 

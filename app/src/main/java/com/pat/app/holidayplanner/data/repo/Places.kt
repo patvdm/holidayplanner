@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.repo
 
+import com.pat.app.holidayplanner.domain.PictureOrigin
 import com.pat.app.holidayplanner.domain.pictureUrlOrNull
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -36,11 +37,11 @@ class Places(
     suspend fun lacksPicture(owner: AttachmentOwner): Boolean =
         pictureOf(owner)?.let { it.pictureUrlOrNull() == null } ?: false
 
-    suspend fun setPicture(owner: AttachmentOwner, url: String) {
+    suspend fun setPicture(owner: AttachmentOwner, url: String, origin: PictureOrigin) {
         when {
-            owner.spotId.isNotEmpty() -> spots.setImageUrl(owner.spotId, url)
-            owner.cityId.isNotEmpty() -> cities.setImageUrl(owner.cityId, url)
-            owner.countryId.isNotEmpty() -> countries.setImageUrl(owner.countryId, url)
+            owner.spotId.isNotEmpty() -> spots.setPicture(owner.spotId, url, origin)
+            owner.cityId.isNotEmpty() -> cities.setPicture(owner.cityId, url, origin)
+            owner.countryId.isNotEmpty() -> countries.setPicture(owner.countryId, url, origin)
         }
     }
 }

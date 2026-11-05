@@ -37,6 +37,10 @@ interface LinkDao : SyncDao<LinkEntity> {
     @Query("SELECT * FROM links WHERE url = :url AND deleted = 0 LIMIT 1")
     suspend fun findByUrl(url: String): LinkEntity?
 
+    /** The web links saved on a spot, oldest first: often its own site, whose share picture helps. */
+    @Query("SELECT url FROM links WHERE spotId = :spotId AND deleted = 0 AND source = 'WEB' ORDER BY createdAt")
+    suspend fun webUrlsOf(spotId: String): List<String>
+
     /**
      * A photo still waiting to upload points at a file on this phone. It is held back until it has
      * a real address, or the other phone would get a picture it cannot open.

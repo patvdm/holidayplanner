@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.repo
 
+import com.pat.app.holidayplanner.domain.PictureOrigin
 import com.pat.app.holidayplanner.data.local.CityEntity
 import com.pat.app.holidayplanner.data.local.CityOption
 import com.pat.app.holidayplanner.data.local.CityRow
@@ -84,7 +85,9 @@ class CityRepository(
     suspend fun setNotes(id: String, notes: String) = edit(id) { it.copy(notes = notes.trim()) }
 
     /** Blank asks for a picture to be found again; anything else is kept as given. */
-    suspend fun setImageUrl(id: String, url: String) = edit(id) { it.copy(imageUrl = url.trim()) }
+    /** A new main picture and where it came from. Blank lets the automatic search have another go. */
+    suspend fun setPicture(id: String, url: String, origin: PictureOrigin) =
+        edit(id) { it.copy(imageUrl = url.trim(), imageSource = origin.stored(url)) }
 
     fun observeWithoutPicture(): Flow<List<CityOption>> = dao.observeWithoutPicture()
 

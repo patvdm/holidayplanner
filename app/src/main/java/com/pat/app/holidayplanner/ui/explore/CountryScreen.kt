@@ -1,5 +1,8 @@
 package com.pat.app.holidayplanner.ui.explore
 
+import org.koin.compose.koinInject
+import com.pat.app.holidayplanner.data.remote.PictureSource
+import com.pat.app.holidayplanner.ui.components.PictureChooser
 import com.pat.app.holidayplanner.ui.components.HoursBulkDialog
 import com.pat.app.holidayplanner.ui.components.rememberHoursBulk
 import com.pat.app.holidayplanner.ui.components.HoursRunBanner
@@ -60,7 +63,6 @@ import com.pat.app.holidayplanner.ui.components.NoteDialog
 import com.pat.app.holidayplanner.ui.components.PhotoViewer
 import com.pat.app.holidayplanner.ui.components.PickSpotsSheet
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
-import com.pat.app.holidayplanner.ui.components.PictureDialog
 import com.pat.app.holidayplanner.ui.components.SortMenu
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import com.pat.app.holidayplanner.ui.components.openExternalUrl
@@ -404,9 +406,23 @@ private fun CountryDialogs(
     }
 
     dialogs.changingPictureOf?.let { cityId ->
-        PictureDialog(
-            onSave = {
+        val pictures: PictureSource = koinInject()
+        val countryName = state.country?.name.orEmpty()
+        val cityName = state.sections.firstOrNull { it.city.meta.id == cityId }?.city?.name
+        PictureChooser(
+            load = {
+                if (cityName == null) {
+                    pictures.candidatesForPlace(countryName, within = "")
+                } else {
+                    pictures.candidatesForPlace(cityName, within = countryName)
+                }
+            },
+            onChoose = {
                 viewModel.setPicture(cityId, it)
+                dialogs.changingPictureOf = null
+            },
+            onFindAgain = {
+                viewModel.setPicture(cityId, "")
                 dialogs.changingPictureOf = null
             },
             onDismiss = { dialogs.changingPictureOf = null },

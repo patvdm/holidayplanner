@@ -9,6 +9,7 @@ import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.sync.RoomTransactor
 import com.pat.app.holidayplanner.data.sync.SyncScheduler
 import com.pat.app.holidayplanner.domain.LinkSource
+import com.pat.app.holidayplanner.domain.PictureOrigin
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotStatus
 import kotlinx.coroutines.flow.first
@@ -136,7 +137,7 @@ class ListOrderTest {
         assertEquals(listOf("Rotterdam", "Amsterdam"), cityOrder(nl))
 
         spots.setStatus(micropia, SpotStatus.VISITED)
-        spots.setFoundImageUrl(micropia, "https://example.com/p.jpg")
+        spots.setPicture(micropia, "https://example.com/p.jpg", PictureOrigin.AUTO)
         spots.setOpeningHours(micropia, "2026-11-05|none")
 
         assertEquals(listOf("Rotterdam", "Amsterdam"), cityOrder(nl))

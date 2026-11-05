@@ -15,13 +15,14 @@ var COMMON_COLUMNS = ['id', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy', 
 
 var SCHEMA = {
   Users: COMMON_COLUMNS.concat(['name']),
-  Countries: COMMON_COLUMNS.concat(['name', 'isoCode', 'sortKey', 'priority', 'imageUrl']),
+  Countries: COMMON_COLUMNS.concat(['name', 'isoCode', 'sortKey', 'priority', 'imageUrl', 'imageSource']),
   Cities: COMMON_COLUMNS.concat([
-    'countryId', 'name', 'googlePlaceId', 'lat', 'lng', 'sortKey', 'priority', 'imageUrl', 'notes',
+    'countryId', 'name', 'googlePlaceId', 'lat', 'lng', 'sortKey', 'priority', 'imageUrl', 'notes', 'imageSource',
   ]),
   Spots: COMMON_COLUMNS.concat([
     'parentCityId', 'name', 'type', 'googlePlaceId', 'lat', 'lng', 'address', 'mapsUrl', 'notes', 'status',
     'sortKey', 'priority', 'imageUrl', 'parentCountryId', 'marks', 'openingHours',
+    'imageSource',
   ]),
   Links: COMMON_COLUMNS.concat(['spotId', 'cityId', 'countryId', 'url', 'source', 'note']),
   Trips: COMMON_COLUMNS.concat(['name', 'countryId', 'startDate', 'endDate', 'notes']),

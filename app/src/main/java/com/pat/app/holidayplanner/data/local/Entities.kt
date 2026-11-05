@@ -33,6 +33,8 @@ data class CountryEntity(
     val priority: Priority,
     /** A picture, found automatically or pasted by hand. See [com.pat.app.holidayplanner.domain.NO_PICTURE]. */
     val imageUrl: String,
+    /** Where [imageUrl] came from, as [com.pat.app.holidayplanner.domain.PictureOrigin] writes it. */
+    val imageSource: String = "",
 ) : SyncEntity
 
 @Entity(
@@ -52,6 +54,8 @@ data class CityEntity(
     val imageUrl: String,
     /** Anything worth remembering about the city as a whole. */
     val notes: String,
+    /** Where [imageUrl] came from, as [com.pat.app.holidayplanner.domain.PictureOrigin] writes it. */
+    val imageSource: String = "",
 ) : SyncEntity
 
 @Entity(
@@ -83,6 +87,8 @@ data class SpotEntity(
     val imageUrl: String,
     /** When it is open, as [com.pat.app.holidayplanner.domain.OpeningHours] writes it; blank until asked. */
     val openingHours: String = "",
+    /** Where [imageUrl] came from, as [com.pat.app.holidayplanner.domain.PictureOrigin] writes it. */
+    val imageSource: String = "",
 ) : SyncEntity
 
 /**

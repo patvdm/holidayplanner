@@ -1,5 +1,8 @@
 package com.pat.app.holidayplanner.data.repo
 
+import com.pat.app.holidayplanner.domain.PictureOrigin
+import com.pat.app.holidayplanner.data.remote.SpotPictureQuery
+import com.pat.app.holidayplanner.data.local.SpotListRow
 import kotlinx.coroutines.flow.first
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import android.util.Log
@@ -15,8 +18,8 @@ private const val TAG = "PictureBackfill"
 /** A breath between requests: Wikimedia answers a burst with "too many requests" and nothing else. */
 private const val PAUSE_MS = 1_000L
 
-/** The one-time second search asks two Wikipedias per spot, so it goes more gently still. */
-private const val RETRY_PAUSE_MS = 3_000L
+/** The one-time re-check asks several sources per spot, so it goes more gently still. */
+private const val RECHECK_PAUSE_MS = 3_000L
 
 /** Rows handled per emission; the rest arrive on the next one, which the writes trigger. */
 private const val MAX_PER_ROUND = 25
@@ -42,6 +45,7 @@ class PictureBackfill(
     private val spots: SpotRepository,
     private val source: PictureSource,
     private val prefs: AppPreferences,
+    private val links: LinkRepository,
 ) {
 
     /** Ids tried since the process started, so an offline phone does not loop on the same rows. */
@@ -57,26 +61,26 @@ class PictureBackfill(
             Wanted(
                 id = country.meta.id,
                 lookup = { source.forPlace(country.name, within = "") },
-                store = { countries.setImageUrl(country.meta.id, it) },
+                store = { countries.setPicture(country.meta.id, it, PictureOrigin.AUTO) },
             )
         } + noCity.map { city ->
             Wanted(
                 id = city.cityId,
                 lookup = { source.forPlace(city.cityName, within = city.countryName) },
-                store = { cities.setImageUrl(city.cityId, it) },
+                store = { cities.setPicture(city.cityId, it, PictureOrigin.AUTO) },
             )
         } + noSpot.map { row ->
             Wanted(
                 id = row.spot.meta.id,
-                lookup = { source.forSpot(row.spot.name, row.cityName, row.countryName, row.isoCode) },
-                store = { spots.setFoundImageUrl(row.spot.meta.id, it) },
+                lookup = { source.forSpot(queryFor(row)) },
+                store = { spots.setPicture(row.spot.meta.id, it, PictureOrigin.AUTO) },
             )
         }
     }
 
     /** Never returns while the app lives. Call it from a scope that outlives every screen. */
     suspend fun watch() {
-        retryEmptyHandedSpotsOnce()
+        recheckAutomaticSpotPicturesOnce()
         wanted.conflate().collect { batch ->
             batch.filter { it.id !in tried }.take(MAX_PER_ROUND).forEach { row ->
                 tried += row.id
@@ -87,23 +91,43 @@ class PictureBackfill(
     }
 
     /**
-     * Spots searched before the search learned to try the country's own language are searched once
-     * more. Slowly, since Wikipedia refuses bursts; if it refuses anyway, the rest wait for the next
-     * start rather than being written off. A spot still not found keeps NO_PICTURE, so nothing is
-     * written for it and nothing syncs.
+     * Every spot whose picture the app chose itself, or could not find, is searched once more with
+     * the search as it now is: by position as well as name, and on the spot's own website. A
+     * wrong match from before (a Waag in Paramaribo for the one in Amsterdam) is replaced or
+     * dropped, and gaps get another chance. Pictures somebody chose are never touched. Slowly,
+     * since Wikimedia refuses bursts; if it refuses anyway, the rest wait for the next start.
      */
-    private suspend fun retryEmptyHandedSpotsOnce() {
-        if (prefs.spotPictureRetryDone.first()) return
+    private suspend fun recheckAutomaticSpotPicturesOnce() {
+        if (prefs.spotPictureRecheckDone.first()) return
         var complete = true
-        spots.observeWithImageUrl(NO_PICTURE).first().forEach { row ->
-            source.forSpot(row.spot.name, row.cityName, row.countryName, row.isoCode)
-                .onSuccess { url -> if (url != null) spots.setFoundImageUrl(row.spot.meta.id, url) }
-                .onFailure { complete = false }
-            delay(RETRY_PAUSE_MS)
-        }
-        if (complete) prefs.markSpotPictureRetryDone()
-        Log.d(TAG, "second search for spots without a picture ${if (complete) "done" else "cut short"}")
+        var changed = 0
+        spots.observeAllRows().first()
+            .filter { PictureOrigin.of(it.spot.imageUrl, it.spot.imageSource) == PictureOrigin.AUTO }
+            .forEach { row ->
+                source.forSpot(queryFor(row))
+                    .onSuccess { url ->
+                        val found = url ?: NO_PICTURE
+                        if (found != row.spot.imageUrl) {
+                            spots.setPicture(row.spot.meta.id, found, PictureOrigin.AUTO)
+                            changed++
+                        }
+                    }
+                    .onFailure { complete = false }
+                delay(RECHECK_PAUSE_MS)
+            }
+        if (complete) prefs.markSpotPictureRecheckDone()
+        Log.d(TAG, "re-check of automatic spot pictures ${if (complete) "done" else "cut short"}, $changed changed")
     }
+
+    private suspend fun queryFor(row: SpotListRow) = SpotPictureQuery(
+        name = row.spot.name,
+        cityName = row.cityName,
+        countryName = row.countryName,
+        isoCode = row.isoCode,
+        lat = row.spot.lat,
+        lng = row.spot.lng,
+        websites = links.webUrlsOf(row.spot.meta.id),
+    )
 
     private suspend fun fetch(row: Wanted) {
         row.lookup().onSuccess { url ->

@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.repo
 
+import com.pat.app.holidayplanner.domain.PictureOrigin
 import android.net.Uri
 import android.util.Log
 import com.pat.app.holidayplanner.data.image.PhotoQueue
@@ -54,7 +55,7 @@ class AttachmentRepository(
         queue.stage(uri).map { localUrl ->
             // A place with no picture is about to get one from this photo. Saying "none" for now
             // keeps the automatic picture search from filling the gap while the photo uploads.
-            if (places.pictureOf(owner) == "") places.setPicture(owner, NO_PICTURE)
+            if (places.pictureOf(owner) == "") places.setPicture(owner, NO_PICTURE, PictureOrigin.PHOTO)
             val id = links.add(url = localUrl, source = LinkSource.PHOTO, owner = owner)
             queue.enqueue(id)
             id
@@ -103,7 +104,7 @@ class AttachmentRepository(
 
     /** Makes [url] the place's main picture, but only if it has none of its own. */
     private suspend fun adoptAsPicture(owner: AttachmentOwner, url: String) {
-        if (places.lacksPicture(owner)) places.setPicture(owner, url)
+        if (places.lacksPicture(owner)) places.setPicture(owner, url, PictureOrigin.PHOTO)
     }
 
     /**
@@ -120,7 +121,7 @@ class AttachmentRepository(
     /** Shows this photo as the main picture of whatever it hangs on, replacing what was there. */
     suspend fun useAsPicture(photo: LinkEntity) {
         if (!photo.source.isPhoto || PhotoQueue.isWaiting(photo.url)) return
-        places.setPicture(AttachmentOwner.of(photo), photo.url)
+        places.setPicture(AttachmentOwner.of(photo), photo.url, PictureOrigin.PHOTO)
     }
 
     /** Queues again every photo still waiting, in case its upload was lost. Called at app start. */
@@ -158,6 +159,6 @@ class AttachmentRepository(
         val owner = AttachmentOwner.of(photo)
         if (places.pictureOf(owner) != photo.url) return
         val next = links.uploadedPhotos().firstOrNull { AttachmentOwner.of(it) == owner && it.url != photo.url }
-        places.setPicture(owner, next?.url.orEmpty())
+        places.setPicture(owner, next?.url.orEmpty(), PictureOrigin.PHOTO)
     }
 }

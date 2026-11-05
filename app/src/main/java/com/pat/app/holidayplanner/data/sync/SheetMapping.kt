@@ -70,6 +70,7 @@ fun countryToRow(entity: CountryEntity): Map<String, String> = buildRow(entity.m
     put("sortKey", entity.sortKey)
     put("priority", entity.priority.name)
     put("imageUrl", entity.imageUrl)
+    put("imageSource", entity.imageSource)
 }
 
 fun countryFromRow(row: SheetRow): CountryEntity? {
@@ -81,6 +82,7 @@ fun countryFromRow(row: SheetRow): CountryEntity? {
         sortKey = row.str("sortKey").trim(),
         priority = Priority.fromSheet(row.str("priority")),
         imageUrl = row.str("imageUrl").trim(),
+        imageSource = row.str("imageSource").trim(),
     )
 }
 
@@ -95,6 +97,7 @@ fun cityToRow(entity: CityEntity): Map<String, String> = buildRow(entity.meta) {
     put("sortKey", entity.sortKey)
     put("priority", entity.priority.name)
     put("imageUrl", entity.imageUrl)
+    put("imageSource", entity.imageSource)
     put("notes", entity.notes)
 }
 
@@ -110,6 +113,7 @@ fun cityFromRow(row: SheetRow): CityEntity? {
         sortKey = row.str("sortKey").trim(),
         priority = Priority.fromSheet(row.str("priority")),
         imageUrl = row.str("imageUrl").trim(),
+        imageSource = row.str("imageSource").trim(),
         notes = row.str("notes"),
     )
 }
@@ -132,6 +136,7 @@ fun spotToRow(entity: SpotEntity): Map<String, String> = buildRow(entity.meta) {
     put("sortKey", entity.sortKey)
     put("priority", entity.priority.name)
     put("imageUrl", entity.imageUrl)
+    put("imageSource", entity.imageSource)
     put("openingHours", entity.openingHours)
 }
 
@@ -154,6 +159,7 @@ fun spotFromRow(row: SheetRow): SpotEntity? {
         sortKey = row.str("sortKey").trim(),
         priority = Priority.fromSheet(row.str("priority")),
         imageUrl = row.str("imageUrl").trim(),
+        imageSource = row.str("imageSource").trim(),
         openingHours = row.str("openingHours").trim(),
     )
 }

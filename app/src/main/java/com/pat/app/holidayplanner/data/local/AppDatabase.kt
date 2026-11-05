@@ -33,7 +33,7 @@ private const val DATABASE_NAME = "holiday_planner.db"
         RouteStopEntity::class,
         SyncStateEntity::class,
     ],
-    version = 16,
+    version = 17,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)

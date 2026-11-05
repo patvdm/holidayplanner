@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.repo
 
+import com.pat.app.holidayplanner.domain.PictureOrigin
 import com.pat.app.holidayplanner.data.local.CountryEntity
 import com.pat.app.holidayplanner.data.local.CountryRow
 import com.pat.app.holidayplanner.data.local.SyncMeta
@@ -62,7 +63,9 @@ class CountryRepository(
     }
 
     /** Blank asks for a picture to be found again; anything else is kept as given. */
-    suspend fun setImageUrl(id: String, url: String) = edit(id) { it.copy(imageUrl = url.trim()) }
+    /** A new main picture and where it came from. Blank lets the automatic search have another go. */
+    suspend fun setPicture(id: String, url: String, origin: PictureOrigin) =
+        edit(id) { it.copy(imageUrl = url.trim(), imageSource = origin.stored(url)) }
 
     fun observeWithoutPicture(): Flow<List<CountryEntity>> = dao.observeWithoutPicture()
 

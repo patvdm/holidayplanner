@@ -372,7 +372,16 @@
     <!-- Pictures -->
     <string name="picture_change">Change picture</string>
     <string name="picture_url">Image link</string>
-    <string name="picture_url_hint">Paste a link to an image. Leave it blank to let the app look for one again.</string>
+    <string name="picture_choose_title">Choose a picture</string>
+    <string name="picture_loading">Looking for pictures…</string>
+    <string name="picture_none_found">No pictures found. Paste a link instead, or let the app keep looking.</string>
+    <string name="picture_find_again">Let the app choose</string>
+    <string name="picture_use_link">Use this link</string>
+    <string name="picture_from_wikivoyage">Wikivoyage</string>
+    <string name="picture_from_wikipedia">Wikipedia</string>
+    <string name="picture_from_commons">Commons</string>
+    <string name="picture_from_website">Their website</string>
+    <string name="picture_from_near">%1$s · %2$d m</string>
 
     <!-- Sync status -->
     <string name="sync_failed_retry">Last sync failed. Tap to try again.</string>

@@ -23,6 +23,9 @@ class LinkRepository(
 
     suspend fun find(id: String): LinkEntity? = dao.find(id)
 
+    /** The web links saved on a spot, oldest first. */
+    suspend fun webUrlsOf(spotId: String): List<String> = dao.webUrlsOf(spotId)
+
     /** Every photo that has reached the backend, oldest first. */
     suspend fun uploadedPhotos(): List<LinkEntity> = dao.uploadedPhotos()
 

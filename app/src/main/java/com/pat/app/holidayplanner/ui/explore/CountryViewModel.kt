@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.explore
 
+import com.pat.app.holidayplanner.domain.PictureOrigin
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -197,7 +198,11 @@ class CountryViewModel(
     /** The picture at the top of the country, or on a city's row when [cityId] is given. Blank searches again. */
     fun setPicture(cityId: String, url: String) {
         viewModelScope.launch {
-            if (cityId.isEmpty()) repos.countries.setImageUrl(countryId, url) else repos.cities.setImageUrl(cityId, url)
+            if (cityId.isEmpty()) {
+                repos.countries.setPicture(countryId, url, PictureOrigin.CHOSEN)
+            } else {
+                repos.cities.setPicture(cityId, url, PictureOrigin.CHOSEN)
+            }
         }
     }
 

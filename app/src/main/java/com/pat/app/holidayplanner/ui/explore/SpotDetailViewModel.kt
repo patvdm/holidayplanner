@@ -1,5 +1,7 @@
 package com.pat.app.holidayplanner.ui.explore
 
+import com.pat.app.holidayplanner.data.remote.SpotPictureQuery
+import com.pat.app.holidayplanner.domain.PictureOrigin
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.LinkEntity
@@ -71,6 +73,17 @@ data class SpotDetailUiState(
 
     /** True when the spot carries a shared Maps link of its own, rather than a derived one. */
     val hasOwnMapsLink: Boolean get() = spot?.mapsUrl?.isNotBlank() == true
+
+    /** What the picture chooser searches for: the spot, where it is, and its own websites. */
+    fun pictureQuery(): SpotPictureQuery = SpotPictureQuery(
+        name = spot?.name.orEmpty(),
+        cityName = context?.cityName.orEmpty(),
+        countryName = context?.countryName.orEmpty(),
+        isoCode = context?.isoCode.orEmpty(),
+        lat = spot?.lat,
+        lng = spot?.lng,
+        websites = references.filter { it.source == LinkSource.WEB }.map { it.url },
+    )
 }
 
 /** Everything the spot screen shows, combined separately to stay within combine's arity. */
@@ -173,7 +186,7 @@ class SpotDetailViewModel(
 
     /** Blank lets the automatic search have another go. */
     fun setImageUrl(url: String) {
-        viewModelScope.launch { spotRepository.setImageUrl(spotId, url) }
+        viewModelScope.launch { spotRepository.setPicture(spotId, url, PictureOrigin.CHOSEN) }
     }
 
     fun setAddress(address: String) {

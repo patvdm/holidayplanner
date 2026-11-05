@@ -1,5 +1,7 @@
 package com.pat.app.holidayplanner.ui.explore
 
+import com.pat.app.holidayplanner.data.remote.PictureSource
+import com.pat.app.holidayplanner.ui.components.PictureChooser
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.pat.app.holidayplanner.ui.components.PriorityStar
@@ -60,7 +62,6 @@ import com.pat.app.holidayplanner.ui.components.HeroImage
 import com.pat.app.holidayplanner.ui.components.LinkList
 import com.pat.app.holidayplanner.ui.components.PhotoRoll
 import com.pat.app.holidayplanner.ui.components.PhotoViewer
-import com.pat.app.holidayplanner.ui.components.PictureDialog
 import com.pat.app.holidayplanner.ui.components.MoveAttachmentDialog
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import com.pat.app.holidayplanner.ui.components.label
@@ -360,9 +361,15 @@ private fun SpotDialogs(
     }
 
     if (dialogs.changingPicture) {
-        PictureDialog(
-            onSave = {
+        val pictures: PictureSource = koinInject()
+        PictureChooser(
+            load = { pictures.candidatesForSpot(state.pictureQuery()) },
+            onChoose = {
                 viewModel.setImageUrl(it)
+                dialogs.changingPicture = false
+            },
+            onFindAgain = {
+                viewModel.setImageUrl("")
                 dialogs.changingPicture = false
             },
             onDismiss = { dialogs.changingPicture = false },
