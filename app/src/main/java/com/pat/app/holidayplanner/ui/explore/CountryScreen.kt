@@ -1,5 +1,8 @@
 package com.pat.app.holidayplanner.ui.explore
 
+import com.pat.app.holidayplanner.ui.components.HoursBulkDialog
+import com.pat.app.holidayplanner.ui.components.rememberHoursBulk
+import com.pat.app.holidayplanner.ui.components.HoursRunBanner
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -92,8 +95,9 @@ fun CountryScreen(
     val openSpot by rememberUpdatedState(onOpenSpot)
     val openRoute by rememberUpdatedState(onOpenRoute)
     val showCityOnMap by rememberUpdatedState(onShowCityOnMap)
+    val hours = rememberHoursBulk()
 
-    val actions = remember(viewModel, dialogs) {
+    val actions = remember(viewModel, dialogs, hours) {
         object : CountryActions {
             override val onOpenSpot: (String) -> Unit = { openSpot(it) }
             override val onToggleCity: (String) -> Unit = viewModel::toggleExpanded
@@ -114,6 +118,9 @@ fun CountryScreen(
             }
             override val onChangePicture: (String) -> Unit = { dialogs.changingPictureOf = it }
             override val onNewRoute: (CityEntity) -> Unit = { dialogs.newRouteIn = it }
+            override val onLookUpHours: (CityEntity) -> Unit = { city ->
+                hours.ask(cityRunId(city.meta.id), city.name) { hours.lookup.dueInCity(city.meta.id) }
+            }
             override val onAddSpot: (CityEntity) -> Unit = { dialogs.addingSpotIn = it.meta.id }
             override val onCityPriority: (String, Priority) -> Unit = { id, priority ->
                 viewModel.setPriority(AttachmentOwner(cityId = id), priority)
@@ -207,6 +214,9 @@ fun CountryScreen(
                 },
             )
         },
+        snackbarHost = {
+            HoursRunBanner(shows = { run -> state.sections.any { cityRunId(it.city.meta.id) == run.runId } })
+        },
         floatingActionButton = {
             // Hidden while the cities are being dragged about: nothing else is tappable then either.
             if (!arranging) {
@@ -237,6 +247,7 @@ fun CountryScreen(
     }
 
     CountryDialogs(state = state, dialogs = dialogs, viewModel = viewModel, onOpenRoute = { openRoute(it) })
+    HoursBulkDialog(hours)
 }
 
 /** The country's own buttons: a photo of it, the spot order, arranging the cities, and the rest. */
@@ -465,3 +476,6 @@ private fun CountryDialogs(
         )
     }
 }
+
+/** A city's hours run, told apart from a trip's. */
+private fun cityRunId(cityId: String) = "city:$cityId"

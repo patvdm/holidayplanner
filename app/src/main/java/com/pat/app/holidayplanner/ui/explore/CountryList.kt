@@ -359,6 +359,7 @@ private fun CityMenu(city: CityEntity, actions: CountryActions) {
         R.string.spot_add_link to { actions.onAddLink(owner) },
         R.string.picture_change to { actions.onChangePicture(city.meta.id) },
         R.string.route_new to { actions.onNewRoute(city) },
+        R.string.hours_bulk_action to { actions.onLookUpHours(city) },
     )
 
     IconButton(
@@ -659,6 +660,9 @@ interface CountryActions {
     /** Empty for the country's own picture, a city id for that city's. */
     val onChangePicture: (String) -> Unit
     val onNewRoute: (CityEntity) -> Unit
+
+    /** Asks Google for the opening hours of every spot in a city, once confirmed. */
+    val onLookUpHours: (CityEntity) -> Unit
 
     /** Adds a spot to one city, searching Google from inside it. */
     val onAddSpot: (CityEntity) -> Unit

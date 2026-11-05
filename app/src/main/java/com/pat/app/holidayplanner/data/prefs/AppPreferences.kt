@@ -80,13 +80,6 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
         store.edit { it[KEY_MAP_SHOWS_ROUTES] = show }
     }
 
-    /** Opening-hours lookups made today, as "yyyy-MM-dd count", so a daily cap holds across restarts. */
-    val hoursLookups: Flow<String> = store.data.map { prefs -> prefs[KEY_HOURS_LOOKUPS].orEmpty() }
-
-    suspend fun setHoursLookups(value: String) {
-        store.edit { it[KEY_HOURS_LOOKUPS] = value }
-    }
-
     /** Which pins the map shows: everything until a filter is picked. */
     val mapPinFilter: Flow<MapPinFilter> = store.data.map { prefs -> MapPinFilter.parse(prefs[KEY_MAP_PIN_FILTER]) }
 
@@ -136,7 +129,6 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
         val KEY_MAP_VIEW = stringPreferencesKey("map_view")
         val KEY_MAP_SHOWS_ROUTES = booleanPreferencesKey("map_shows_routes")
         val KEY_MAP_PIN_FILTER = stringPreferencesKey("map_pin_filter")
-        val KEY_HOURS_LOOKUPS = stringPreferencesKey("hours_lookups")
         // Renamed when the search learns something new, so spots it gave up on get one more try.
         val KEY_SPOT_PICTURE_RETRY = booleanPreferencesKey("spot_picture_retry_town_named_spots")
         val KEY_BACKEND_URL = stringPreferencesKey("backend_url")

@@ -84,10 +84,4 @@ class OpeningHoursTest {
         assertNull(OpeningHours.parse(""))
         assertNull(OpeningHours.parse("soon|none"))
     }
-
-    @Test
-    fun `hours are asked again after a season`() {
-        assertFalse(dinner.isStale(day.plusDays(90)))
-        assertTrue(dinner.isStale(day.plusDays(91)))
-    }
 }

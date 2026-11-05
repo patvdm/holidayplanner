@@ -8,7 +8,6 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.pat.app.holidayplanner.data.remote.APP_USER_AGENT
 import com.pat.app.holidayplanner.data.repo.AttachmentRepository
 import com.pat.app.holidayplanner.data.repo.CoordinateBackfill
-import com.pat.app.holidayplanner.data.repo.OpeningHoursBackfill
 import com.pat.app.holidayplanner.data.repo.PictureBackfill
 import com.pat.app.holidayplanner.data.sync.SyncScheduler
 import com.pat.app.holidayplanner.data.update.AppVisibility
@@ -29,7 +28,6 @@ class HolidayPlannerApp : Application(), SingletonImageLoader.Factory {
     private val syncScheduler: SyncScheduler by inject()
     private val coordinateBackfill: CoordinateBackfill by inject()
     private val pictureBackfill: PictureBackfill by inject()
-    private val hoursBackfill: OpeningHoursBackfill by inject()
     private val attachments: AttachmentRepository by inject()
     private val updateScheduler: UpdateScheduler by inject()
 
@@ -55,8 +53,6 @@ class HolidayPlannerApp : Application(), SingletonImageLoader.Factory {
             attachments.adoptPhotosAsPictures()
             pictureBackfill.watch()
         }
-        // Opening hours for every spot Google knows, a few a day, kept fresh each season.
-        appScope.launch { hoursBackfill.watch() }
         // A photo whose upload was interrupted (the phone restarted, say) gets queued again.
         appScope.launch { attachments.resumeUploads() }
     }

@@ -30,7 +30,7 @@ import com.pat.app.holidayplanner.data.repo.LocalWriter
 import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.CoordinateBackfill
-import com.pat.app.holidayplanner.data.repo.OpeningHoursBackfill
+import com.pat.app.holidayplanner.data.repo.OpeningHoursLookup
 import com.pat.app.holidayplanner.data.repo.PictureBackfill
 import com.pat.app.holidayplanner.data.repo.Places
 import com.pat.app.holidayplanner.data.repo.RouteRepository
@@ -131,7 +131,7 @@ val appModule = module {
     single { SpotPinRepository(get()) }
     single { CoordinateBackfill(get(), get(), get()) }
     single { PictureBackfill(get(), get(), get(), get(), get()) }
-    single { OpeningHoursBackfill(get(), get(), get(), get()) }
+    single { OpeningHoursLookup(get(), get(), get()) }
 
     viewModelOf(::SessionViewModel)
     viewModelOf(::OnboardingViewModel)

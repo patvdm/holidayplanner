@@ -1,5 +1,9 @@
 package com.pat.app.holidayplanner.ui.map
 
+import com.pat.app.holidayplanner.ui.components.WeekHours
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.foundation.clickable
 import java.time.LocalDate
 import com.pat.app.holidayplanner.ui.components.dayHoursText
 import com.pat.app.holidayplanner.domain.OpeningHours
@@ -367,15 +371,7 @@ private fun SpotCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    OpeningHours.parse(pin.openingHours)
-                        ?.let { dayHoursText(it, LocalDate.now().dayOfWeek) }
-                        ?.let {
-                            Text(
-                                text = stringResource(R.string.hours_today, it),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                    OpeningHours.parse(pin.openingHours)?.let { CardHours(it) }
                 }
                 // Standing in front of it is when you know, so it can be ticked off right here.
                 val visited = pin.status == SpotStatus.VISITED
@@ -421,6 +417,35 @@ private fun SpotCard(
                 TextButton(onClick = onOpen) { Text(stringResource(R.string.map_open_spot)) }
             }
         }
+    }
+}
+
+/**
+ * Today's hours on a pin's card, which open into the whole week when tapped. Nothing while the
+ * hours are unknown or not looked up yet.
+ */
+@Composable
+private fun CardHours(hours: OpeningHours) {
+    val today = dayHoursText(hours, LocalDate.now().dayOfWeek) ?: return
+    var open by rememberSaveable { mutableStateOf(false) }
+    Column {
+        Row(
+            modifier = Modifier.clickable { open = !open },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.hours_today, today),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Icon(
+                imageVector = if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = stringResource(R.string.hours_show_week),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        if (open) WeekHours(hours)
     }
 }
 

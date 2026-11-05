@@ -97,6 +97,28 @@
     <string name="hours_closed">Closed</string>
     <string name="hours_unknown">Google has no opening hours for this place.</string>
     <string name="hours_today">Today: %1$s</string>
+    <string name="hours_show_week">Show the whole week</string>
+    <string name="hours_not_looked_up">Not looked up yet.</string>
+    <string name="hours_checked">Checked %1$s</string>
+    <string name="hours_cannot_look_up">This spot has no position, so Google can\'t be asked about it.</string>
+    <string name="hours_look_up">Look up times</string>
+    <string name="hours_look_up_again">Look up again</string>
+    <string name="hours_looking_up">Looking up…</string>
+    <string name="hours_lookup_failed">Couldn\'t reach Google. Try again.</string>
+    <string name="hours_bulk_action">Look up opening hours</string>
+    <string name="hours_bulk_title">Look up opening hours?</string>
+    <plurals name="hours_bulk_message">
+        <item quantity="one">%1$d spot in %2$s will be looked up. Spots checked in the last %3$d days are skipped. Google gives 1,000 lookups a month free.</item>
+        <item quantity="other">%1$d spots in %2$s will be looked up. Spots checked in the last %3$d days are skipped. Google gives 1,000 lookups a month free.</item>
+    </plurals>
+    <string name="hours_bulk_none">Every spot in %1$s was checked in the last %2$d days, or has no position to look up.</string>
+    <string name="hours_bulk_start">Look up</string>
+    <string name="hours_bulk_progress">Opening hours for %1$s: %2$d of %3$d</string>
+    <string name="hours_bulk_done">%1$s: hours found for %2$d of %3$d spots.</string>
+    <plurals name="hours_bulk_unreached">
+        <item quantity="one">%1$d couldn\'t reach Google.</item>
+        <item quantity="other">%1$d couldn\'t reach Google.</item>
+    </plurals>
     <string name="hours_warn_closed_at">Closed at %1$s. That day: %2$s</string>
     <string name="hours_warn_closed_day">Closed on %1$s</string>
     <string name="hours_warn_stops_closed">Closed on %1$s: %2$s</string>

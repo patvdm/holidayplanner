@@ -1,7 +1,9 @@
 package com.pat.app.holidayplanner.ui.explore
 
-import com.pat.app.holidayplanner.ui.components.WeekHours
-import com.pat.app.holidayplanner.domain.OpeningHours
+import com.pat.app.holidayplanner.data.local.SpotEntity
+import org.koin.compose.koinInject
+import com.pat.app.holidayplanner.ui.components.SpotHoursSection
+import com.pat.app.holidayplanner.data.repo.OpeningHoursLookup
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -180,7 +182,7 @@ fun SpotDetailScreen(
                     onAdd = { dialogs.addingLink = true },
                 )
 
-                HoursSection(state.spot?.openingHours.orEmpty())
+                HoursSection(state.spot)
 
                 HorizontalDivider()
                 SectionLabel(stringResource(R.string.spot_location))
@@ -447,13 +449,12 @@ private fun SpotDialogs(
     }
 }
 
-/** The week's hours, once Google has been asked; nothing at all before that. */
+/** The week's hours and the button that fetches them; nothing without a Places key. */
 @Composable
-private fun HoursSection(stored: String) {
-    val hours = OpeningHours.parse(stored) ?: return
+private fun HoursSection(spot: SpotEntity?, lookup: OpeningHoursLookup = koinInject()) {
+    if (spot == null || !lookup.isAvailable) return
     HorizontalDivider()
-    SectionLabel(stringResource(R.string.spot_opening_hours))
-    WeekHours(hours)
+    SpotHoursSection(spot, lookup)
 }
 
 @Composable

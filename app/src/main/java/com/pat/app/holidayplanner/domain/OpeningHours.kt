@@ -68,9 +68,6 @@ data class OpeningHours(val checked: LocalDate, val always: Boolean, val periods
     /** Known hours with nothing opening on [day]. A late night from the day before does not count. */
     fun closedAllDay(day: DayOfWeek): Boolean = !always && !unknown && on(day).isEmpty()
 
-    /** Hours drift with the seasons, so they are asked again after a while. */
-    fun isStale(today: LocalDate): Boolean = checked.plusDays(REFRESH_DAYS).isBefore(today)
-
     fun encode(): String {
         val what = when {
             always -> ALWAYS
@@ -83,9 +80,6 @@ data class OpeningHours(val checked: LocalDate, val always: Boolean, val periods
     companion object {
         const val NONE = "none"
         const val ALWAYS = "always"
-
-        /** About a season. */
-        const val REFRESH_DAYS = 90L
 
         fun unknown(checked: LocalDate) = OpeningHours(checked, always = false, periods = emptyList())
 

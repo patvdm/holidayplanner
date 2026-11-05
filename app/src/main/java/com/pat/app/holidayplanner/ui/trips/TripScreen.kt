@@ -1,5 +1,8 @@
 package com.pat.app.holidayplanner.ui.trips
 
+import com.pat.app.holidayplanner.ui.components.rememberHoursBulk
+import com.pat.app.holidayplanner.ui.components.HoursRunBanner
+import com.pat.app.holidayplanner.ui.components.HoursBulkDialog
 import androidx.compose.foundation.layout.size
 import java.util.Locale
 import java.time.format.TextStyle
@@ -99,6 +102,8 @@ fun TripScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var adding by remember { mutableStateOf<Adding?>(null) }
+    val hours = rememberHoursBulk()
+    val runId = "trip:$tripId"
 
     Scaffold(
         // The tab bar below already keeps clear of the system bar; padding for it again left a dead strip.
@@ -115,12 +120,25 @@ fun TripScreen(
                     }
                 },
                 actions = {
+                    if (hours.lookup.isAvailable) {
+                        IconButton(
+                            onClick = {
+                                hours.ask(runId, state.trip?.name.orEmpty()) { hours.lookup.dueOnTrip(tripId) }
+                            },
+                        ) {
+                            Icon(
+                                Icons.Outlined.Schedule,
+                                contentDescription = stringResource(R.string.hours_bulk_action),
+                            )
+                        }
+                    }
                     IconButton(onClick = onEditTrip) {
                         Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.trip_edit))
                     }
                 },
             )
         },
+        snackbarHost = { HoursRunBanner(shows = { it.runId == runId }) },
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -179,6 +197,8 @@ fun TripScreen(
             }
         }
     }
+
+    HoursBulkDialog(hours)
 
     AddingDialogs(
         adding = adding,

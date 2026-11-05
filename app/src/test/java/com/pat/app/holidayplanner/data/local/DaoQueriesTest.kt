@@ -71,13 +71,19 @@ class DaoQueriesTest {
     private suspend fun stop(id: String, routeId: String, spotId: String, sortKey: String, deleted: Boolean = false) =
         db.routeStopDao().upsert(listOf(RouteStopEntity(meta(id, deleted), routeId, spotId, sortKey, onMaps = true)))
 
-    private suspend fun tripItem(id: String, tripId: String, type: TripItemType, routeId: String = "") =
+    private suspend fun tripItem(
+        id: String,
+        tripId: String,
+        type: TripItemType,
+        routeId: String = "",
+        spotId: String = "",
+    ) =
         db.tripItemDao().upsert(
             listOf(
                 TripItemEntity(
                     meta = meta(id), tripId = tripId, type = type, title = "", origin = "", destination = "",
                     startLocal = "2026-11-07T10:00", startTimeZone = "", endLocal = "", endTimeZone = "",
-                    spotId = "", routeId = routeId, bookingRef = "", notes = "",
+                    spotId = spotId, routeId = routeId, bookingRef = "", notes = "",
                 ),
             ),
         )
@@ -158,13 +164,27 @@ class DaoQueriesTest {
     }
 
     @Test
-    fun `hours are asked about spots with a place id or a position`() = runTest {
-        spot("with-id", lat = null, placeId = "ChIJ")
-        spot("with-position")
-        spot("neither", lat = null)
+    fun `a trip's spots are those on its days and the stops of its routes`() = runTest {
+        country()
+        city()
+        spot("dinner")
+        spot("on-route")
+        spot("elsewhere")
+        route("walk")
+        stop("s1", "walk", "on-route", "V")
+        tripItem("i1", "trip", TripItemType.ROUTE, routeId = "walk")
+        tripItem("i2", "trip", TripItemType.SPOT, spotId = "dinner")
+        tripItem("i3", "other", TripItemType.SPOT, spotId = "elsewhere")
 
-        val asked = db.spotDao().observeHoursCandidates().first().map { it.meta.id }.toSet()
+        assertEquals(setOf("dinner", "on-route"), db.spotDao().onTrip("trip").map { it.meta.id }.toSet())
+    }
 
-        assertEquals(setOf("with-id", "with-position"), asked)
+    @Test
+    fun `a city's spots leave out deleted ones and other cities`() = runTest {
+        spot("here")
+        spot("gone", deleted = true)
+        spot("there", cityId = "rotterdam")
+
+        assertEquals(listOf("here"), db.spotDao().inCity("ams").map { it.meta.id })
     }
 }
