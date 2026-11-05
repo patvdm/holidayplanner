@@ -1,12 +1,13 @@
 package com.pat.app.holidayplanner.domain
 
 /**
- * Which pins the map shows. One at a time: food and drone spots barely overlap, so "both" would
- * mostly mean "everything" with extra steps.
+ * Which pins the map shows. One at a time: food, hotels and drone spots barely overlap, so two at
+ * once would mostly mean "everything" with extra steps.
  */
 enum class MapPinFilter {
     ALL,
     FOOD,
+    STAY,
     DRONE,
     ;
 

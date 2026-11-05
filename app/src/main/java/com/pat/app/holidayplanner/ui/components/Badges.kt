@@ -44,16 +44,25 @@ fun PriorityBadge(priority: Priority, modifier: Modifier = Modifier) {
     )
 }
 
-/** The one-tap priority switch: a filled orange star when it is priority, an outline when not. */
+/**
+ * The one-tap priority switch: a filled orange star when it is priority, an outline when not.
+ * [compact] fits it into a crowded row (see [CompactIconButton]).
+ */
 @Composable
-fun PriorityStar(priority: Priority, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+fun PriorityStar(priority: Priority, onToggle: () -> Unit, modifier: Modifier = Modifier, compact: Boolean = false) {
     val high = priority == Priority.HIGH
-    IconButton(onClick = onToggle, modifier = modifier) {
+    val star: @Composable () -> Unit = {
         Icon(
             imageVector = if (high) Icons.Filled.Star else Icons.Outlined.StarBorder,
             contentDescription = stringResource(if (high) R.string.priority_remove else R.string.priority_add),
             tint = if (high) PriorityOrange else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = if (compact) Modifier.size(CompactIconSize) else Modifier,
         )
+    }
+    if (compact) {
+        CompactIconButton(onClick = onToggle, modifier = modifier, content = star)
+    } else {
+        IconButton(onClick = onToggle, modifier = modifier, content = star)
     }
 }
 

@@ -228,6 +228,7 @@ class MapViewModel(
 internal fun MapPinFilter.lets(pin: SpotPin): Boolean = when (this) {
     MapPinFilter.ALL -> true
     MapPinFilter.FOOD -> pin.type == SpotType.RESTAURANT
+    MapPinFilter.STAY -> pin.type == SpotType.ACCOMMODATION
     MapPinFilter.DRONE -> pin.marks.hasMark(SpotMark.DRONE)
 }
 

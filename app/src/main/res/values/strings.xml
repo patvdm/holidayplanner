@@ -359,6 +359,7 @@
     <string name="map_open_spot">Open</string>
     <string name="map_routes">Routes</string>
     <string name="map_food_only">Food only</string>
+    <string name="map_stay_only">Hotels only</string>
     <string name="map_drone_only">Drone spots only</string>
     <string name="map_route_walked">Walked · %1$s</string>
     <string name="map_open_route">Open route</string>

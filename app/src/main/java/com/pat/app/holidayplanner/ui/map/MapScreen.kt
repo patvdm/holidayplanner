@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.map
 
+import androidx.compose.material.icons.filled.Hotel
 import com.pat.app.holidayplanner.ui.components.PriorityStar
 import com.pat.app.holidayplanner.ui.components.WeekHours
 import androidx.compose.material.icons.filled.ExpandMore
@@ -296,7 +297,7 @@ private fun SpotMap(
 
 /**
  * The round switches over the map's top left corner: route lines, then the pin filters. Icons
- * only, to keep the map clear; a filled button is on. The two filters take turns, so picking one
+ * only, to keep the map clear; a filled button is on. The filters take turns, so picking one
  * drops the other, and tapping the one that is on shows everything again.
  */
 @Composable
@@ -333,6 +334,7 @@ private fun MapChips(
 /** Each pin filter's button: what it picks, its icon, and what a screen reader calls it. */
 private val PinFilterOptions = listOf(
     Triple(MapPinFilter.FOOD, Icons.Filled.Restaurant, R.string.map_food_only),
+    Triple(MapPinFilter.STAY, Icons.Filled.Hotel, R.string.map_stay_only),
     Triple(MapPinFilter.DRONE, DroneIcon, R.string.map_drone_only),
 )
 

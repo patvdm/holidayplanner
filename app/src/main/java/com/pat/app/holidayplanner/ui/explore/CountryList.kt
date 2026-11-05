@@ -1,5 +1,9 @@
 package com.pat.app.holidayplanner.ui.explore
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.text.style.TextOverflow
+import com.pat.app.holidayplanner.ui.components.CompactIconSize
+import com.pat.app.holidayplanner.ui.components.CompactIconButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.pat.app.holidayplanner.ui.components.PriorityStar
@@ -249,7 +253,8 @@ private fun LazyItemScope.DraggableSpot(
                     imageVector = Icons.Filled.DragHandle,
                     contentDescription = stringResource(R.string.action_reorder),
                     modifier = Modifier
-                        .padding(end = 12.dp)
+                        .padding(horizontal = 6.dp)
+                        .size(CompactIconSize)
                         .draggableHandle(onDragStarted = { onDragStarted() }, onDragStopped = onDragStopped),
                 )
             }
@@ -298,13 +303,18 @@ private fun CityHeader(section: CitySection, actions: CountryActions) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { actions.onToggleCity(city.meta.id) }
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp),
+                .padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Thumbnail(city.imageUrl)
+            Thumbnail(city.imageUrl, size = ROW_PICTURE)
             Column(modifier = Modifier.weight(1f)) {
-                Text(city.name, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    text = city.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     text = pluralStringResource(R.plurals.country_spot_count, section.spotCount, section.spotCount),
                     style = MaterialTheme.typography.bodySmall,
@@ -314,18 +324,30 @@ private fun CityHeader(section: CitySection, actions: CountryActions) {
                     Text(text = note, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            PriorityStar(city.priority, onToggle = { actions.onCityPriority(city.meta.id, city.priority.toggled()) })
-            IconButton(onClick = { actions.onShowCityOnMap(city.meta.id) }) {
-                Icon(Icons.Outlined.Map, contentDescription = stringResource(R.string.city_show_on_map))
+            // Packed together, so the name gets the width rather than the gaps between buttons.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PriorityStar(
+                    priority = city.priority,
+                    onToggle = { actions.onCityPriority(city.meta.id, city.priority.toggled()) },
+                    compact = true,
+                )
+                CompactIconButton(onClick = { actions.onShowCityOnMap(city.meta.id) }) {
+                    Icon(
+                        Icons.Outlined.Map,
+                        contentDescription = stringResource(R.string.city_show_on_map),
+                        modifier = Modifier.size(CompactIconSize),
+                    )
+                }
+                CityMenu(city = city, actions = actions)
+                Icon(
+                    imageVector = if (section.expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = stringResource(
+                        if (section.expanded) R.string.city_collapse else R.string.city_expand,
+                    ),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(CompactIconSize),
+                )
             }
-            CityMenu(city = city, actions = actions)
-            Icon(
-                imageVector = if (section.expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = stringResource(
-                    if (section.expanded) R.string.city_collapse else R.string.city_expand,
-                ),
-                modifier = Modifier.padding(end = 12.dp),
-            )
         }
         if (section.expanded) {
             Attachments(
@@ -360,13 +382,17 @@ private fun CityMenu(city: CityEntity, actions: CountryActions) {
         R.string.hours_bulk_action to { actions.onLookUpHours(city) },
     )
 
-    IconButton(
+    CompactIconButton(
         onClick = {
             putKeyboardAway()
             expanded = true
         },
     ) {
-        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
+        Icon(
+            Icons.Filled.MoreVert,
+            contentDescription = stringResource(R.string.action_more),
+            modifier = Modifier.size(CompactIconSize),
+        )
     }
     DropdownMenu(
         expanded = expanded,
@@ -461,11 +487,11 @@ private fun SpotRowItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { actions.onOpenSpot(id) }
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp),
+                .padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Thumbnail(row.spot.imageUrl, size = 48.dp)
+            Thumbnail(row.spot.imageUrl, size = ROW_PICTURE)
             // A little air between the name and its badges, or they read as one block.
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(row.spot.name, style = MaterialTheme.typography.titleMedium)
@@ -485,9 +511,15 @@ private fun SpotRowItem(
                     )
                 }
             }
-            PriorityStar(row.spot.priority, onToggle = { actions.onSpotPriority(id, row.spot.priority.toggled()) })
-            SpotRowMenu(row = row, actions = actions)
-            handle?.invoke()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PriorityStar(
+                    priority = row.spot.priority,
+                    onToggle = { actions.onSpotPriority(id, row.spot.priority.toggled()) },
+                    compact = true,
+                )
+                SpotRowMenu(row = row, actions = actions)
+                handle?.invoke()
+            }
         }
         // Everything saved about the place, on lines of their own so the row above stays readable.
         // The photo already showing as the row's picture is left out; the spot's own screen has it.
@@ -511,14 +543,18 @@ private fun SpotRowMenu(row: SpotRow, actions: CountryActions) {
     val id = row.spot.meta.id
 
     Box {
-        IconButton(
+        CompactIconButton(
             onClick = {
                 // Dropped before the popup takes window focus, so there is nothing to hand back to.
                 putKeyboardAway()
                 expanded = true
             },
         ) {
-            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.action_more))
+            Icon(
+                Icons.Filled.MoreVert,
+                contentDescription = stringResource(R.string.action_more),
+                modifier = Modifier.size(CompactIconSize),
+            )
         }
         DropdownMenu(
             expanded = expanded,
@@ -649,3 +685,6 @@ interface CountryActions {
     val onMoveSpot: (SpotRow) -> Unit
     val onDeleteSpot: (SpotRow) -> Unit
 }
+
+/** The picture at the start of a city heading or a spot row, small enough to leave the name room. */
+private val ROW_PICTURE = 44.dp

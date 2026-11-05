@@ -30,6 +30,12 @@ class MapPinFilterTest {
     }
 
     @Test
+    fun `stay lets only places to sleep through`() {
+        assertEquals(true, MapPinFilter.STAY.lets(pin(SpotType.ACCOMMODATION)))
+        assertEquals(false, MapPinFilter.STAY.lets(pin(SpotType.RESTAURANT)))
+    }
+
+    @Test
     fun `no filter lets everything through`() {
         assertEquals(true, MapPinFilter.ALL.lets(pin()))
     }

@@ -172,8 +172,6 @@ fun SpotDetailScreen(
                     onAdd = { dialogs.addingLink = true },
                 )
 
-                HoursSection(state.spot)
-
                 HorizontalDivider()
                 SectionLabel(stringResource(R.string.spot_location))
                 state.spot?.address?.takeIf { it.isNotBlank() }?.let {
@@ -205,6 +203,7 @@ fun SpotDetailScreen(
                         Text(stringResource(R.string.spot_show_on_map))
                     }
                 }
+                HoursSection(state.spot)
                 HorizontalDivider()
 
                 SectionLabel(stringResource(R.string.spot_type))
