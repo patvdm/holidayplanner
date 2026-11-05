@@ -5,10 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.SpotPin
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
-import com.pat.app.holidayplanner.data.repo.LinkRepository
-import com.pat.app.holidayplanner.data.repo.RouteRepository
-import com.pat.app.holidayplanner.data.repo.SpotPinRepository
-import com.pat.app.holidayplanner.data.repo.SpotRepository
+import com.pat.app.holidayplanner.data.local.RouteLinePoint
 import com.pat.app.holidayplanner.domain.GeoPoint
 import com.pat.app.holidayplanner.domain.MapView
 import com.pat.app.holidayplanner.domain.MapPinFilter
@@ -17,15 +14,18 @@ import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.domain.hasMark
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import kotlin.math.log2
 
 private const val STOP_TIMEOUT_MS = 5_000L
@@ -48,7 +48,13 @@ data class MapScope(
     val cityId: String = "",
     val spotId: String = "",
     val routeId: String = "",
-)
+    val tripId: String = "",
+    /** An ISO date; with [tripId], the map shows only that day of the trip. */
+    val day: String = "",
+) {
+    /** The trip day asked for, or null for the ordinary map. */
+    val tripDay: LocalDate? get() = if (tripId.isEmpty()) null else runCatching { LocalDate.parse(day) }.getOrNull()
+}
 
 /** Where the camera starts, and how close; [spotId] or [routeId] when opened for one of those. */
 data class MapFocus(val centre: GeoPoint, val zoom: Float, val spotId: String = "", val routeId: String = "")
@@ -73,6 +79,8 @@ data class MapUiState(
     val badges: Map<String, RouteBadge> = emptyMap(),
     val showsRoutes: Boolean = true,
     val filter: MapPinFilter = MapPinFilter.ALL,
+    /** Set when the map shows one trip day, for its title. */
+    val day: LocalDate? = null,
 )
 
 /**
@@ -83,11 +91,8 @@ data class MapUiState(
  */
 class MapViewModel(
     private val scope: MapScope,
-    pins: SpotPinRepository,
+    private val sources: MapSources,
     private val prefs: AppPreferences,
-    private val spots: SpotRepository,
-    links: LinkRepository,
-    routes: RouteRepository,
 ) : ViewModel() {
 
     private val selectedId = MutableStateFlow<String?>(null)
@@ -99,7 +104,7 @@ class MapViewModel(
             if (id == null) {
                 flowOf(null)
             } else {
-                combine(spots.observeSpot(id), links.observeLinks(id)) { spot, all ->
+                combine(sources.spots.observeSpot(id), sources.links.observeLinks(id)) { spot, all ->
                     PinDetail(
                         spotId = id,
                         notes = spot?.notes.orEmpty().trim(),
@@ -117,13 +122,18 @@ class MapViewModel(
 
     // The remembered view is read once, on opening: following it live would pull the camera back
     // to wherever it was saved a moment ago, every time the map settles.
+    private val dayPlan: Flow<DayPlan?> = scope.tripDay?.let { day ->
+        sources.trips.observeItems(scope.tripId).map { it.dayPlan(day) }
+    } ?: flowOf(null)
+
     val uiState: StateFlow<MapUiState> = combine(
-        pins.observeAll(),
+        combine(sources.pins.observeAll(), dayPlan, ::Pair),
         prefs.mapView.take(1),
-        routes.observeLinePoints(),
+        sources.routes.observeLinePoints(),
         prefs.mapShowsRoutes,
         prefs.mapPinFilter,
-    ) { all, saved, stops, showsRoutes, filter ->
+    ) { (all, day), saved, stops, showsRoutes, filter ->
+        if (day != null) return@combine dayState(day, all, stops, filter)
         val shown = if (showsRoutes) stops.toRouteLines() else emptyList()
         // The route the map was opened for is drawn whatever else is: even walked, even switched off.
         val askedStops = stops.filter { scope.routeId.isNotEmpty() && it.routeId == scope.routeId }
@@ -141,12 +151,40 @@ class MapViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MapUiState())
 
+    /**
+     * One trip day: its spots and the stops of its routes, nothing else, with the day's routes
+     * always drawn so the day reads as a plan. Framed to fit everything on it.
+     */
+    private fun dayState(
+        day: DayPlan,
+        all: List<SpotPin>,
+        stops: List<RouteLinePoint>,
+        filter: MapPinFilter,
+    ): MapUiState {
+        val dayStops = stops.filter { it.routeId in day.routeIds }
+        val onDay = day.spotIds + dayStops.map { it.spotId }
+        val pins = all.filter { it.spotId in onDay }
+        val points = pins.map { GeoPoint(it.lat, it.lng) }
+        return MapUiState(
+            pins = pins.filter { filter.lets(it) },
+            hasPins = all.isNotEmpty(),
+            focus = if (points.isEmpty()) null else MapFocus(points.middle(), points.zoomToFit()),
+            lines = dayStops.toRouteLines(),
+            badges = dayStops.routeBadges(),
+            showsRoutes = true,
+            filter = filter,
+            day = scope.tripDay,
+        )
+    }
+
     fun setShowsRoutes(show: Boolean) {
         viewModelScope.launch { prefs.setMapShowsRoutes(show) }
     }
 
     fun setVisited(spotId: String, visited: Boolean) {
-        viewModelScope.launch { spots.setStatus(spotId, if (visited) SpotStatus.VISITED else SpotStatus.UNVISITED) }
+        viewModelScope.launch {
+            sources.spots.setStatus(spotId, if (visited) SpotStatus.VISITED else SpotStatus.UNVISITED)
+        }
     }
 
     fun setFilter(filter: MapPinFilter) {

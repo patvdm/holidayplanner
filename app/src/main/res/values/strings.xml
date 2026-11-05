@@ -196,6 +196,7 @@
     <string name="trip_empty">Nothing planned yet. Tap + on a day to add a flight, a spot or a route.</string>
     <string name="trip_no_dates_yet">This trip has no dates yet. Set them to plan it day by day.</string>
     <string name="trip_set_dates">Set dates</string>
+    <string name="trip_day_on_map">Show %1$s on our map</string>
     <string name="trip_add_to_day">Add to %1$s</string>
     <string name="trip_pick_route">Which route?</string>
     <string name="trip_new_route">New route</string>

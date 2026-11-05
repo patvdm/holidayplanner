@@ -47,6 +47,10 @@ data class MapKey(
     val cityId: String = "",
     val spotId: String = "",
     val routeId: String = "",
+    /** With [day], the map of one trip day: only what is planned for it. */
+    val tripId: String = "",
+    /** An ISO date, as a LocalDate does not serialise. */
+    val day: String = "",
 ) : NavKey {
     companion object {
         /**

@@ -60,6 +60,7 @@ import com.pat.app.holidayplanner.ui.trips.TripViewModel
 import com.pat.app.holidayplanner.ui.trips.TripsViewModel
 import com.pat.app.holidayplanner.ui.onboarding.OnboardingViewModel
 import com.pat.app.holidayplanner.ui.map.MapScope
+import com.pat.app.holidayplanner.ui.map.MapSources
 import com.pat.app.holidayplanner.ui.map.MapViewModel
 import com.pat.app.holidayplanner.ui.routes.AddToRouteViewModel
 import com.pat.app.holidayplanner.ui.routes.RoutesViewModel
@@ -148,7 +149,8 @@ val appModule = module {
     viewModel { (itemId: String) -> TripItemViewModel(itemId, get(), get()) }
     viewModel { (routeId: String) -> RouteViewModel(routeId, get(), get(), get(), get()) }
     viewModel { (spotId: String) -> AddToRouteViewModel(spotId, get(), get()) }
-    viewModel { (scope: MapScope) -> MapViewModel(scope, get(), get(), get(), get(), get()) }
+    factory { MapSources(get(), get(), get(), get(), get()) }
+    viewModel { (scope: MapScope) -> MapViewModel(scope, get(), get()) }
     viewModel { (target: PlaceSearchTarget) ->
         PlaceSearchViewModel(target, get(), get(), get(), get(), get())
     }

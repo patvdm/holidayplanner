@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Flight
@@ -87,6 +88,7 @@ fun TripScreen(
     onOpenItem: (String) -> Unit,
     onOpenRoute: (String) -> Unit,
     onEditTrip: () -> Unit,
+    onShowDayOnMap: (LocalDate) -> Unit,
     viewModel: TripViewModel = koinViewModel { parametersOf(tripId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -134,7 +136,12 @@ fun TripScreen(
 
             state.plan.days.forEach { day ->
                 item(key = "day-${day.date}") {
-                    DayHeader(date = day.date, onAdd = { adding = Adding.Kind(day.date) })
+                    DayHeader(
+                        date = day.date,
+                        onAdd = { adding = Adding.Kind(day.date) },
+                        // Only once something is planned, since an empty day has nothing to show.
+                        onShowOnMap = if (day.entries.isEmpty()) null else ({ onShowDayOnMap(day.date) }),
+                    )
                 }
                 items(day.entries, key = { it.item.meta.id }) { row ->
                     TripItemCard(
@@ -277,7 +284,7 @@ private fun NoDatesCard(onEditTrip: () -> Unit) {
 }
 
 @Composable
-private fun DayHeader(date: LocalDate, onAdd: () -> Unit) {
+private fun DayHeader(date: LocalDate, onAdd: () -> Unit, onShowOnMap: (() -> Unit)?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -290,6 +297,15 @@ private fun DayHeader(date: LocalDate, onAdd: () -> Unit) {
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f),
         )
+        onShowOnMap?.let {
+            IconButton(onClick = it) {
+                Icon(
+                    Icons.Filled.Map,
+                    contentDescription = stringResource(R.string.trip_day_on_map, LocalTimes.formatDay(date)),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
         IconButton(onClick = onAdd) {
             Icon(
                 Icons.Filled.Add,

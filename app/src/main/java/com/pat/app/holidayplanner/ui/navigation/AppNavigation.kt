@@ -134,6 +134,7 @@ fun AppNavigation() {
                         onOpenItem = { nav.push(TripItemKey(it)) },
                         onOpenRoute = { nav.push(RouteKey(it)) },
                         onEditTrip = { nav.push(TripEditorKey(key.tripId)) },
+                        onShowDayOnMap = { day -> nav.push(MapKey(tripId = key.tripId, day = day.toString())) },
                     )
                 }
                 entry<TripEditorKey> { key ->
@@ -164,7 +165,7 @@ fun AppNavigation() {
                 }
                 entry<MapKey> { key ->
                     MapScreen(
-                        scope = MapScope(key.countryId, key.cityId, key.spotId, key.routeId),
+                        scope = MapScope(key.countryId, key.cityId, key.spotId, key.routeId, key.tripId, key.day),
                         onBack = nav::back,
                         // Over the map rather than on Explore, so back from the spot comes back here.
                         onOpenSpot = { nav.push(SpotKey(it)) },

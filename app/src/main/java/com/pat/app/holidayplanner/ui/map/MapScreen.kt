@@ -59,6 +59,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.SpotPin
+import com.pat.app.holidayplanner.domain.LocalTimes
 import com.pat.app.holidayplanner.domain.MapPinFilter
 import com.pat.app.holidayplanner.domain.MapView
 import com.pat.app.holidayplanner.domain.MapsUrls
@@ -106,7 +107,10 @@ fun MapScreen(
     }
 
     Scaffold(
-        topBar = { BackTopBar(stringResource(R.string.map_title), onBack = onBack) },
+        topBar = {
+            val title = state.day?.let { LocalTimes.formatDay(it) } ?: stringResource(R.string.map_title)
+            BackTopBar(title, onBack = onBack)
+        },
     ) { padding ->
         if (!state.hasPins) {
             EmptyListMessage(stringResource(R.string.map_no_pins), Modifier.padding(padding))
