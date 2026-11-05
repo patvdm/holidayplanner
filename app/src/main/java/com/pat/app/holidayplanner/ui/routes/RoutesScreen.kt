@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -144,9 +145,18 @@ fun RouteRowItem(row: RouteRow, onClick: () -> Unit) {
                 // A route named after its city says so once.
                 Text(
                     text = if (row.route.name.isBlank() || row.route.name == row.cityName) {
-                        stringResource(R.string.route_row_detail_country, row.countryName, row.stopCount)
+                        stringResource(
+                            R.string.route_row_detail_country,
+                            row.countryName,
+                            pluralStringResource(R.plurals.count_stops, row.stopCount, row.stopCount),
+                        )
                     } else {
-                        stringResource(R.string.route_row_detail, row.cityName, row.countryName, row.stopCount)
+                        stringResource(
+                            R.string.route_row_detail,
+                            row.cityName,
+                            row.countryName,
+                            pluralStringResource(R.plurals.count_stops, row.stopCount, row.stopCount),
+                        )
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

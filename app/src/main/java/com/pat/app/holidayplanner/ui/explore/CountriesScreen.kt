@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.unit.dp
@@ -131,8 +132,8 @@ fun CountriesScreen(
             title = stringResource(R.string.delete_title, pending.name),
             message = stringResource(
                 R.string.delete_country_message,
-                pending.impact.cities,
-                pending.impact.spots,
+                pluralStringResource(R.plurals.count_cities, pending.impact.cities, pending.impact.cities),
+                pluralStringResource(R.plurals.count_spots, pending.impact.spots, pending.impact.spots),
             ),
             onConfirm = viewModel::confirmDelete,
             onDismiss = viewModel::cancelDelete,
@@ -165,7 +166,11 @@ private fun CountryRowItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(row.country.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = stringResource(R.string.countries_counts, row.cityCount, row.spotCount),
+                    text = stringResource(
+                        R.string.countries_counts,
+                        pluralStringResource(R.plurals.count_cities, row.cityCount, row.cityCount),
+                        pluralStringResource(R.plurals.count_spots, row.spotCount, row.spotCount),
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

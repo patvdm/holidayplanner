@@ -36,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
@@ -442,7 +443,10 @@ private fun CountryDialogs(
     state.pendingCityDelete?.let { pending ->
         ConfirmDeleteDialog(
             title = stringResource(R.string.delete_title, pending.name),
-            message = stringResource(R.string.delete_place_message, pending.impact.spots),
+            message = stringResource(
+                R.string.delete_place_message,
+                pluralStringResource(R.plurals.count_spots, pending.impact.spots, pending.impact.spots),
+            ),
             onConfirm = viewModel::confirmDelete,
             onDismiss = viewModel::cancelDelete,
         )
@@ -451,7 +455,11 @@ private fun CountryDialogs(
     state.pendingSpotDelete?.let { pending ->
         ConfirmDeleteDialog(
             title = stringResource(R.string.delete_title, pending.name),
-            message = stringResource(R.string.delete_spot_message, pending.impact.links, pending.impact.hearts),
+            message = stringResource(
+                R.string.delete_spot_message,
+                pluralStringResource(R.plurals.count_links, pending.impact.links, pending.impact.links),
+                pluralStringResource(R.plurals.count_hearts, pending.impact.hearts, pending.impact.hearts),
+            ),
             onConfirm = viewModel::confirmDelete,
             onDismiss = viewModel::cancelDelete,
         )

@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -80,10 +81,11 @@ fun TripsScreen(
                     if (state.past.isNotEmpty()) {
                         item {
                             Text(
-                                text = stringResource(
-                                    if (showPast) R.string.trips_past_hide else R.string.trips_past_show,
-                                    state.past.size,
-                                ),
+                                text = if (showPast) {
+                                    stringResource(R.string.trips_past_hide)
+                                } else {
+                                    pluralStringResource(R.plurals.trips_past_show, state.past.size, state.past.size)
+                                },
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier

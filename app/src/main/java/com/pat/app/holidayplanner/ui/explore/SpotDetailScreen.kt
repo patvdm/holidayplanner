@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -427,7 +428,11 @@ private fun SpotDialogs(
     if (dialogs.confirmingDelete) {
         ConfirmDeleteDialog(
             title = stringResource(R.string.delete_title, state.spot?.name.orEmpty()),
-            message = stringResource(R.string.delete_spot_message, state.links.size, state.hearts.size),
+            message = stringResource(
+                R.string.delete_spot_message,
+                pluralStringResource(R.plurals.count_links, state.links.size, state.links.size),
+                pluralStringResource(R.plurals.count_hearts, state.hearts.size, state.hearts.size),
+            ),
             onConfirm = {
                 dialogs.confirmingDelete = false
                 viewModel.delete()

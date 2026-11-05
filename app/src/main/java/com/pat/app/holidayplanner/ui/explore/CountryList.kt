@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
@@ -307,7 +308,7 @@ private fun CityHeader(section: CitySection, actions: CountryActions) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(city.name, style = MaterialTheme.typography.titleLarge)
                 Text(
-                    text = stringResource(R.string.country_spot_count, section.spotCount),
+                    text = pluralStringResource(R.plurals.country_spot_count, section.spotCount, section.spotCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

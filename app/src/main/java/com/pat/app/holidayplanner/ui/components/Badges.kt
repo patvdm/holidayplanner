@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -115,9 +116,9 @@ internal val DARK_TEXT = Color(0xFF1B1B1B)
 @Composable
 fun HeartCount(count: Int, heartedByMe: Boolean, everyone: Boolean, modifier: Modifier = Modifier) {
     val description = if (everyone) {
-        stringResource(R.string.hearts_everyone_description, count)
+        pluralStringResource(R.plurals.hearts_everyone_description, count, count)
     } else {
-        stringResource(R.string.hearts_description, count)
+        pluralStringResource(R.plurals.hearts_description, count, count)
     }
     Row(
         modifier = modifier.clearAndSetSemantics { contentDescription = description },

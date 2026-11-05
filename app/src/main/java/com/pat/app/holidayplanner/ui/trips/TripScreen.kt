@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -412,9 +413,9 @@ private fun subtitle(row: TripItemRow): String? {
 @Composable
 private fun routeDetail(name: String, cityName: String?, stops: Int): String =
     if (cityName.isNullOrBlank() || cityName == name) {
-        stringResource(R.string.route_stop_count, stops)
+        pluralStringResource(R.plurals.route_stop_count, stops, stops)
     } else {
-        stringResource(R.string.trip_route_stops, cityName, stops)
+        stringResource(R.string.trip_route_stops, cityName, pluralStringResource(R.plurals.count_stops, stops, stops))
     }
 
 @Composable

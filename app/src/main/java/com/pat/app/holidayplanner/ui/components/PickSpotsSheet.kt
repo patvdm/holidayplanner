@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -91,7 +92,7 @@ fun PickSpotsSheet(
                     text = if (chosen.isEmpty()) {
                         stringResource(R.string.route_create_empty)
                     } else {
-                        stringResource(R.string.route_create_with, chosen.size)
+                        pluralStringResource(R.plurals.route_create_with, chosen.size, chosen.size)
                     },
                 )
             }

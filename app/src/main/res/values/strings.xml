@@ -47,11 +47,14 @@
     <string name="countries_search">Search countries</string>
     <string name="countries_rename">Rename country</string>
     <string name="countries_empty">Nothing saved yet. Share a Google Maps place or an Instagram reel to Holiday Planner and it lands here.</string>
-    <string name="countries_counts">%1$d cities · %2$d spots</string>
+    <string name="countries_counts">%1$s · %2$s</string>
 
     <string name="country_rename_city">Rename city</string>
     <string name="country_empty">Nothing here yet. Cities and spots appear as places are shared.</string>
-    <string name="country_spot_count">%1$d spots</string>
+    <plurals name="country_spot_count">
+        <item quantity="one">%1$d spot</item>
+        <item quantity="other">%1$d spots</item>
+    </plurals>
     <string name="country_arrange_cities">Arrange cities</string>
 
     <string name="city_no_matches">No spots match these filters.</string>
@@ -79,8 +82,14 @@
     <string name="place_search_city_hint">Leave blank to keep it on the country, with no city.</string>
     <string name="place_search_whole_country">Whole country</string>
 
-    <string name="hearts_description">%1$d hearts</string>
-    <string name="hearts_everyone_description">%1$d hearts, everyone</string>
+    <plurals name="hearts_description">
+        <item quantity="one">%1$d heart</item>
+        <item quantity="other">%1$d hearts</item>
+    </plurals>
+    <plurals name="hearts_everyone_description">
+        <item quantity="one">%1$d heart, everyone</item>
+        <item quantity="other">%1$d hearts, everyone</item>
+    </plurals>
 
     <string name="spot_breadcrumb">%1$s › %2$s</string>
     <string name="spot_location">Location</string>
@@ -109,9 +118,9 @@
     <string name="spot_move">Move to another city or country</string>
 
     <string name="delete_title">Delete %1$s?</string>
-    <string name="delete_country_message">This also deletes %1$d cities and %2$d spots under it.</string>
-    <string name="delete_place_message">This also deletes %1$d spots under it.</string>
-    <string name="delete_spot_message">This also deletes %1$d links and %2$d hearts.</string>
+    <string name="delete_country_message">This also deletes %1$s and %2$s under it.</string>
+    <string name="delete_place_message">This also deletes %1$s under it.</string>
+    <string name="delete_spot_message">This also deletes %1$s and %2$s.</string>
 
     <string name="onboarding_title">Who is planning?</string>
     <string name="onboarding_subtitle">Pick your name so everything you add is attributed to you.</string>
@@ -175,7 +184,10 @@
     <string name="trips_add">New trip</string>
     <string name="trips_empty">No trips yet. Start one with the button below.</string>
     <string name="trips_no_dates">No dates yet</string>
-    <string name="trips_past_show">Show %1$d past trips</string>
+    <plurals name="trips_past_show">
+        <item quantity="one">Show %1$d past trip</item>
+        <item quantity="other">Show %1$d past trips</item>
+    </plurals>
     <string name="trips_past_hide">Hide past trips</string>
 
     <string name="trip_edit">Edit trip</string>
@@ -188,8 +200,11 @@
     <string name="trip_pick_route">Which route?</string>
     <string name="trip_new_route">New route</string>
     <string name="trip_remove_item">Remove from trip</string>
-    <string name="trip_route_stops">%1$s \u00b7 %2$d stops</string>
-    <string name="route_stop_count">%1$d stops</string>
+    <string name="trip_route_stops">%1$s \u00b7 %2$s</string>
+    <plurals name="route_stop_count">
+        <item quantity="one">%1$d stop</item>
+        <item quantity="other">%1$d stops</item>
+    </plurals>
     <string name="trip_undated">No date yet</string>
     <string name="trip_dates">Dates</string>
     <string name="trip_start_date">Start date</string>
@@ -226,7 +241,7 @@
     <string name="settings_switch_user">Switch user</string>
     <string name="settings_sync_never">Never synced</string>
     <string name="settings_sync_last">Last sync: %1$s</string>
-    <string name="settings_sync_pending">Waiting to send: %1$d changes</string>
+    <string name="settings_sync_pending">Waiting to send: %1$s</string>
     <string name="settings_sync_error">Last error: %1$s</string>
     <string name="settings_sync_now">Sync now</string>
     <string name="settings_sync_running">Syncing…</string>
@@ -270,10 +285,13 @@
     <string name="route_pick_spots">Which spots does this walk take in?</string>
     <string name="route_pick_spots_empty">Nothing saved in this city yet. Make the route and add places to it.</string>
     <string name="route_create_empty">Create the route</string>
-    <string name="route_create_with">Create with %1$d spots</string>
+    <plurals name="route_create_with">
+        <item quantity="one">Create with %1$d spot</item>
+        <item quantity="other">Create with %1$d spots</item>
+    </plurals>
     <string name="route_delete_message">Any trip day pointing at it loses the route. The spots themselves are untouched.</string>
-    <string name="route_row_detail">%1$s, %2$s \u00b7 %3$d stops</string>
-    <string name="route_row_detail_country">%1$s \u00b7 %2$d stops</string>
+    <string name="route_row_detail">%1$s, %2$s \u00b7 %3$s</string>
+    <string name="route_row_detail_country">%1$s \u00b7 %2$s</string>
     <string name="routes_empty">No routes yet. Tap + to start one: a route walks the spots of one city.</string>
     <string name="routes_no_cities">Save a spot somewhere first. A route walks the spots of one city.</string>
     <string name="routes_walked_header">Walked</string>
@@ -333,4 +351,29 @@
 
     <!-- Sync status -->
     <string name="sync_failed_retry">Last sync failed. Tap to try again.</string>
+    <!-- Counts, spliced into the texts above so each reads right for one as well as many. -->
+    <plurals name="count_cities">
+        <item quantity="one">%1$d city</item>
+        <item quantity="other">%1$d cities</item>
+    </plurals>
+    <plurals name="count_spots">
+        <item quantity="one">%1$d spot</item>
+        <item quantity="other">%1$d spots</item>
+    </plurals>
+    <plurals name="count_links">
+        <item quantity="one">%1$d link</item>
+        <item quantity="other">%1$d links</item>
+    </plurals>
+    <plurals name="count_hearts">
+        <item quantity="one">%1$d heart</item>
+        <item quantity="other">%1$d hearts</item>
+    </plurals>
+    <plurals name="count_stops">
+        <item quantity="one">%1$d stop</item>
+        <item quantity="other">%1$d stops</item>
+    </plurals>
+    <plurals name="count_changes">
+        <item quantity="one">%1$d change</item>
+        <item quantity="other">%1$d changes</item>
+    </plurals>
 </resources>

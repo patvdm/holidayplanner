@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -116,7 +117,11 @@ private fun RouteChoiceRow(choice: RouteChoice, onToggle: () -> Unit, onOpen: ()
         Checkbox(checked = choice.holdsSpot, onCheckedChange = { onToggle() })
         Column(modifier = Modifier.weight(1f)) {
             Text(choice.name, style = MaterialTheme.typography.bodyLarge)
-            val detail = stringResource(R.string.route_row_detail_country, choice.cityName, choice.stopCount)
+            val detail = stringResource(
+                R.string.route_row_detail_country,
+                choice.cityName,
+                pluralStringResource(R.plurals.count_stops, choice.stopCount, choice.stopCount),
+            )
             Text(
                 text = if (choice.walked) stringResource(R.string.add_to_route_walked, detail) else detail,
                 style = MaterialTheme.typography.bodySmall,

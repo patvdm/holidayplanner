@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -95,7 +96,8 @@ private fun SyncSection(sync: SyncStatus, onSyncNow: () -> Unit) {
             stringResource(R.string.settings_sync_last, lastSync)
         },
     )
-    Text(stringResource(R.string.settings_sync_pending, sync.pendingCount))
+    val pending = pluralStringResource(R.plurals.count_changes, sync.pendingCount, sync.pendingCount)
+    Text(stringResource(R.string.settings_sync_pending, pending))
     sync.lastError?.let {
         Text(
             text = stringResource(R.string.settings_sync_error, it),
