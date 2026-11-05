@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.di
 
+import com.pat.app.holidayplanner.data.repo.CityLift
 import com.pat.app.holidayplanner.data.local.AppDatabase
 import com.pat.app.holidayplanner.data.location.AndroidReverseGeocoder
 import com.pat.app.holidayplanner.data.location.DeviceLocation
@@ -87,7 +88,6 @@ val appModule = module {
     single { get<AppDatabase>().cityDao() }
     single { get<AppDatabase>().spotDao() }
     single { get<AppDatabase>().linkDao() }
-    single { get<AppDatabase>().heartDao() }
     single { get<AppDatabase>().tripDao() }
     single { get<AppDatabase>().tripItemDao() }
     single { get<AppDatabase>().routeDao() }
@@ -119,8 +119,9 @@ val appModule = module {
     single { UserRepository(get(), get(), get()) }
     single { CountryRepository(get(), get(), get(), get()) }
     single { CityRepository(get(), get(), get(), get()) }
+    single { CityLift(get(), get(), get()) }
     single { SpotRepository(get(), get(), get(), get(), get()) }
-    single { LinkRepository(get(), get()) }
+    single { LinkRepository(get(), get(), get()) }
     single { Places(get(), get(), get()) }
     single { AttachmentRepository(get(), get(), get(), get()) }
     single { CountryRepositories(get(), get(), get(), get(), get(), get()) }

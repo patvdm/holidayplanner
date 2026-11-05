@@ -1,7 +1,6 @@
 package com.pat.app.holidayplanner.data.sync
 
 import com.pat.app.holidayplanner.data.local.CountryEntity
-import com.pat.app.holidayplanner.data.local.HeartEntity
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.CityEntity
 import com.pat.app.holidayplanner.data.local.RouteEntity
@@ -180,22 +179,6 @@ fun linkFromRow(row: SheetRow): LinkEntity? {
         url = row.str("url").trim(),
         source = LinkSource.fromSheet(row.str("source")),
         note = row.str("note"),
-    )
-}
-
-// Hearts ----------------------------------------------------------------------------------------
-
-fun heartToRow(entity: HeartEntity): Map<String, String> = buildRow(entity.meta) {
-    put("spotId", entity.spotId)
-    put("userId", entity.userId)
-}
-
-fun heartFromRow(row: SheetRow): HeartEntity? {
-    val meta = row.meta() ?: return null
-    return HeartEntity(
-        meta = meta,
-        spotId = row.str("spotId").trim(),
-        userId = row.str("userId").trim(),
     )
 }
 

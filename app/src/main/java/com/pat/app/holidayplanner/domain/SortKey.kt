@@ -29,6 +29,9 @@ object SortKey {
     /** The key for a new item appended after [last]. */
     fun after(last: String?): String = between(last, null)
 
+    /** The key for a new item put in front of [first], or the first key of an empty list. */
+    fun before(first: String?): String = between(null, first)
+
     fun isValid(key: String): Boolean =
         key.isNotEmpty() && !key.endsWith(DIGITS.first()) && key.all { it in DIGITS }
 

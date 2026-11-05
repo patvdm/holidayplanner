@@ -22,18 +22,10 @@ data class CityRow(
 /** A spot with everything its row shows. */
 data class SpotRow(
     @Embedded val spot: SpotEntity,
-    val heartCount: Int,
     /** Everything attached, photos included; what a delete takes with it. */
     val linkCount: Int,
     /** The links proper, with the photos left out. */
     val webLinkCount: Int,
-    val heartedByMe: Boolean,
-)
-
-/** Who hearted a spot, with their name resolved. */
-data class HeartRow(
-    val userId: String,
-    val name: String,
 )
 
 /** Where a spot sits in the hierarchy, for breadcrumbs and the Maps fallback query. */

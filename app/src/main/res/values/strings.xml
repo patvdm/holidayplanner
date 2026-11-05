@@ -24,6 +24,8 @@
 
     <string name="priority_high">Priority</string>
     <string name="priority_normal">Normal</string>
+    <string name="priority_add">Make it a priority</string>
+    <string name="priority_remove">No longer a priority</string>
 
     <string name="status_unvisited">Not visited</string>
     <string name="status_visited">Visited</string>
@@ -33,13 +35,10 @@
     <string name="type_restaurant">Food</string>
     <string name="spot_type">Type</string>
 
-    <string name="sort_manual">My order</string>
-    <string name="sort_priority">Priority</string>
-    <string name="sort_hearts">Most hearts</string>
+    <string name="sort_manual">Priority first</string>
     <string name="sort_recent">Recently added</string>
     <string name="sort_alphabetical">A to Z</string>
 
-    <string name="menu_set_priority">Priority: %1$s</string>
     <string name="menu_set_status">Status: %1$s</string>
     <string name="filter_clear">Clear filters</string>
     <string name="filter_has_links">Has links</string>
@@ -82,14 +81,6 @@
     <string name="place_search_city_hint">Leave blank to keep it on the country, with no city.</string>
     <string name="place_search_whole_country">Whole country</string>
 
-    <plurals name="hearts_description">
-        <item quantity="one">%1$d heart</item>
-        <item quantity="other">%1$d hearts</item>
-    </plurals>
-    <plurals name="hearts_everyone_description">
-        <item quantity="one">%1$d heart, everyone</item>
-        <item quantity="other">%1$d hearts, everyone</item>
-    </plurals>
 
     <string name="spot_breadcrumb">%1$s › %2$s</string>
     <string name="spot_opening_hours">Opening hours</string>
@@ -125,10 +116,6 @@
     <string name="spot_location">Location</string>
     <string name="spot_open_in_maps">Open in Google Maps</string>
     <string name="spot_show_on_map">Our map</string>
-    <string name="spot_heart">Heart this spot</string>
-    <string name="spot_hearts_none">Nobody has hearted this yet.</string>
-    <string name="spot_hearts_by">Hearted by %1$s</string>
-    <string name="spot_priority">Priority</string>
     <string name="spot_status">Status</string>
     <string name="spot_marks">Good for</string>
     <string name="mark_drone">Drone</string>
@@ -150,7 +137,7 @@
     <string name="delete_title">Delete %1$s?</string>
     <string name="delete_country_message">This also deletes %1$s and %2$s under it.</string>
     <string name="delete_place_message">This also deletes %1$s under it.</string>
-    <string name="delete_spot_message">This also deletes %1$s and %2$s.</string>
+    <string name="delete_spot_message">This also deletes %1$s.</string>
 
     <string name="onboarding_title">Who is planning?</string>
     <string name="onboarding_subtitle">Pick your name so everything you add is attributed to you.</string>
@@ -400,10 +387,6 @@
     <plurals name="count_links">
         <item quantity="one">%1$d link</item>
         <item quantity="other">%1$d links</item>
-    </plurals>
-    <plurals name="count_hearts">
-        <item quantity="one">%1$d heart</item>
-        <item quantity="other">%1$d hearts</item>
     </plurals>
     <plurals name="count_stops">
         <item quantity="one">%1$d stop</item>

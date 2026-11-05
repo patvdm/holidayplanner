@@ -69,7 +69,7 @@ class PictureBackfill(
             Wanted(
                 id = row.spot.meta.id,
                 lookup = { source.forSpot(row.spot.name, row.cityName, row.countryName, row.isoCode) },
-                store = { spots.setImageUrl(row.spot.meta.id, it) },
+                store = { spots.setFoundImageUrl(row.spot.meta.id, it) },
             )
         }
     }
@@ -97,7 +97,7 @@ class PictureBackfill(
         var complete = true
         spots.observeWithImageUrl(NO_PICTURE).first().forEach { row ->
             source.forSpot(row.spot.name, row.cityName, row.countryName, row.isoCode)
-                .onSuccess { url -> if (url != null) spots.setImageUrl(row.spot.meta.id, url) }
+                .onSuccess { url -> if (url != null) spots.setFoundImageUrl(row.spot.meta.id, url) }
                 .onFailure { complete = false }
             delay(RETRY_PAUSE_MS)
         }

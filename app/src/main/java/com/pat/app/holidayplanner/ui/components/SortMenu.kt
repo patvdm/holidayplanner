@@ -57,8 +57,6 @@ fun SortMenu(scope: SortScope, selected: SortMode, onSelect: (SortMode) -> Unit)
 
 fun SortMode.label(): Int = when (this) {
     SortMode.MANUAL -> R.string.sort_manual
-    SortMode.PRIORITY -> R.string.sort_priority
-    SortMode.HEARTS -> R.string.sort_hearts
     SortMode.RECENT -> R.string.sort_recent
     SortMode.ALPHABETICAL -> R.string.sort_alphabetical
 }

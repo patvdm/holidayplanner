@@ -24,7 +24,6 @@ interface SyncStateDao {
             UNION ALL SELECT COUNT(*) FROM cities WHERE dirty = 1
             UNION ALL SELECT COUNT(*) FROM spots WHERE dirty = 1
             UNION ALL SELECT COUNT(*) FROM links WHERE dirty = 1
-            UNION ALL SELECT COUNT(*) FROM hearts WHERE dirty = 1
             UNION ALL SELECT COUNT(*) FROM trips WHERE dirty = 1
             UNION ALL SELECT COUNT(*) FROM trip_items WHERE dirty = 1
             UNION ALL SELECT COUNT(*) FROM routes WHERE dirty = 1

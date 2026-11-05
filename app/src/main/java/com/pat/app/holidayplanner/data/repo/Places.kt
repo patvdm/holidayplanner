@@ -19,7 +19,7 @@ class Places(
     fun observeTargets(countryId: String): Flow<List<AttachmentTarget>> = combine(
         countries.observeCountry(countryId),
         cities.observeCities(countryId),
-        spots.observeRowsInCountry(countryId, userId = ""),
+        spots.observeRowsInCountry(countryId),
     ) { country, cityList, spotRows ->
         if (country == null) emptyList() else attachmentTargets(country, cityList, spotRows.map { it.spot })
     }

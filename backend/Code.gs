@@ -24,7 +24,6 @@ var SCHEMA = {
     'sortKey', 'priority', 'imageUrl', 'parentCountryId', 'marks', 'openingHours',
   ]),
   Links: COMMON_COLUMNS.concat(['spotId', 'cityId', 'countryId', 'url', 'source', 'note']),
-  Hearts: COMMON_COLUMNS.concat(['spotId', 'userId']),
   Trips: COMMON_COLUMNS.concat(['name', 'countryId', 'startDate', 'endDate', 'notes']),
   TripItems: COMMON_COLUMNS.concat([
     'tripId', 'type', 'title', 'origin', 'destination', 'startLocal', 'startTimeZone', 'endLocal', 'endTimeZone',
@@ -428,7 +427,8 @@ function importOne(entry, tables, changed) {
   var country = findRow(tables.Countries, function (r) { return r.isoCode.toUpperCase() === isoCode; });
   if (!country) {
     country = newRow(tables.Countries, now, {
-      name: countryName, isoCode: isoCode, sortKey: nextSortKey(tables.Countries, function () { return true; }),
+      name: countryName, isoCode: isoCode,
+      sortKey: topSortKey(tables.Countries, function (r) { return r.priority !== 'HIGH'; }),
       priority: 'NORMAL', imageUrl: '',
     });
     changed.Countries = true;
@@ -443,7 +443,7 @@ function importOne(entry, tables, changed) {
     city = newRow(tables.Cities, now, {
       countryId: country.id, name: cityName, googlePlaceId: '',
       lat: cityGeo ? String(cityGeo.lat) : '', lng: cityGeo ? String(cityGeo.lng) : '',
-      sortKey: nextSortKey(tables.Cities, function (r) { return r.countryId === country.id; }),
+      sortKey: topSortKey(tables.Cities, function (r) { return r.countryId === country.id && r.priority !== 'HIGH'; }),
       priority: 'NORMAL', imageUrl: '',
     });
     changed.Cities = true;
@@ -456,15 +456,20 @@ function importOne(entry, tables, changed) {
 
   var link = entry.link;
   var isMapsLink = /google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps/i.test(link);
+  var priority = parsePriority(entry.priority);
   var spot = newRow(tables.Spots, now, {
     parentCityId: city.id, name: spotName, type: parseType(entry.type), googlePlaceId: '',
     lat: entry.spot ? String(geo.lat) : '', lng: entry.spot ? String(geo.lng) : '', address: geo.address || '',
     mapsUrl: isMapsLink ? link : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query),
     notes: entry.notes, status: 'UNVISITED',
-    sortKey: nextSortKey(tables.Spots, function (r) { return r.parentCityId === city.id; }),
-    priority: parsePriority(entry.priority), imageUrl: '',
+    sortKey: topSortKey(tables.Spots, function (r) {
+      return r.parentCityId === city.id && (r.priority === 'HIGH') === (priority === 'HIGH');
+    }),
+    priority: priority, imageUrl: '',
   });
   changed.Spots = true;
+  // A city rises to the top of its group when a spot arrives in it, as it does in the app.
+  if (liftCity(tables.Cities, city, now)) changed.Cities = true;
 
   if (link !== '' && !isMapsLink) {
     newRow(tables.Links, now, { spotId: spot.id, url: link, source: linkSource(link), note: '' });
@@ -536,6 +541,47 @@ function newRow(table, now, fields) {
   Object.keys(fields).forEach(function (k) { obj[k] = fields[k]; });
   table.values.push(table.headers.map(function (h) { return h in obj ? cellToString(obj[h]) : ''; }));
   return obj;
+}
+
+/**
+ * A sort key before the first one among the rows the predicate selects: a new country, city or
+ * spot goes to the top of its group, the way the app adds them.
+ */
+function topSortKey(table, predicate) {
+  return sortKeyMidpoint('', firstSortKey(table, predicate));
+}
+
+/** The first sort key among the rows the predicate selects, leaving out [excludingId]; null if none. */
+function firstSortKey(table, predicate, excludingId) {
+  var first = null;
+  for (var r = 1; r < table.values.length; r++) {
+    var obj = rowToObject(table.headers, table.values[r]);
+    if (obj.id === '' || obj.id === excludingId || obj.deleted === 'true' || !predicate(obj)) continue;
+    if (first === null || obj.sortKey < first) first = obj.sortKey;
+  }
+  return first;
+}
+
+/** Moves [city] to the top of its country's cities of the same priority. False when it is there already. */
+function liftCity(cities, city, now) {
+  var high = city.priority === 'HIGH';
+  var first = firstSortKey(cities, function (r) {
+    return r.countryId === city.countryId && (r.priority === 'HIGH') === high;
+  }, city.id);
+  if (first === null || (city.sortKey && city.sortKey < first)) return false;
+  var key = sortKeyMidpoint('', first);
+  var sortCol = cities.headers.indexOf('sortKey');
+  for (var r = 1; r < cities.values.length; r++) {
+    if (cellToString(cities.values[r][cities.index.id]) !== city.id) continue;
+    var row = cities.values[r];
+    row[sortCol] = key;
+    row[cities.headers.indexOf('updatedAt')] = now;
+    row[cities.headers.indexOf('updatedBy')] = INBOX_AUTHOR;
+    row[cities.index.syncedAt] = now;
+    city.sortKey = key;
+    return true;
+  }
+  return false;
 }
 
 /** A sort key after the last one among the rows the predicate selects, the way the app makes them. */

@@ -21,7 +21,6 @@ fun syncTables(db: AppDatabase): SyncTables = SyncTables(
         SyncTable("Cities", db.cityDao(), ::cityToRow, ::cityFromRow),
         SyncTable("Spots", db.spotDao(), ::spotToRow, ::spotFromRow),
         SyncTable("Links", db.linkDao(), ::linkToRow, ::linkFromRow),
-        SyncTable("Hearts", db.heartDao(), ::heartToRow, ::heartFromRow),
         SyncTable("Trips", db.tripDao(), ::tripToRow, ::tripFromRow),
         SyncTable("TripItems", db.tripItemDao(), ::tripItemToRow, ::tripItemFromRow),
         SyncTable("Routes", db.routeDao(), ::routeToRow, ::routeFromRow),

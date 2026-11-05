@@ -598,7 +598,7 @@ async function removePlace(args, env) {
   const found0 = await findRecord({ ...args, kind: 'spot' }, env);
   if (typeof found0 === 'string') return toolText(found0, true);
   const found = found0.record;
-  const extras = await backend(env, { action: 'pull', since: 0, tables: ['Links', 'Hearts'] });
+  const extras = await backend(env, { action: 'pull', since: 0, tables: ['Links'] });
   if (!extras.ok) return toolText(`Backend error: ${extras.error || JSON.stringify(extras)}`, true);
   const now = String(Date.now());
   const gone = (id) => ({ id, updatedAt: now, updatedBy: 'claude', deleted: 'true' });
@@ -606,7 +606,6 @@ async function removePlace(args, env) {
   const rows = {
     Spots: [gone(found.id)],
     Links: attached('Links').map((r) => gone(r.id)),
-    Hearts: attached('Hearts').map((r) => gone(r.id)),
   };
   const reply = await backend(env, { action: 'push', rows });
   if (!reply.ok) return toolText(`Backend error: ${reply.error || JSON.stringify(reply)}`, true);

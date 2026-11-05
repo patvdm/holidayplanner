@@ -41,6 +41,8 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
  * [itemContent] receives a handle to place wherever the row should be grabbed. When [reorderable]
  * is false no handle is drawn and the list behaves like an ordinary one. [footer] is pinned after
  * the last row, inside the scroll, for actions that belong with the list rather than over it.
+ * [groupOf] splits the list into groups a row cannot be dragged out of, high priority above the
+ * rest say; its new neighbours are then taken from its own group only.
  */
 @Composable
 fun <T> ReorderableColumn(
@@ -50,6 +52,7 @@ fun <T> ReorderableColumn(
     reorderable: Boolean,
     onMoved: (id: String, previousKey: String?, nextKey: String?) -> Unit,
     modifier: Modifier = Modifier,
+    groupOf: (T) -> Any? = { null },
     footer: (@Composable () -> Unit)? = null,
     itemContent: @Composable (item: T, handle: (@Composable () -> Unit)?) -> Unit,
 ) {
@@ -65,7 +68,7 @@ fun <T> ReorderableColumn(
     val reorderState = rememberReorderableLazyListState(listState) { from, to ->
         val fromIndex = ordered.indexOfFirst { idOf(it) == from.key }
         val toIndex = ordered.indexOfFirst { idOf(it) == to.key }
-        if (fromIndex >= 0 && toIndex >= 0) {
+        if (fromIndex >= 0 && toIndex >= 0 && groupOf(ordered[fromIndex]) == groupOf(ordered[toIndex])) {
             ordered = ordered.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
             draggedId = idOf(ordered[toIndex])
         }
@@ -85,7 +88,11 @@ fun <T> ReorderableColumn(
                                 onDragStopped = {
                                     val moved = draggedId
                                     draggedId = null
-                                    if (moved != null) persist(ordered, moved, idOf, sortKeyOf, onMoved)
+                                    if (moved != null) {
+                                        val group = ordered.firstOrNull { idOf(it) == moved }?.let(groupOf)
+                                        val own = ordered.filter { groupOf(it) == group }
+                                        persist(own, moved, idOf, sortKeyOf, onMoved)
+                                    }
                                 },
                             ),
                         )

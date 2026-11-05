@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 class LinkRepository(
     private val dao: LinkDao,
     private val writer: LocalWriter,
+    private val cityLift: CityLift,
 ) {
 
     /** What hangs on one spot. */
@@ -59,6 +60,7 @@ class LinkRepository(
         )
         dao.upsert(listOf(link))
         writer.requestSync()
+        if (owner.spotId.isNotEmpty()) cityLift.ofSpot(owner.spotId)
         return id
     }
 

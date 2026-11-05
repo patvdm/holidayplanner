@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.local.dao
 
+import com.pat.app.holidayplanner.domain.Priority
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
@@ -34,6 +35,16 @@ interface CountryDao : SyncDao<CountryEntity> {
 
     @Query("SELECT * FROM countries WHERE id = :id AND deleted = 0")
     fun observeById(id: String): Flow<CountryEntity?>
+
+    /** The first key among the countries of [priority], leaving out [excluding]: where the top is. */
+    @Query(
+        """
+        SELECT sortKey FROM countries
+        WHERE deleted = 0 AND priority = :priority AND id != :excluding
+        ORDER BY sortKey, id LIMIT 1
+        """,
+    )
+    suspend fun firstSortKey(priority: Priority, excluding: String = ""): String?
 
     @Query("SELECT sortKey FROM countries WHERE deleted = 0 ORDER BY sortKey DESC, id DESC LIMIT 1")
     suspend fun lastSortKey(): String?

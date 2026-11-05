@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.map
 
+import com.pat.app.holidayplanner.ui.components.PriorityStar
 import com.pat.app.holidayplanner.ui.components.WeekHours
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.ExpandLess
@@ -140,6 +141,7 @@ fun MapScreen(
             onOpenSpot = onOpenSpot,
             onAddToRoute = { addingToRoute = it },
             onSetVisited = viewModel::setVisited,
+            onTogglePriority = viewModel::togglePriority,
             onOpenLink = { context.openExternalUrl(it.url) },
             onNavigate = { pin, placeId ->
                 context.openExternalUrl(MapsUrls.navigateTo(RoutePoint(pin.name, pin.lat, pin.lng, placeId)))
@@ -172,6 +174,7 @@ private fun SpotMap(
     onOpenSpot: (String) -> Unit,
     onAddToRoute: (SpotPin) -> Unit,
     onSetVisited: (String, Boolean) -> Unit,
+    onTogglePriority: (String) -> Unit,
     onOpenLink: (LinkEntity) -> Unit,
     onNavigate: (SpotPin, String) -> Unit,
     onSettled: (MapView) -> Unit,
@@ -277,6 +280,7 @@ private fun SpotMap(
             SpotCard(
                 pin = pin,
                 onSetVisited = { onSetVisited(pin.spotId, it) },
+                onTogglePriority = { onTogglePriority(pin.spotId) },
                 detail = detail?.takeIf { it.spotId == pin.spotId },
                 onOpen = { onOpenSpot(pin.spotId) },
                 onAddToRoute = { onAddToRoute(pin) },
@@ -352,6 +356,7 @@ private fun SpotCard(
     pin: SpotPin,
     detail: PinDetail?,
     onSetVisited: (Boolean) -> Unit,
+    onTogglePriority: () -> Unit,
     onOpen: () -> Unit,
     onAddToRoute: () -> Unit,
     onNavigate: () -> Unit,
@@ -373,6 +378,7 @@ private fun SpotCard(
                     )
                     OpeningHours.parse(pin.openingHours)?.let { CardHours(it) }
                 }
+                PriorityStar(pin.priority, onToggle = onTogglePriority)
                 // Standing in front of it is when you know, so it can be ticked off right here.
                 val visited = pin.status == SpotStatus.VISITED
                 FilterChip(

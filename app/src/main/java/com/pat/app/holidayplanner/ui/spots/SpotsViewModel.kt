@@ -48,7 +48,7 @@ data class SpotsUiState(
     val rows: List<SpotListRow> = emptyList(),
     val countries: List<CountryChoice> = emptyList(),
     val filters: SpotListFilters = SpotListFilters(),
-    val sortMode: SortMode = SortMode.ALPHABETICAL,
+    val sortMode: SortMode = SortMode.MANUAL,
     val total: Int = 0,
 ) {
     val nothingMatches: Boolean get() = rows.isEmpty() && total > 0
@@ -61,7 +61,7 @@ data class SpotsUiState(
  * and a list across every city has no single order anyone chose.
  */
 class SpotsViewModel(
-    repository: SpotRepository,
+    private val repository: SpotRepository,
     private val prefs: AppPreferences,
 ) : ViewModel() {
 
@@ -98,14 +98,20 @@ class SpotsViewModel(
         filters.value = SpotListFilters()
     }
 
+    fun togglePriority(spotId: String) {
+        viewModelScope.launch { repository.togglePriority(spotId) }
+    }
+
     fun setSortMode(mode: SortMode) {
         viewModelScope.launch { prefs.setSortMode(SortScope.ALL_SPOTS, mode) }
     }
 }
 
-/** Priority puts the must-sees first; within a mode, names break ties so the order is stable. */
+/** The default puts the must-sees first, each group newest first; names break ties elsewhere. */
 private fun List<SpotListRow>.sorted(mode: SortMode): List<SpotListRow> = when (mode) {
-    SortMode.PRIORITY -> sortedWith(compareBy<SpotListRow> { it.spot.priority }.thenBy { it.spot.name.lowercase() })
+    SortMode.MANUAL -> sortedWith(
+        compareBy<SpotListRow> { it.spot.priority.ordinal }.thenByDescending { it.spot.meta.createdAt },
+    )
     SortMode.RECENT -> sortedByDescending { it.spot.meta.createdAt }
-    else -> sortedBy { it.spot.name.lowercase() }
+    SortMode.ALPHABETICAL -> sortedBy { it.spot.name.lowercase() }
 }

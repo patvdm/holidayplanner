@@ -13,6 +13,7 @@ import com.pat.app.holidayplanner.data.local.SpotEntity
 import com.pat.app.holidayplanner.data.local.SyncMeta
 import com.pat.app.holidayplanner.data.local.TripItemEntity
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
+import com.pat.app.holidayplanner.data.repo.CityLift
 import com.pat.app.holidayplanner.data.repo.LinkRepository
 import com.pat.app.holidayplanner.data.repo.LocalWriter
 import com.pat.app.holidayplanner.data.repo.RouteRepository
@@ -56,10 +57,11 @@ class MapViewModelTest {
         prefs = AppPreferences(context)
         val writer = LocalWriter(prefs, { NOW }, SyncScheduler(context))
         val transactor = RoomTransactor(db)
+        val lift = CityLift(db.spotDao(), db.cityDao(), writer)
         sources = MapSources(
             pins = SpotPinRepository(db.spotDao()),
-            spots = SpotRepository(db.spotDao(), db.heartDao(), db.cascadeDao(), transactor, writer),
-            links = LinkRepository(db.linkDao(), writer),
+            spots = SpotRepository(db.spotDao(), db.cascadeDao(), transactor, writer, lift),
+            links = LinkRepository(db.linkDao(), writer, lift),
             routes = RouteRepository(db.routeDao(), db.routeStopDao(), db.cascadeDao(), transactor, writer),
             trips = TripRepository(db.tripDao(), db.tripItemDao(), db.cascadeDao(), transactor, writer),
         )

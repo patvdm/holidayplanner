@@ -1,5 +1,8 @@
 package com.pat.app.holidayplanner.ui.explore
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import com.pat.app.holidayplanner.ui.components.PriorityStar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,10 +34,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -52,9 +53,7 @@ import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.Attachments
 import com.pat.app.holidayplanner.ui.components.EmptyListMessage
-import com.pat.app.holidayplanner.ui.components.HeartCount
 import com.pat.app.holidayplanner.ui.components.HeroImage
-import com.pat.app.holidayplanner.ui.components.PriorityBadge
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.MarkBadges
 import com.pat.app.holidayplanner.ui.components.StatusChip
@@ -258,7 +257,6 @@ private fun LazyItemScope.DraggableSpot(
         Surface(tonalElevation = if (isDragging) 4.dp else 0.dp) {
             SpotRowItem(
                 row = row,
-                everyone = state.userCount > 0 && row.heartCount >= state.userCount,
                 attachments = state.spotAttachments[row.spot.meta.id].orEmpty(),
                 handle = handle,
                 actions = actions,
@@ -316,7 +314,7 @@ private fun CityHeader(section: CitySection, actions: CountryActions) {
                     Text(text = note, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            PriorityBadge(city.priority)
+            PriorityStar(city.priority, onToggle = { actions.onCityPriority(city.meta.id, city.priority.toggled()) })
             IconButton(onClick = { actions.onShowCityOnMap(city.meta.id) }) {
                 Icon(Icons.Outlined.Map, contentDescription = stringResource(R.string.city_show_on_map))
             }
@@ -388,17 +386,6 @@ private fun CityMenu(city: CityEntity, actions: CountryActions) {
             )
         }
         HorizontalDivider()
-        Priority.entries.forEach { priority ->
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_set_priority, stringResource(priority.label()))) },
-                enabled = priority != city.priority,
-                onClick = {
-                    expanded = false
-                    actions.onCityPriority(city.meta.id, priority)
-                },
-            )
-        }
-        HorizontalDivider()
         DropdownMenuItem(
             text = { Text(stringResource(R.string.action_rename)) },
             onClick = {
@@ -464,7 +451,6 @@ private fun FilterRow(filters: SpotFilters, onChange: (SpotFilters) -> Unit) {
 @Composable
 private fun SpotRowItem(
     row: SpotRow,
-    everyone: Boolean,
     attachments: List<LinkEntity>,
     handle: (@Composable () -> Unit)?,
     actions: CountryActions,
@@ -487,7 +473,6 @@ private fun SpotRowItem(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    PriorityBadge(row.spot.priority)
                     StatusChip(row.spot.status)
                     MarkBadges(row.spot.marks)
                     TypeBadge(row.spot.type)
@@ -500,9 +485,7 @@ private fun SpotRowItem(
                     )
                 }
             }
-            IconButton(onClick = { actions.onHeart(id) }) {
-                HeartCount(count = row.heartCount, heartedByMe = row.heartedByMe, everyone = everyone)
-            }
+            PriorityStar(row.spot.priority, onToggle = { actions.onSpotPriority(id, row.spot.priority.toggled()) })
             SpotRowMenu(row = row, actions = actions)
             handle?.invoke()
         }
@@ -554,17 +537,6 @@ private fun SpotRowMenu(row: SpotRow, actions: CountryActions) {
                 },
             )
             HorizontalDivider()
-            Priority.entries.forEach { priority ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_set_priority, stringResource(priority.label()))) },
-                    enabled = priority != row.spot.priority,
-                    onClick = {
-                        expanded = false
-                        actions.onSpotPriority(id, priority)
-                    },
-                )
-            }
-            HorizontalDivider()
             SpotStatus.entries.forEach { status ->
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.menu_set_status, stringResource(status.label()))) },
@@ -613,6 +585,8 @@ fun ArrangeCities(
         items = sections.map { it.city },
         idOf = { it.meta.id },
         sortKeyOf = { it.sortKey },
+        // High priority cities stay above the rest, so a city only moves among its own kind.
+        groupOf = { it.priority },
         reorderable = true,
         onMoved = onMoved,
         modifier = modifier,
@@ -669,7 +643,6 @@ interface CountryActions {
     val onCityPriority: (String, Priority) -> Unit
     val onRenameCity: (CityEntity) -> Unit
     val onDeleteCity: (CityEntity) -> Unit
-    val onHeart: (String) -> Unit
     val onSpotPriority: (String, Priority) -> Unit
     val onSpotStatus: (String, SpotStatus) -> Unit
     val onSpotMoved: (String, String?, String?) -> Unit

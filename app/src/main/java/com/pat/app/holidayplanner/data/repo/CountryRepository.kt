@@ -32,7 +32,7 @@ class CountryRepository(
             meta = SyncMeta.created(id, stamp.now, stamp.userId),
             name = name.trim(),
             isoCode = isoCode.trim().uppercase(),
-            sortKey = SortKey.after(dao.lastSortKey()),
+            sortKey = SortKey.before(dao.firstSortKey(Priority.NORMAL)),
             priority = Priority.NORMAL,
             imageUrl = "",
         )
@@ -47,7 +47,19 @@ class CountryRepository(
 
     suspend fun rename(id: String, name: String) = edit(id) { it.copy(name = name.trim()) }
 
-    suspend fun setPriority(id: String, priority: Priority) = edit(id) { it.copy(priority = priority) }
+    /** The country changes group, and lands at the top of the one it joins. */
+    suspend fun setPriority(id: String, priority: Priority) = edit(id) {
+        if (it.priority == priority) {
+            it
+        } else {
+            it.copy(priority = priority, sortKey = SortKey.before(dao.firstSortKey(priority, id)))
+        }
+    }
+
+    suspend fun togglePriority(id: String) {
+        val current = dao.find(id) ?: return
+        setPriority(id, if (current.priority == Priority.HIGH) Priority.NORMAL else Priority.HIGH)
+    }
 
     /** Blank asks for a picture to be found again; anything else is kept as given. */
     suspend fun setImageUrl(id: String, url: String) = edit(id) { it.copy(imageUrl = url.trim()) }
@@ -68,7 +80,6 @@ class CountryRepository(
             cascadeDao.deleteStopsOfCountry(id, stamp.now, stamp.userId)
             cascadeDao.deleteStopsOfCountryRoutes(id, stamp.now, stamp.userId)
             cascadeDao.deleteRoutesOfCountry(id, stamp.now, stamp.userId)
-            cascadeDao.deleteHeartsOfCountry(id, stamp.now, stamp.userId)
             cascadeDao.deleteLinksOfCountry(id, stamp.now, stamp.userId)
             cascadeDao.deleteSpotsOfCountry(id, stamp.now, stamp.userId)
             cascadeDao.deleteCitiesOfCountry(id, stamp.now, stamp.userId)
@@ -77,7 +88,7 @@ class CountryRepository(
         writer.requestSync()
     }
 
-    private suspend fun edit(id: String, change: (CountryEntity) -> CountryEntity) {
+    private suspend fun edit(id: String, change: suspend (CountryEntity) -> CountryEntity) {
         val current = dao.find(id) ?: return
         val stamp = writer.stamp()
         val updated = change(current)

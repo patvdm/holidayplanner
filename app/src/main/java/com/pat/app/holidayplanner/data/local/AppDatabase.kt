@@ -7,7 +7,6 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.pat.app.holidayplanner.data.local.dao.CascadeDao
 import com.pat.app.holidayplanner.data.local.dao.CountryDao
-import com.pat.app.holidayplanner.data.local.dao.HeartDao
 import com.pat.app.holidayplanner.data.local.dao.LinkDao
 import com.pat.app.holidayplanner.data.local.dao.CityDao
 import com.pat.app.holidayplanner.data.local.dao.RouteDao
@@ -28,14 +27,13 @@ private const val DATABASE_NAME = "holiday_planner.db"
         CityEntity::class,
         SpotEntity::class,
         LinkEntity::class,
-        HeartEntity::class,
         TripEntity::class,
         TripItemEntity::class,
         RouteEntity::class,
         RouteStopEntity::class,
         SyncStateEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -46,7 +44,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun cityDao(): CityDao
     abstract fun spotDao(): SpotDao
     abstract fun linkDao(): LinkDao
-    abstract fun heartDao(): HeartDao
     abstract fun tripDao(): TripDao
     abstract fun tripItemDao(): TripItemDao
     abstract fun routeDao(): RouteDao

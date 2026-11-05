@@ -6,9 +6,8 @@ package com.pat.app.holidayplanner.domain
  * where the order is something a person decided.
  */
 enum class SortMode {
+    /** High priority first, then each group in its own order: dragged in a city, newest on the Spots tab. */
     MANUAL,
-    PRIORITY,
-    HEARTS,
     RECENT,
     ALPHABETICAL,
 }
@@ -17,24 +16,21 @@ enum class SortMode {
 enum class SortScope(val prefKey: String, val options: List<SortMode>) {
     COUNTRIES(
         prefKey = "countries",
-        options = listOf(SortMode.MANUAL, SortMode.PRIORITY, SortMode.RECENT, SortMode.ALPHABETICAL),
+        options = listOf(SortMode.MANUAL, SortMode.RECENT, SortMode.ALPHABETICAL),
     ),
-    // No PRIORITY: a city's own order already puts high priority first. A saved PRIORITY reads as
-    // MANUAL through parse, which is the same order.
+    // A saved PRIORITY or HEARTS from before reads as MANUAL through parse.
     SPOTS(
         prefKey = "spots",
-        options = listOf(
-            SortMode.MANUAL,
-            SortMode.HEARTS,
-            SortMode.RECENT,
-            SortMode.ALPHABETICAL,
-        ),
+        options = listOf(SortMode.MANUAL, SortMode.RECENT, SortMode.ALPHABETICAL),
     ),
 
-    /** Every spot across every city. No manual order, because no one order was chosen for it. */
+    /**
+     * Every spot across every city. Nobody dragged this list, so its MANUAL order is high priority
+     * first, then the newest.
+     */
     ALL_SPOTS(
         prefKey = "all_spots",
-        options = listOf(SortMode.ALPHABETICAL, SortMode.PRIORITY, SortMode.RECENT),
+        options = listOf(SortMode.MANUAL, SortMode.RECENT, SortMode.ALPHABETICAL),
     ),
     ;
 

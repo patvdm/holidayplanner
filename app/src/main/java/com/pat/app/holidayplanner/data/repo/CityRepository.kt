@@ -49,7 +49,7 @@ class CityRepository(
             googlePlaceId = googlePlaceId,
             lat = lat,
             lng = lng,
-            sortKey = SortKey.after(dao.lastSortKey(countryId)),
+            sortKey = SortKey.before(dao.firstSortKey(countryId, Priority.NORMAL)),
             priority = Priority.NORMAL,
             imageUrl = "",
             notes = "",
@@ -67,7 +67,19 @@ class CityRepository(
 
     suspend fun rename(id: String, name: String) = edit(id) { it.copy(name = name.trim()) }
 
-    suspend fun setPriority(id: String, priority: Priority) = edit(id) { it.copy(priority = priority) }
+    /** The city changes group, and lands at the top of the one it joins. */
+    suspend fun setPriority(id: String, priority: Priority) = edit(id) {
+        if (it.priority == priority) {
+            it
+        } else {
+            it.copy(priority = priority, sortKey = SortKey.before(dao.firstSortKey(it.countryId, priority, id)))
+        }
+    }
+
+    suspend fun togglePriority(id: String) {
+        val current = dao.find(id) ?: return
+        setPriority(id, if (current.priority == Priority.HIGH) Priority.NORMAL else Priority.HIGH)
+    }
 
     suspend fun setNotes(id: String, notes: String) = edit(id) { it.copy(notes = notes.trim()) }
 
@@ -87,7 +99,6 @@ class CityRepository(
             cascadeDao.deleteStopsOfCity(id, stamp.now, stamp.userId)
             cascadeDao.deleteStopsOfCityRoutes(id, stamp.now, stamp.userId)
             cascadeDao.deleteRoutesOfCity(id, stamp.now, stamp.userId)
-            cascadeDao.deleteHeartsOfCity(id, stamp.now, stamp.userId)
             cascadeDao.deleteLinksOfCity(id, stamp.now, stamp.userId)
             cascadeDao.deleteSpotsOfCity(id, stamp.now, stamp.userId)
             cascadeDao.deleteCity(id, stamp.now, stamp.userId)
@@ -95,7 +106,7 @@ class CityRepository(
         writer.requestSync()
     }
 
-    private suspend fun edit(id: String, change: (CityEntity) -> CityEntity) {
+    private suspend fun edit(id: String, change: suspend (CityEntity) -> CityEntity) {
         val current = dao.find(id) ?: return
         val stamp = writer.stamp()
         val updated = change(current)

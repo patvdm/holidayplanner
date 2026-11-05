@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.components
 
+import com.pat.app.holidayplanner.data.repo.OpeningHoursLookup
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -354,6 +355,7 @@ private fun ConfirmStep(
     pending: PendingPick,
     viewModel: PlaceSearchViewModel,
     onSaved: (String) -> Unit,
+    hours: OpeningHoursLookup = koinInject(),
 ) {
     val saving = state.saving
     Text(pending.name, style = MaterialTheme.typography.titleMedium)
@@ -383,7 +385,16 @@ private fun ConfirmStep(
     TypeChips(state.type, viewModel::onTypeChange)
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = { viewModel.confirm(onSaved) }, enabled = !saving && state.canConfirm(pending)) {
+        Button(
+            onClick = {
+                viewModel.confirm { id ->
+                    // A place just picked from Google is one somebody chose, so its hours are worth one request now.
+                    if (hours.isAvailable) hours.lookUp(id)
+                    onSaved(id)
+                }
+            },
+            enabled = !saving && state.canConfirm(pending),
+        ) {
             Text(stringResource(R.string.action_save))
         }
         TextButton(onClick = viewModel::cancelPick) { Text(stringResource(R.string.action_back)) }

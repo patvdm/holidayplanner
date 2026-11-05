@@ -187,6 +187,10 @@ class MapViewModel(
         }
     }
 
+    fun togglePriority(spotId: String) {
+        viewModelScope.launch { sources.spots.togglePriority(spotId) }
+    }
+
     fun setFilter(filter: MapPinFilter) {
         viewModelScope.launch { prefs.setMapPinFilter(filter) }
     }

@@ -23,7 +23,10 @@ data class CountriesUiState(
     val pendingDelete: PendingDelete? = null,
 )
 
-/** The country list is always in the order you dragged it into, so there is nothing to sort by. */
+/**
+ * The country list: high priority first, then the rest, each in the order it was dragged into. A
+ * new country goes to the top of its group, and starring one moves it to the top of the other.
+ */
 class CountriesViewModel(
     private val repository: CountryRepository,
 ) : ViewModel() {
@@ -34,7 +37,14 @@ class CountriesViewModel(
         repository.observeRows(),
         pendingDelete,
     ) { rows, pending ->
-        CountriesUiState(rows = rows, pendingDelete = pending)
+        CountriesUiState(
+            rows = rows.sortedWith(
+                compareBy<CountryRow> { it.country.priority.ordinal }
+                    .thenBy { it.country.sortKey }
+                    .thenBy { it.country.meta.id },
+            ),
+            pendingDelete = pending,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CountriesUiState())
 
     fun setPriority(id: String, priority: Priority) {

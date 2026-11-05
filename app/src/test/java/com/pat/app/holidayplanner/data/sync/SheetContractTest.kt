@@ -2,7 +2,6 @@ package com.pat.app.holidayplanner.data.sync
 
 import com.pat.app.holidayplanner.data.local.CityEntity
 import com.pat.app.holidayplanner.data.local.CountryEntity
-import com.pat.app.holidayplanner.data.local.HeartEntity
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.RouteEntity
 import com.pat.app.holidayplanner.data.local.RouteStopEntity
@@ -62,7 +61,6 @@ class SheetContractTest {
             ),
         ),
         "Links" to linkToRow(LinkEntity(meta, "s", "", "", "https://x", LinkSource.WEB, "")),
-        "Hearts" to heartToRow(HeartEntity(meta, "s", "u")),
         "Trips" to tripToRow(TripEntity(meta, "Amsterdam", "nl", "2026-11-06", "2026-11-08", "")),
         "TripItems" to tripItemToRow(
             TripItemEntity(meta, "t", TripItemType.SPOT, "", "", "", "", "", "", "", "s", "", "", ""),

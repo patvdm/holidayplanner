@@ -12,6 +12,9 @@ package com.pat.app.holidayplanner.domain
 enum class Priority {
     HIGH, NORMAL;
 
+    /** The other one: what a tap on the star turns this into. */
+    fun toggled(): Priority = if (this == HIGH) NORMAL else HIGH
+
     companion object {
         /** The old MUST reads as HIGH; LIKE and MAYBE, and anything unknown, read as NORMAL. */
         fun fromSheet(value: String?): Priority {

@@ -16,10 +16,6 @@ interface UserDao : SyncDao<UserEntity> {
     @Query("SELECT * FROM users WHERE id = :id")
     fun observeById(id: String): Flow<UserEntity?>
 
-    /** Used to tell "everyone hearted this" from "some people did". */
-    @Query("SELECT COUNT(*) FROM users WHERE deleted = 0")
-    fun observeCount(): Flow<Int>
-
     @Query("SELECT * FROM users WHERE dirty = 1 ORDER BY updatedAt LIMIT :limit")
     override suspend fun dirty(limit: Int): List<UserEntity>
 

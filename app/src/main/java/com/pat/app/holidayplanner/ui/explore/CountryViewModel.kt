@@ -27,13 +27,11 @@ import com.pat.app.holidayplanner.domain.SortMode
 import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -86,7 +84,6 @@ data class CountryUiState(
     val homes: List<SpotHome> = emptyList(),
     val filters: SpotFilters = SpotFilters(),
     val sortMode: SortMode = SortMode.MANUAL,
-    val userCount: Int = 0,
     val savingPhoto: Boolean = false,
     val pendingCityDelete: PendingDelete? = null,
     val pendingSpotDelete: PendingDelete? = null,
@@ -132,7 +129,6 @@ private data class CountryView(
     val sortMode: SortMode,
     val filters: SpotFilters,
     val collapsed: Set<String>,
-    val userCount: Int,
 )
 
 /** What is under way right now: deletes waiting for a yes, photos on their way up. */
@@ -159,10 +155,7 @@ class CountryViewModel(
     /** What the photo being picked right now is of, since the picker only answers with a picture. */
     private var photoOwner: AttachmentOwner? = null
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val spots: Flow<List<SpotRow>> = repos.users.currentUserId.flatMapLatest { userId ->
-        repos.spots.observeRowsInCountry(countryId, userId.orEmpty())
-    }
+    private val spots: Flow<List<SpotRow>> = repos.spots.observeRowsInCountry(countryId)
 
     private val data: Flow<CountryData> = combine(
         repos.countries.observeCountry(countryId),
@@ -177,7 +170,6 @@ class CountryViewModel(
         prefs.sortMode(SortScope.SPOTS),
         filters,
         collapsed,
-        repos.users.observeUserCount(),
         ::CountryView,
     )
 
@@ -244,7 +236,7 @@ class CountryViewModel(
         pendingSpotDelete.value = PendingDelete(
             id = row.spot.meta.id,
             name = row.spot.name,
-            impact = DeleteImpact(links = row.linkCount, hearts = row.heartCount),
+            impact = DeleteImpact(links = row.linkCount),
         )
     }
 
@@ -299,9 +291,6 @@ class CountryViewModel(
         viewModelScope.launch { repos.attachments.remove(attachment) }
     }
 
-    fun toggleHeart(spotId: String) {
-        viewModelScope.launch { repos.spots.toggleHeart(spotId) }
-    }
 
     fun setSpotStatus(id: String, status: SpotStatus) {
         viewModelScope.launch { repos.spots.setStatus(id, status) }
@@ -330,7 +319,10 @@ class CountryViewModel(
 private fun countryUiState(data: CountryData, view: CountryView, pending: CountryPending): CountryUiState {
     val spotsByCity = data.spots.groupBy { it.spot.parentCityId }
     val sections = data.cities
-        .sortedWith(compareBy<CityRow> { it.place.sortKey }.thenBy { it.place.meta.id })
+        // High priority first, then each group in its own order: a city rises when its spots change.
+        .sortedWith(
+            compareBy<CityRow> { it.place.priority.ordinal }.thenBy { it.place.sortKey }.thenBy { it.place.meta.id },
+        )
         .map { row ->
             val all = spotsByCity[row.place.meta.id].orEmpty()
             CitySection(
@@ -360,7 +352,6 @@ private fun countryUiState(data: CountryData, view: CountryView, pending: Countr
         homes = data.homes,
         filters = view.filters,
         sortMode = view.sortMode,
-        userCount = view.userCount,
         savingPhoto = pending.uploads > 0,
         pendingCityDelete = pending.cityDelete,
         pendingSpotDelete = pending.spotDelete,

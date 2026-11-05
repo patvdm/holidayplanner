@@ -96,33 +96,6 @@ interface CascadeDao {
 
     @Query(
         """
-        UPDATE hearts SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
-        WHERE deleted = 0 AND spotId IN (
-            SELECT id FROM spots WHERE parentCountryId = :countryId
-                OR parentCityId IN (SELECT id FROM cities WHERE countryId = :countryId)
-        )
-        """,
-    )
-    suspend fun deleteHeartsOfCountry(countryId: String, now: Long, userId: String)
-
-    @Query(
-        """
-        UPDATE hearts SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
-        WHERE deleted = 0 AND spotId IN (SELECT id FROM spots WHERE parentCityId = :cityId)
-        """,
-    )
-    suspend fun deleteHeartsOfCity(cityId: String, now: Long, userId: String)
-
-    @Query(
-        """
-        UPDATE hearts SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
-        WHERE spotId = :spotId AND deleted = 0
-        """,
-    )
-    suspend fun deleteHeartsOfSpot(spotId: String, now: Long, userId: String)
-
-    @Query(
-        """
         UPDATE trips SET deleted = 1, updatedAt = :now, updatedBy = :userId, dirty = 1
         WHERE id = :tripId AND deleted = 0
         """,

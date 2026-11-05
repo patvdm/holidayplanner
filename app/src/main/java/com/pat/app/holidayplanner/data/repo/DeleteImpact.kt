@@ -5,6 +5,5 @@ data class DeleteImpact(
     val cities: Int = 0,
     val spots: Int = 0,
     val links: Int = 0,
-    val hearts: Int = 0,
     val items: Int = 0,
 )

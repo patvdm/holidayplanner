@@ -1,5 +1,8 @@
 package com.pat.app.holidayplanner.ui.explore
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import com.pat.app.holidayplanner.ui.components.PriorityStar
 import com.pat.app.holidayplanner.data.local.SpotEntity
 import org.koin.compose.koinInject
 import com.pat.app.holidayplanner.ui.components.SpotHoursSection
@@ -19,10 +22,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -38,10 +39,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -52,7 +51,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.LinkEntity
-import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotMark
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.hasMark
@@ -124,16 +122,8 @@ fun SpotDetailScreen(
                             )
                         }
                     }
-                    IconButton(onClick = viewModel::toggleHeart) {
-                        Icon(
-                            imageVector = if (state.heartedByMe) {
-                                Icons.Filled.Favorite
-                            } else {
-                                Icons.Outlined.FavoriteBorder
-                            },
-                            contentDescription = stringResource(R.string.spot_heart),
-                            tint = MaterialTheme.colorScheme.error,
-                        )
+                    state.spot?.let { spot ->
+                        PriorityStar(spot.priority, onToggle = { viewModel.setPriority(spot.priority.toggled()) })
                     }
                     IconButton(onClick = { dialogs.confirmingDelete = true }) {
                         Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
@@ -215,22 +205,7 @@ fun SpotDetailScreen(
                         Text(stringResource(R.string.spot_show_on_map))
                     }
                 }
-                HeartsSection(names = state.hearts.map { it.name }.filter { it.isNotBlank() })
                 HorizontalDivider()
-
-                SectionLabel(stringResource(R.string.spot_priority))
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Priority.entries.forEach { priority ->
-                        FilterChip(
-                            selected = state.spot?.priority == priority,
-                            onClick = { viewModel.setPriority(priority) },
-                            label = { Text(stringResource(priority.label())) },
-                        )
-                    }
-                }
 
                 SectionLabel(stringResource(R.string.spot_type))
                 Row(
@@ -437,7 +412,6 @@ private fun SpotDialogs(
             message = stringResource(
                 R.string.delete_spot_message,
                 pluralStringResource(R.plurals.count_links, state.links.size, state.links.size),
-                pluralStringResource(R.plurals.count_hearts, state.hearts.size, state.hearts.size),
             ),
             onConfirm = {
                 dialogs.confirmingDelete = false
@@ -460,18 +434,6 @@ private fun HoursSection(spot: SpotEntity?, lookup: OpeningHoursLookup = koinInj
 @Composable
 private fun SectionLabel(text: String) {
     Text(text = text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-}
-
-@Composable
-private fun HeartsSection(names: List<String>) {
-    Text(
-        text = if (names.isEmpty()) {
-            stringResource(R.string.spot_hearts_none)
-        } else {
-            stringResource(R.string.spot_hearts_by, names.joinToString(", "))
-        },
-        style = MaterialTheme.typography.bodySmall,
-    )
 }
 
 /** Edits in place and writes when the field loses focus, so every keystroke is not a sync. */

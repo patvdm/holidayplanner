@@ -1,7 +1,6 @@
 package com.pat.app.holidayplanner.data.sync
 
 import com.pat.app.holidayplanner.data.local.CountryEntity
-import com.pat.app.holidayplanner.data.local.HeartEntity
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.CityEntity
 import com.pat.app.holidayplanner.data.local.RouteEntity
@@ -149,12 +148,6 @@ class SheetMappingTest {
             note = "",
         )
         assertEquals(entity, linkFromRow(SheetRow(linkToRow(entity))))
-    }
-
-    @Test
-    fun `heart round trips`() {
-        val entity = HeartEntity(meta, spotId = "s1", userId = "u1")
-        assertEquals(entity, heartFromRow(SheetRow(heartToRow(entity))))
     }
 
     @Test

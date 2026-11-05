@@ -127,7 +127,6 @@ fun CountryScreen(
             }
             override val onRenameCity: (CityEntity) -> Unit = { dialogs.renamingCity = it }
             override val onDeleteCity: (CityEntity) -> Unit = { viewModel.requestCityDelete(it.meta.id, it.name) }
-            override val onHeart: (String) -> Unit = viewModel::toggleHeart
             override val onSpotPriority: (String, Priority) -> Unit = { id, priority ->
                 viewModel.setPriority(AttachmentOwner(spotId = id), priority)
             }
@@ -469,7 +468,6 @@ private fun CountryDialogs(
             message = stringResource(
                 R.string.delete_spot_message,
                 pluralStringResource(R.plurals.count_links, pending.impact.links, pending.impact.links),
-                pluralStringResource(R.plurals.count_hearts, pending.impact.hearts, pending.impact.hearts),
             ),
             onConfirm = viewModel::confirmDelete,
             onDismiss = viewModel::cancelDelete,

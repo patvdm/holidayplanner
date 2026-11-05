@@ -2,7 +2,6 @@ package com.pat.app.holidayplanner.ui.explore
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pat.app.holidayplanner.data.local.HeartRow
 import com.pat.app.holidayplanner.data.local.LinkEntity
 import com.pat.app.holidayplanner.data.local.SpotHome
 import com.pat.app.holidayplanner.data.local.SpotContext
@@ -39,7 +38,6 @@ private const val STOP_TIMEOUT_MS = 5_000L
 data class SpotDetailUiState(
     val spot: SpotEntity? = null,
     val context: SpotContext? = null,
-    val hearts: List<HeartRow> = emptyList(),
     val links: List<LinkEntity> = emptyList(),
     /** Every country and city this spot could be moved to. */
     val homes: List<SpotHome> = emptyList(),
@@ -53,8 +51,6 @@ data class SpotDetailUiState(
     val photos: List<LinkEntity> get() = links.filter { it.source.isPhoto }
 
     val references: List<LinkEntity> get() = links.filterNot { it.source.isPhoto }
-
-    val heartedByMe: Boolean get() = hearts.any { it.userId == currentUserId }
 
     /**
      * The link Open in Maps uses: the one that was shared if there is one, because it points at the
@@ -79,7 +75,6 @@ data class SpotDetailUiState(
 
 /** Everything the spot screen shows, combined separately to stay within combine's arity. */
 private data class SpotBundle(
-    val hearts: List<HeartRow>,
     val links: List<LinkEntity>,
     val homes: List<SpotHome>,
     val targets: List<AttachmentTarget>,
@@ -105,7 +100,6 @@ class SpotDetailViewModel(
         .flatMapLatest(attachments::observeTargetsOrNone)
 
     private val bundle: Flow<SpotBundle> = combine(
-        spotRepository.observeHeartNames(spotId),
         linkRepository.observeLinks(spotId),
         cityRepository.observeHomes(),
         targets,
@@ -122,7 +116,6 @@ class SpotDetailViewModel(
         SpotDetailUiState(
             spot = spot,
             context = context,
-            hearts = parts.hearts,
             links = parts.links,
             homes = parts.homes,
             targets = parts.targets,
@@ -156,9 +149,6 @@ class SpotDetailViewModel(
         viewModelScope.launch { spotRepository.setPriority(spotId, priority) }
     }
 
-    fun toggleHeart() {
-        viewModelScope.launch { spotRepository.toggleHeart(spotId) }
-    }
 
     fun moveTo(home: SpotHome) {
         viewModelScope.launch { spotRepository.moveTo(spotId, home) }

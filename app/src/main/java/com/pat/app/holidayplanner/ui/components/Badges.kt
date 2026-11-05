@@ -1,23 +1,21 @@
 package com.pat.app.holidayplanner.ui.components
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.IconButton
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import com.pat.app.holidayplanner.R
@@ -27,16 +25,36 @@ import com.pat.app.holidayplanner.domain.hasMark
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
 
-/** Only a High priority is worth a tag; Normal is the absence of one. */
+/**
+ * Priority, in one colour across the app: the orange of a high-priority pin on the map. Where the
+ * star can be tapped it is drawn by [PriorityStar]; elsewhere [PriorityBadge] shows it, small and
+ * filled, only for high priority.
+ */
+val PriorityOrange = Color(0xFFF4511E)
+
+/** High priority as a small filled star; Normal shows nothing. Read only. */
 @Composable
 fun PriorityBadge(priority: Priority, modifier: Modifier = Modifier) {
     if (priority != Priority.HIGH) return
-    SmallBadge(
-        text = stringResource(R.string.priority_high),
-        background = MaterialTheme.colorScheme.errorContainer,
-        foreground = MaterialTheme.colorScheme.onErrorContainer,
-        modifier = modifier,
+    Icon(
+        imageVector = Icons.Filled.Star,
+        contentDescription = stringResource(R.string.priority_high),
+        tint = PriorityOrange,
+        modifier = modifier.size(16.dp),
     )
+}
+
+/** The one-tap priority switch: a filled orange star when it is priority, an outline when not. */
+@Composable
+fun PriorityStar(priority: Priority, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    val high = priority == Priority.HIGH
+    IconButton(onClick = onToggle, modifier = modifier) {
+        Icon(
+            imageVector = if (high) Icons.Filled.Star else Icons.Outlined.StarBorder,
+            contentDescription = stringResource(if (high) R.string.priority_remove else R.string.priority_add),
+            tint = if (high) PriorityOrange else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 /** Visited earns a green tag; unvisited is the default and shows nothing. */
@@ -108,35 +126,6 @@ internal val VISITED_GREEN = Color(0xFFB9E4C0)
 private val RESTAURANT_ORANGE = Color(0xFFFFD199)
 private val ACCOMMODATION_BLUE = Color(0xFFB7D4F5)
 internal val DARK_TEXT = Color(0xFF1B1B1B)
-
-/**
- * Heart count. A filled heart means the signed-in person hearted it, and the count is emphasised
- * once everybody has.
- */
-@Composable
-fun HeartCount(count: Int, heartedByMe: Boolean, everyone: Boolean, modifier: Modifier = Modifier) {
-    val description = if (everyone) {
-        pluralStringResource(R.plurals.hearts_everyone_description, count, count)
-    } else {
-        pluralStringResource(R.plurals.hearts_description, count, count)
-    }
-    Row(
-        modifier = modifier.clearAndSetSemantics { contentDescription = description },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = if (heartedByMe) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-            contentDescription = null,
-            tint = if (everyone) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(end = 4.dp),
-        )
-        Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.labelMedium,
-            color = if (everyone) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
 
 @Composable
 private fun SmallBadge(

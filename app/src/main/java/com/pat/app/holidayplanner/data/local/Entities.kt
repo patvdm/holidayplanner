@@ -106,13 +106,6 @@ data class LinkEntity(
     val note: String,
 ) : SyncEntity
 
-@Entity(tableName = "hearts", primaryKeys = ["id"], indices = [Index("spotId"), Index("userId")])
-data class HeartEntity(
-    @Embedded override val meta: SyncMeta,
-    val spotId: String,
-    val userId: String,
-) : SyncEntity
-
 @Entity(tableName = "trips", primaryKeys = ["id"], indices = [Index("startDate"), Index("countryId")])
 data class TripEntity(
     @Embedded override val meta: SyncMeta,

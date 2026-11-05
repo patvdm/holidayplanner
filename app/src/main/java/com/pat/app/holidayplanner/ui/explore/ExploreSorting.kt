@@ -13,18 +13,12 @@ import com.pat.app.holidayplanner.domain.SortMode
 
 /**
  * A city's own order puts its high-priority spots first (Pat, 2026-11-04), each group in the order
- * it was dragged into, which makes MANUAL and PRIORITY the same order: the country screen only
- * offers MANUAL, and dragging stays within a spot's own priority group.
+ * it was dragged into, newest added at the top; dragging stays within a spot's own priority group.
  */
 fun List<SpotRow>.sortedSpots(mode: SortMode): List<SpotRow> = when (mode) {
-    SortMode.MANUAL, SortMode.PRIORITY ->
-        sortedWith(priorityOrder({ it.spot.priority }, { it.spot.sortKey }, { it.spot.meta }))
+    SortMode.MANUAL -> sortedWith(priorityOrder({ it.spot.priority }, { it.spot.sortKey }, { it.spot.meta }))
     SortMode.RECENT -> sortedByDescending { it.spot.meta.createdAt }
     SortMode.ALPHABETICAL -> sortedWith(alphabeticalOrder { it.spot.name })
-    SortMode.HEARTS -> sortedWith(
-        compareByDescending<SpotRow> { it.heartCount }
-            .then(manualOrder({ it.spot.sortKey }, { it.spot.meta })),
-    )
 }
 
 /**

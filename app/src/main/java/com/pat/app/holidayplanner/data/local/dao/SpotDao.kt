@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.local.dao
 
+import com.pat.app.holidayplanner.domain.Priority
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
@@ -22,8 +23,8 @@ interface SpotDao : SyncDao<SpotEntity> {
     fun observeById(id: String): Flow<SpotEntity?>
 
     /**
-     * Every spot in one country's cities, with its heart and link counts and whether the signed-in
-     * person hearted it. The country screen groups them under their cities itself.
+     * Every spot in one country's cities, with its link counts. The country screen groups them under
+     * their cities itself.
      *
      * Links are counted twice over: everything attached, which is what a delete takes with it, and
      * the links proper, which is what someone filtering for them means.
@@ -31,12 +32,9 @@ interface SpotDao : SyncDao<SpotEntity> {
     @Query(
         """
         SELECT s.*,
-            (SELECT COUNT(*) FROM hearts h WHERE h.spotId = s.id AND h.deleted = 0) AS heartCount,
             (SELECT COUNT(*) FROM links l WHERE l.spotId = s.id AND l.deleted = 0) AS linkCount,
             (SELECT COUNT(*) FROM links w WHERE w.spotId = s.id AND w.deleted = 0 AND w.source <> 'PHOTO')
-                AS webLinkCount,
-            (SELECT COUNT(*) FROM hearts m WHERE m.spotId = s.id AND m.userId = :userId AND m.deleted = 0) > 0
-                AS heartedByMe
+                AS webLinkCount
         FROM spots s
         WHERE s.deleted = 0 AND (
             s.parentCountryId = :countryId
@@ -45,7 +43,7 @@ interface SpotDao : SyncDao<SpotEntity> {
         ORDER BY s.sortKey, s.id
         """,
     )
-    fun observeRowsInCountry(countryId: String, userId: String): Flow<List<SpotRow>>
+    fun observeRowsInCountry(countryId: String): Flow<List<SpotRow>>
 
     /** Every spot anywhere, with where it is, for the Spots tab. */
     @Query(
@@ -146,6 +144,20 @@ interface SpotDao : SyncDao<SpotEntity> {
         """,
     )
     fun observePins(): Flow<List<SpotPin>>
+
+    /**
+     * The first key among the spots of [priority] in a city, or among a country's own spots when
+     * [cityId] is empty, leaving out [excluding]: where the top of that group is.
+     */
+    @Query(
+        """
+        SELECT sortKey FROM spots
+        WHERE parentCityId = :cityId AND parentCountryId = :countryId AND deleted = 0
+            AND priority = :priority AND id != :excluding
+        ORDER BY sortKey, id LIMIT 1
+        """,
+    )
+    suspend fun firstSortKey(cityId: String, countryId: String, priority: Priority, excluding: String = ""): String?
 
     /** The last spot in a city, or among a country's own spots when [cityId] is empty. */
     @Query(

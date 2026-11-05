@@ -14,19 +14,6 @@ import org.junit.Test
 class ExploreSortingTest {
 
     @Test
-    fun `spots by hearts put the most loved first`() {
-        val rows = listOf(
-            spot(id = "s1", name = "One", sortKey = "G", hearts = 1),
-            spot(id = "s2", name = "Two", sortKey = "V", hearts = 3),
-            spot(id = "s3", name = "Three", sortKey = "k", hearts = 3),
-        )
-
-        val names = rows.sortedSpots(SortMode.HEARTS).map { it.spot.name }
-
-        assertEquals(listOf("Two", "Three", "One"), names)
-    }
-
-    @Test
     fun `a city's own order puts high priority first, each group in dragged order`() {
         val rows = listOf(
             spot(id = "s1", name = "Normal first", sortKey = "G"),
@@ -60,7 +47,6 @@ class ExploreSortingTest {
         id: String,
         name: String,
         sortKey: String,
-        hearts: Int = 0,
         priority: Priority = Priority.NORMAL,
     ) = SpotRow(
         spot = SpotEntity(
@@ -81,10 +67,8 @@ class ExploreSortingTest {
             priority = priority,
             imageUrl = "",
         ),
-        heartCount = hearts,
         linkCount = 0,
         webLinkCount = 0,
-        heartedByMe = false,
     )
 
     private fun meta(id: String, created: Long) = SyncMeta(

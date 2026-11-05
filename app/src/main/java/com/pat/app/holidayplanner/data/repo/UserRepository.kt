@@ -18,9 +18,6 @@ class UserRepository(
 
     fun observeUsers(): Flow<List<UserEntity>> = dao.observeAll()
 
-    /** How many people share this planner, used to spot a place everyone hearted. */
-    fun observeUserCount(): Flow<Int> = dao.observeCount()
-
     val currentUserId: Flow<String?> = prefs.currentUserId
 
     @OptIn(ExperimentalCoroutinesApi::class)

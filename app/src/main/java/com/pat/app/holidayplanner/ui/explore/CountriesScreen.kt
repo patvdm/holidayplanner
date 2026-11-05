@@ -1,5 +1,7 @@
 package com.pat.app.holidayplanner.ui.explore
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,10 +25,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -46,7 +46,7 @@ import com.pat.app.holidayplanner.ui.components.rememberKeyboardDismiss
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SyncRefreshBox
 import com.pat.app.holidayplanner.ui.components.SyncStatusIcon
-import com.pat.app.holidayplanner.ui.components.PriorityBadge
+import com.pat.app.holidayplanner.ui.components.PriorityStar
 import com.pat.app.holidayplanner.ui.components.ReorderableColumn
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import org.koin.compose.viewmodel.koinViewModel
@@ -96,6 +96,7 @@ fun CountriesScreen(
                         items = state.rows,
                         idOf = { it.country.meta.id },
                         sortKeyOf = { it.country.sortKey },
+                        groupOf = { it.country.priority },
                         reorderable = true,
                         onMoved = viewModel::move,
                         modifier = Modifier.weight(1f),
@@ -175,10 +176,8 @@ private fun CountryRowItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            PriorityBadge(row.country.priority)
+            PriorityStar(row.country.priority, onToggle = { onPriority(row.country.priority.toggled()) })
             RowMenu(
-                currentPriority = row.country.priority,
-                onPriority = onPriority,
                 onRename = onRename,
                 onDelete = onDelete,
             )
@@ -188,11 +187,9 @@ private fun CountryRowItem(
     }
 }
 
-/** The per-row overflow: priority, rename, delete. */
+/** The per-row overflow: rename, delete. */
 @Composable
 fun RowMenu(
-    currentPriority: Priority,
-    onPriority: (Priority) -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -216,17 +213,6 @@ fun RowMenu(
         },
         properties = PopupProperties(focusable = false),
     ) {
-        Priority.entries.forEach { priority ->
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.menu_set_priority, stringResource(priority.label()))) },
-                enabled = priority != currentPriority,
-                onClick = {
-                    expanded = false
-                    onPriority(priority)
-                },
-            )
-        }
-        HorizontalDivider()
         DropdownMenuItem(
             text = { Text(stringResource(R.string.action_rename)) },
             onClick = {

@@ -33,7 +33,7 @@ import com.pat.app.holidayplanner.domain.SortScope
 import com.pat.app.holidayplanner.domain.SpotMark
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
-import com.pat.app.holidayplanner.ui.components.PriorityBadge
+import com.pat.app.holidayplanner.ui.components.PriorityStar
 import com.pat.app.holidayplanner.ui.components.PlaceSearchSheet
 import com.pat.app.holidayplanner.ui.components.PullableEmptyState
 import com.pat.app.holidayplanner.ui.components.SortMenu
@@ -122,7 +122,11 @@ fun SpotsScreen(
 
                     else -> LazyColumn(modifier = Modifier.weight(1f)) {
                         items(state.rows, key = { it.spot.meta.id }) { row ->
-                            SpotListItem(row = row, onClick = { onOpenSpot(row.spot.meta.id) })
+                            SpotListItem(
+                                row = row,
+                                onClick = { onOpenSpot(row.spot.meta.id) },
+                                onTogglePriority = { viewModel.togglePriority(row.spot.meta.id) },
+                            )
                         }
                     }
                 }
@@ -187,7 +191,7 @@ private fun FilterRow(state: SpotsUiState, viewModel: SpotsViewModel) {
 }
 
 @Composable
-private fun SpotListItem(row: SpotListRow, onClick: () -> Unit) {
+private fun SpotListItem(row: SpotListRow, onClick: () -> Unit, onTogglePriority: () -> Unit) {
     Column {
         Row(
             modifier = Modifier
@@ -210,7 +214,6 @@ private fun SpotListItem(row: SpotListRow, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    PriorityBadge(row.spot.priority)
                     StatusChip(row.spot.status)
                     MarkBadges(row.spot.marks)
                     TypeBadge(row.spot.type)
@@ -222,6 +225,7 @@ private fun SpotListItem(row: SpotListRow, onClick: () -> Unit) {
                     )
                 }
             }
+            PriorityStar(row.spot.priority, onToggle = onTogglePriority)
         }
         HorizontalDivider()
     }
