@@ -3,11 +3,13 @@ package com.pat.app.holidayplanner.data.sync
 import android.util.Log
 import com.pat.app.holidayplanner.data.local.SyncStateEntity
 import com.pat.app.holidayplanner.data.local.dao.SyncStateDao
+import com.pat.app.holidayplanner.data.remote.PushError
 import com.pat.app.holidayplanner.data.remote.SheetsBackend
 import com.pat.app.holidayplanner.domain.AppClock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -54,24 +56,45 @@ class SyncRepository(
         result
     }
 
-    private suspend fun pushThenPull(): Result<Unit> {
-        push().onFailure { return Result.failure(it) }
-        return pull()
+    /**
+     * Rows the sheet refused stay dirty and go out again next time, and the run still pulls, so one
+     * bad row never stops the rest arriving; the run then counts as failed, which puts the reason
+     * in Settings.
+     */
+    /**
+     * Syncs, then says how many changes are still only on this phone. An update can drop the local
+     * database (see AppDatabase), so it installs only once this is zero, or once someone says so.
+     */
+    suspend fun sendPending(): Int {
+        sync()
+        return syncStateDao.observePendingCount().first()
     }
 
-    private suspend fun push(): Result<Unit> {
-        val pending = tables.all.flatMap { table -> table.pendingRows(MAX_ROWS_PER_TABLE).map { table to it } }
-        if (pending.isEmpty()) return Result.success(Unit)
+    private suspend fun pushThenPull(): Result<Unit> {
+        val refused = push().getOrElse { return Result.failure(it) }
+        pull().onFailure { return Result.failure(it) }
+        return if (refused.isEmpty()) Result.success(Unit) else Result.failure(RefusedRowsException(refused))
+    }
 
+    /** Pushes every dirty row, and returns what the sheet refused. */
+    private suspend fun push(): Result<List<PushError>> {
+        val pending = tables.all.flatMap { table -> table.pendingRows(MAX_ROWS_PER_TABLE).map { table to it } }
+        if (pending.isEmpty()) return Result.success(emptyList())
+
+        val refused = mutableListOf<PushError>()
         pending.chunked(BATCH_ROWS).forEach { batch ->
             val payload = batch.groupBy({ it.first.sheetName }, { it.second.values })
             val result = backend.push(payload).getOrElse { return Result.failure(it) }
-            Log.d(TAG, "pushed ${result.accepted} rows, skipped ${result.skipped.size}, errors ${result.errors}")
+            Log.d(TAG, "pushed ${result.accepted} rows, skipped ${result.skipped.size}, refused ${result.errors}")
+            refused += result.errors
+            val written = batch.filterNot { (table, row) ->
+                result.errors.any { it.covers(table.sheetName, row.id) }
+            }
             transactor.transaction {
-                batch.groupBy({ it.first }, { it.second }).forEach { (table, rows) -> table.clearDirty(rows) }
+                written.groupBy({ it.first }, { it.second }).forEach { (table, rows) -> table.clearDirty(rows) }
             }
         }
-        return Result.success(Unit)
+        return Result.success(refused)
     }
 
     private suspend fun pull(): Result<Unit> {
@@ -98,3 +121,9 @@ class SyncRepository(
         )
     }
 }
+
+/** The sheet would not take some rows; they stay waiting on this phone and are sent again next time. */
+class RefusedRowsException(val refused: List<PushError>) : Exception(
+    "The sheet refused ${refused.size} changes: " +
+        refused.groupBy { "${it.table} (${it.error})" }.keys.joinToString(", "),
+)

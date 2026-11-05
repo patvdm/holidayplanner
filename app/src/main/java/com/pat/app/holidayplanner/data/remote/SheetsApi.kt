@@ -89,7 +89,9 @@ class SheetsApi(
                 serverTime = body.long("serverTime"),
                 accepted = body.long("accepted").toInt(),
                 skipped = (body["skipped"] as? JsonArray).orEmpty().map { it.text() },
-                errors = (body["errors"] as? JsonArray)?.size ?: 0,
+                errors = (body["errors"] as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }.map {
+                    PushError(table = it.str("table"), id = it.str("id"), error = it.str("error"))
+                },
             )
         }
 

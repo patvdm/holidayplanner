@@ -5,7 +5,20 @@ typealias SheetRows = Map<String, List<Map<String, String>>>
 
 data class PullResult(val serverTime: Long, val changes: SheetRows)
 
-data class PushResult(val serverTime: Long, val accepted: Int, val skipped: List<String>, val errors: Int)
+data class PushResult(
+    val serverTime: Long,
+    val accepted: Int,
+    val skipped: List<String>,
+    val errors: List<PushError> = emptyList(),
+)
+
+/**
+ * A row, or a whole tab, the sheet refused to write. [id] is blank when the whole tab was refused,
+ * for instance because the sheet has no tab of that name yet.
+ */
+data class PushError(val table: String, val id: String, val error: String) {
+    fun covers(sheetName: String, rowId: String): Boolean = table == sheetName && (id.isEmpty() || id == rowId)
+}
 
 /**
  * What sync needs from the backend. [SheetsApi] is the real implementation; tests supply a fake.

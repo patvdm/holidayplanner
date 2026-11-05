@@ -6,6 +6,7 @@ import com.pat.app.holidayplanner.domain.AppClock
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import com.pat.app.holidayplanner.data.remote.PushError
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -140,6 +141,30 @@ class SyncRepositoryTest {
         assertTrue(result.isSuccess)
         assertEquals("Remote", dao.rows.getValue("u9").name)
     }
+    @Test
+    fun `a row the sheet refuses stays waiting while the rest are sent and the pull still runs`() = runTest {
+        dao.rows["bad"] = user(id = "bad", name = "Bad", updatedAt = 100, dirty = true)
+        dao.rows["good"] = user(id = "good", name = "Good", updatedAt = 100, dirty = true)
+        backend.refuse = listOf(PushError(table = "Users", id = "bad", error = "invalid_row"))
+
+        val result = repository().sync()
+
+        assertTrue(result.isFailure)
+        assertTrue(dao.rows.getValue("bad").meta.dirty)
+        assertEquals(false, dao.rows.getValue("good").meta.dirty)
+        assertEquals(0L, backend.pullSince)
+    }
+
+    @Test
+    fun `a whole tab refused keeps every row of it waiting`() = runTest {
+        dao.rows["u1"] = user(id = "u1", name = "One", updatedAt = 100, dirty = true)
+        backend.refuse = listOf(PushError(table = "Users", id = "", error = "missing_sheet"))
+
+        val result = repository().sync()
+
+        assertTrue(result.isFailure)
+        assertTrue(dao.rows.getValue("u1").meta.dirty)
+    }
 }
 
 private object DirectTransactor : Transactor {
@@ -170,4 +195,5 @@ private class FakeOutcomeStore : SyncOutcomeStore {
     override suspend fun recordSyncError(message: String) {
         lastError = message
     }
+
 }

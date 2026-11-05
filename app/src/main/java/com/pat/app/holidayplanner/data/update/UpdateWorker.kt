@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.update
 
+import com.pat.app.holidayplanner.data.sync.SyncRepository
 import android.app.Activity
 import android.app.Application
 import android.content.Context
@@ -32,10 +33,15 @@ class UpdateWorker(
 ) : CoroutineWorker(context, params), KoinComponent {
 
     private val updater: AppUpdater by inject()
+    private val sync: SyncRepository by inject()
 
     override suspend fun doWork(): Result {
         val found = updater.check(allowDownload = true)
-        if (found == UpdateCheck.READY && !AppVisibility.visible) updater.install(interactive = false)
+        // Edits not yet on the sheet would be lost if the update rebuilds the database, so it waits
+        // for the next hourly check rather than installing over them.
+        if (found == UpdateCheck.READY && !AppVisibility.visible && sync.sendPending() == 0) {
+            updater.install(interactive = false)
+        }
         return if (found == UpdateCheck.FAILED) Result.retry() else Result.success()
     }
 }

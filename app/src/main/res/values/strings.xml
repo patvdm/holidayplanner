@@ -144,6 +144,12 @@
     <string name="update_message">Version %1$s is downloaded. Installing closes the app for a moment; open it again afterwards.</string>
     <string name="update_install">Install</string>
     <string name="update_later">Later</string>
+    <string name="update_unsent_title">Changes not sent yet</string>
+    <plurals name="update_unsent_message">
+        <item quantity="one">%1$d change has not reached the sheet yet, probably for want of a connection. If this update changes how the app stores things, it would be lost. Install anyway, or wait until you are online?</item>
+        <item quantity="other">%1$d changes have not reached the sheet yet, probably for want of a connection. If this update changes how the app stores things, they would be lost. Install anyway, or wait until you are online?</item>
+    </plurals>
+    <string name="update_install_anyway">Install anyway</string>
     <string name="update_check">Check for updates</string>
     <string name="update_checking">Checking…</string>
     <string name="update_up_to_date">This is the latest version.</string>
