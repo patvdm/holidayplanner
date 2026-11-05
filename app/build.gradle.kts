@@ -155,6 +155,10 @@ dependencies {
     testImplementation(libs.koin.test)
     // Koin's module verification reflects over constructors; pin reflect to our Kotlin version.
     testImplementation(libs.kotlin.reflect)
+    // An in-memory Room database on the JVM, so the SQL behind the screens is tested, not just compiled.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.work.testing)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
