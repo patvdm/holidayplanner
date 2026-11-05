@@ -12,8 +12,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material3.Icon
@@ -30,8 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pat.app.holidayplanner.data.local.SpotPin
 import com.pat.app.holidayplanner.domain.Priority
+import com.pat.app.holidayplanner.domain.SpotMark
 import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.SpotType
+import com.pat.app.holidayplanner.domain.hasMark
 
 /** How many characters of a spot's name ride above its pin before the rest is cut off. */
 const val MARKER_LABEL_CHARS = 12
@@ -60,6 +64,20 @@ fun SpotPin.pinStyle(): PinStyle = when {
     else -> PinStyle.NORMAL
 }
 
+/**
+ * What the icon on a pin's head says the place is for. A drone spot is still a viewpoint or a
+ * beach, but flying is why it was saved, so it wears the drone; a restaurant or a hotel keeps its
+ * own icon even if marked, since eating or sleeping there is the point.
+ */
+enum class PinKind { FOOD, STAY, DRONE, PLACE }
+
+fun SpotPin.pinKind(): PinKind = when {
+    type == SpotType.RESTAURANT -> PinKind.FOOD
+    type == SpotType.ACCOMMODATION -> PinKind.STAY
+    marks.hasMark(SpotMark.DRONE) -> PinKind.DRONE
+    else -> PinKind.PLACE
+}
+
 private val Charcoal = Color(0xFF3C4043)
 private val Orange = Color(0xFFF4511E)
 private val Faded = Color(0xFF9AA0A6)
@@ -70,9 +88,15 @@ private val HighPinHead = 32.dp
 private val TickSize = 14.dp
 private val BadgeSize = 14.dp
 
+/** The start and end of a walk are what you look for, so their signs are a touch larger. */
+private val EndBadgeSize = 16.dp
+
 /** Badges sit half over the head's rim, so they read as attached rather than inside it. */
 private val BadgeNudge = 4.dp
 private val RouteBlue = Color(0xFF1A73E8)
+private val StartGreen = Color(0xFF188038)
+private val EndRed = Color(0xFFC5221F)
+private val WalkedGrey = Color(0xFF80868B)
 private const val ICON_SHARE_OF_HEAD = 0.6f
 
 /** Head colour, what is drawn on it, and its rim, in that order. */
@@ -85,11 +109,33 @@ private val PinStyle.colours: PinColours
         PinStyle.NORMAL -> PinColours(head = Charcoal, ink = Color.White, rim = Color.White)
     }
 
-private val SpotType.icon: ImageVector
+private val PinKind.icon: ImageVector
     get() = when (this) {
-        SpotType.RESTAURANT -> Icons.Filled.Restaurant
-        SpotType.ACCOMMODATION -> Icons.Filled.Hotel
-        SpotType.POI -> Icons.Filled.Place
+        PinKind.FOOD -> Icons.Filled.Restaurant
+        PinKind.STAY -> Icons.Filled.Hotel
+        PinKind.DRONE -> DroneIcon
+        PinKind.PLACE -> Icons.Filled.Place
+    }
+
+/**
+ * A route sign's icon and colour. The shape says where on the walk the spot is: a play arrow where
+ * it sets off, a flag where it ends, the road sign in between. The colour says start green, end
+ * red, in between blue, and all of them grey once the walk is done, so a finished walk still shows
+ * its shape without competing with the ones ahead.
+ */
+private val RouteBadge.icon: ImageVector
+    get() = when (role) {
+        RouteRole.START -> Icons.Filled.PlayArrow
+        RouteRole.END -> Icons.Filled.Flag
+        RouteRole.STOP -> Icons.Filled.Route
+    }
+
+private val RouteBadge.colour: Color
+    get() = when {
+        walked -> WalkedGrey
+        role == RouteRole.START -> StartGreen
+        role == RouteRole.END -> EndRed
+        else -> RouteBlue
     }
 
 private val LabelText = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium)
@@ -98,10 +144,10 @@ private val LabelText = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medi
  * One pin as drawn on the map: the start of the name in a white tag, a round head carrying the
  * spot's kind, and a point underneath whose tip is the exact position. A high-priority pin is a
  * little larger so it still stands out where pins crowd together; a visited one wears a tick, and
- * one that is a stop on a walk still to do wears a small blue route sign.
+ * one on a route wears a small route sign saying where on the walk it is (see [RouteBadge.icon]).
  */
 @Composable
-fun PinMarker(pin: SpotPin) {
+fun PinMarker(pin: SpotPin, route: RouteBadge?) {
     val style = pin.pinStyle()
     val colours = style.colours
     val head = if (style == PinStyle.HIGH) HighPinHead else PinHead
@@ -125,23 +171,23 @@ fun PinMarker(pin: SpotPin) {
                     .border(2.dp, colours.rim, CircleShape),
             ) {
                 Icon(
-                    imageVector = pin.type.icon,
+                    imageVector = pin.pinKind().icon,
                     contentDescription = null,
                     tint = colours.ink,
                     modifier = Modifier.size(head * ICON_SHARE_OF_HEAD),
                 )
             }
-            if (pin.onRoute) {
-                // On a walk still to do: a small blue road sign at the head's top left.
+            if (route != null) {
+                // On a walk: a small route sign at the head's top left.
                 Icon(
-                    imageVector = Icons.Filled.Route,
+                    imageVector = route.icon,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .offset(x = -BadgeNudge, y = -BadgeNudge)
-                        .size(BadgeSize)
-                        .background(RouteBlue, CircleShape)
+                        .size(if (route.role == RouteRole.STOP) BadgeSize else EndBadgeSize)
+                        .background(route.colour, CircleShape)
                         .border(1.dp, Color.White, CircleShape)
                         .padding(2.dp),
                 )

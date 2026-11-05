@@ -42,11 +42,11 @@ interface RouteStopDao : SyncDao<RouteStopEntity> {
 
     /**
      * Every stop with a position on every route, route by route in walking order, which is what
-     * the map draws its lines through. Walked routes come too, marked, for showing one on request.
+     * the map draws its lines through. Walked routes come too, marked, and are drawn in grey.
      */
     @Query(
         """
-        SELECT r.id AS routeId, r.name AS routeName, r.cityId AS cityId, r.createdAt AS createdAt,
+        SELECT r.id AS routeId, st.spotId AS spotId, r.name AS routeName, r.cityId AS cityId, r.createdAt AS createdAt,
             r.completed AS completed, s.lat AS lat, s.lng AS lng
         FROM route_stops st
         JOIN routes r ON r.id = st.routeId

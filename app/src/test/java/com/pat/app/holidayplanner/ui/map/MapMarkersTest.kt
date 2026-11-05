@@ -9,9 +9,14 @@ import org.junit.Test
 
 class MapMarkersTest {
 
-    private fun pin(status: SpotStatus = SpotStatus.UNVISITED, priority: Priority = Priority.NORMAL) = SpotPin(
+    private fun pin(
+        status: SpotStatus = SpotStatus.UNVISITED,
+        priority: Priority = Priority.NORMAL,
+        type: SpotType = SpotType.POI,
+        marks: String = "",
+    ) = SpotPin(
         spotId = "s", name = "Micropia", lat = 52.0, lng = 4.0, status = status, priority = priority,
-        type = SpotType.POI, onRoute = false,
+        type = type, marks = marks,
         cityId = "c", cityName = "Amsterdam", countryId = "nl", countryName = "Netherlands",
     )
 
@@ -48,5 +53,14 @@ class MapMarkersTest {
     fun `an unvisited high priority spot stands out`() {
         assertEquals(PinStyle.HIGH, pin(priority = Priority.HIGH).pinStyle())
         assertEquals(PinStyle.NORMAL, pin().pinStyle())
+    }
+
+    @Test
+    fun `a drone spot wears the drone unless it is somewhere to eat or sleep`() {
+        assertEquals(PinKind.DRONE, pin(marks = "drone").pinKind())
+        assertEquals(PinKind.DRONE, pin(marks = "future drone").pinKind())
+        assertEquals(PinKind.FOOD, pin(type = SpotType.RESTAURANT, marks = "drone").pinKind())
+        assertEquals(PinKind.STAY, pin(type = SpotType.ACCOMMODATION).pinKind())
+        assertEquals(PinKind.PLACE, pin().pinKind())
     }
 }

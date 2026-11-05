@@ -7,9 +7,16 @@ import org.junit.Test
 
 class RouteLinesTest {
 
-    private fun stop(route: String, city: String, made: Long, lat: Double) = RouteLinePoint(
-        routeId = route, routeName = "Walk $route", cityId = city, createdAt = made,
-        completed = false, lat = lat, lng = 4.9,
+    private fun stop(
+        route: String,
+        city: String = "ams",
+        made: Long = 1,
+        lat: Double = 52.0,
+        spot: String = "",
+        walked: Boolean = false,
+    ) = RouteLinePoint(
+        routeId = route, spotId = spot, routeName = "Walk $route", cityId = city, createdAt = made,
+        completed = walked, lat = lat, lng = 4.9,
     )
 
     @Test
@@ -45,5 +52,44 @@ class RouteLinesTest {
         assertEquals(RouteLineStyle(colourIndex = 4, dashed = false), RouteLineStyle.of(4, colours = 5))
         assertEquals(RouteLineStyle(colourIndex = 0, dashed = true), RouteLineStyle.of(5, colours = 5))
         assertEquals(RouteLineStyle(colourIndex = 1, dashed = false), RouteLineStyle.of(11, colours = 5))
+    }
+
+    @Test
+    fun `a walked route is drawn but takes no colour from the walks ahead`() {
+        val lines = listOf(
+            stop("done", made = 1, walked = true), stop("done", made = 1, walked = true),
+            stop("next", made = 2), stop("next", made = 2),
+        ).toRouteLines().associateBy { it.routeId }
+
+        assertEquals(true, lines.getValue("done").walked)
+        assertEquals(false, lines.getValue("next").walked)
+        assertEquals(0, lines.getValue("next").style)
+    }
+
+    @Test
+    fun `the first stop starts a route, the last ends it and the rest are along the way`() {
+        val badges = listOf(stop("r", spot = "a"), stop("r", spot = "b"), stop("r", spot = "c")).routeBadges()
+
+        assertEquals(RouteRole.START, badges.getValue("a").role)
+        assertEquals(RouteRole.STOP, badges.getValue("b").role)
+        assertEquals(RouteRole.END, badges.getValue("c").role)
+    }
+
+    @Test
+    fun `a route of one positioned stop has no start or end`() {
+        assertEquals(RouteBadge(RouteRole.STOP, walked = false), listOf(stop("r", spot = "a")).routeBadges()["a"])
+    }
+
+    @Test
+    fun `a walk ahead outranks a walked one, and a start or end outranks a stop`() {
+        val badges = listOf(
+            stop("old", spot = "a", walked = true), stop("old", spot = "x", walked = true),
+            stop("new", spot = "y"), stop("new", spot = "a"), stop("new", spot = "z"),
+            stop("other", spot = "y"), stop("other", spot = "q"),
+        ).routeBadges()
+
+        assertEquals(RouteBadge(RouteRole.STOP, walked = false), badges["a"])
+        assertEquals(RouteBadge(RouteRole.START, walked = false), badges["y"])
+        assertEquals(RouteBadge(RouteRole.END, walked = true), badges["x"])
     }
 }

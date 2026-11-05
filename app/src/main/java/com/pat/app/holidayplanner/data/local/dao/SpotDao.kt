@@ -117,11 +117,7 @@ interface SpotDao : SyncDao<SpotEntity> {
     @Query(
         """
         SELECT s.id AS spotId, s.name AS name, s.lat AS lat, s.lng AS lng, s.status AS status,
-            s.priority AS priority, s.type AS type,
-            EXISTS (
-                SELECT 1 FROM route_stops st JOIN routes r ON r.id = st.routeId
-                WHERE st.spotId = s.id AND st.deleted = 0 AND r.deleted = 0 AND r.completed = 0
-            ) AS onRoute,
+            s.priority AS priority, s.type AS type, s.marks AS marks,
             s.parentCityId AS cityId, COALESCE(p.name, '') AS cityName, c.id AS countryId,
             c.name AS countryName
         FROM spots s

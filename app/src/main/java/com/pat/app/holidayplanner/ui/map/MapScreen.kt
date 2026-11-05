@@ -101,12 +101,13 @@ fun MapScreen(
     Scaffold(
         topBar = { BackTopBar(stringResource(R.string.map_title), onBack = onBack) },
     ) { padding ->
-        if (state.pins.isEmpty()) {
+        if (!state.hasPins) {
             EmptyListMessage(stringResource(R.string.map_no_pins), Modifier.padding(padding))
             return@Scaffold
         }
         SpotMap(
             pins = state.pins,
+            badges = state.badges,
             focus = state.focus,
             showMyLocation = locationAllowed,
             detail = detail,
@@ -116,6 +117,7 @@ fun MapScreen(
                 onShow = viewModel::setShowsRoutes,
                 onOpen = onOpenRoute,
             ),
+            filter = FoodFilter(only = state.foodOnly, onChange = viewModel::setFoodOnly),
             onSelect = viewModel::select,
             onOpenSpot = onOpenSpot,
             onAddToRoute = { addingToRoute = it },
@@ -141,10 +143,12 @@ fun MapScreen(
 @Composable
 private fun SpotMap(
     pins: List<SpotPin>,
+    badges: Map<String, RouteBadge>,
     focus: MapFocus?,
     showMyLocation: Boolean,
     detail: PinDetail?,
     routes: RouteLayerState,
+    filter: FoodFilter,
     onSelect: (String?) -> Unit,
     onOpenSpot: (String) -> Unit,
     onAddToRoute: (SpotPin) -> Unit,
@@ -158,6 +162,10 @@ private fun SpotMap(
     var chosenRoute by remember { mutableStateOf<RouteLine?>(null) }
     // The card's notes and links load for whichever pin is up.
     LaunchedEffect(selected?.spotId) { onSelect(selected?.spotId) }
+    // A pin the filter has just hidden takes its card with it.
+    LaunchedEffect(pins) {
+        if (pins.none { it.spotId == selected?.spotId }) selected = null
+    }
     // Both survive a trip to a spot and back, so the map is left where it was, not re-aimed.
     val camera = rememberCameraPositionState()
     var aimed by rememberSaveable { mutableStateOf(false) }
@@ -206,8 +214,8 @@ private fun SpotMap(
                 MarkerComposable(
                     pin.name,
                     pin.pinStyle(),
-                    pin.type,
-                    pin.onRoute,
+                    pin.pinKind(),
+                    badges[pin.spotId] ?: NO_BADGE,
                     state = rememberUpdatedMarkerState(position = LatLng(pin.lat, pin.lng)),
                     title = pin.name,
                     snippet = pin.cityName.ifBlank { pin.countryName },
@@ -220,24 +228,19 @@ private fun SpotMap(
                         true
                     },
                 ) {
-                    PinMarker(pin)
+                    PinMarker(pin, badges[pin.spotId])
                 }
             }
         }
 
-        // Shown while there is something to switch, and always while switched off, to switch back.
-        if (routes.lines.isNotEmpty() || !routes.showing) {
-            RoutesChip(
-                showing = routes.showing,
-                onChange = {
-                    routes.onShow(it)
-                    if (!it) chosenRoute = null
-                },
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(12.dp),
-            )
-        }
+        MapChips(
+            routes = routes,
+            filter = filter,
+            onRoutesOff = { chosenRoute = null },
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(12.dp),
+        )
 
         chosenRoute?.let { route ->
             RouteCard(
@@ -264,6 +267,32 @@ private fun SpotMap(
         }
     }
 }
+
+/** The switches over the map's top left corner: route lines, and food only. */
+@Composable
+private fun MapChips(
+    routes: RouteLayerState,
+    filter: FoodFilter,
+    onRoutesOff: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Shown while there is something to switch, and always while switched off, to switch back.
+        if (routes.lines.isNotEmpty() || !routes.showing) {
+            RoutesChip(
+                showing = routes.showing,
+                onChange = {
+                    routes.onShow(it)
+                    if (!it) onRoutesOff()
+                },
+            )
+        }
+        FoodOnlyChip(only = filter.only, onChange = filter.onChange)
+    }
+}
+
+/** Whether the map shows only places to eat, and how to change that. */
+private class FoodFilter(val only: Boolean, val onChange: (Boolean) -> Unit)
 
 /** The route lines and what they can do, handed to the map as one. */
 private class RouteLayerState(
@@ -336,3 +365,6 @@ private fun SpotCard(
 
 /** About a third of a phone screen: room for a good note, with the pin still in view above it. */
 private val CARD_BODY_MAX_HEIGHT = 220.dp
+
+/** Stands in for "no route sign" among a marker's keys, which cannot be null. */
+private const val NO_BADGE = "none"

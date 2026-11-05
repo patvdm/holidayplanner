@@ -127,17 +127,18 @@ data class SpotPin(
     val status: SpotStatus,
     val priority: Priority,
     val type: SpotType,
-    /** A stop on at least one route not yet walked. */
-    val onRoute: Boolean,
+    /** What the spot is good for, as space-separated keys; see SpotMark. */
+    val marks: String,
     val cityId: String,
     val cityName: String,
     val countryId: String,
     val countryName: String,
 )
 
-/** One stop of a route as the map draws it: where it is, and which route it belongs to. */
+/** One stop of a route as the map draws it: where it is, which spot, and which route it belongs to. */
 data class RouteLinePoint(
     val routeId: String,
+    val spotId: String,
     val routeName: String,
     val cityId: String,
     val createdAt: Long,

@@ -11,6 +11,7 @@ import com.pat.app.holidayplanner.data.repo.SpotPinRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.GeoPoint
 import com.pat.app.holidayplanner.domain.MapView
+import com.pat.app.holidayplanner.domain.SpotType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -57,11 +58,17 @@ data class PinDetail(
 )
 
 data class MapUiState(
+    /** The pins to draw, after the food filter. */
     val pins: List<SpotPin> = emptyList(),
+    /** Whether there is anything with a position at all, filter or not. */
+    val hasPins: Boolean = false,
     val focus: MapFocus? = null,
-    /** The routes still to walk, as lines; empty while they are switched off. */
+    /** Every route as a line, walked ones marked; empty while they are switched off. */
     val lines: List<RouteLine> = emptyList(),
+    /** The route sign each pin on a route wears, by spot id. */
+    val badges: Map<String, RouteBadge> = emptyMap(),
     val showsRoutes: Boolean = true,
+    val foodOnly: Boolean = false,
 )
 
 /**
@@ -111,22 +118,31 @@ class MapViewModel(
         prefs.mapView.take(1),
         routes.observeLinePoints(),
         prefs.mapShowsRoutes,
-    ) { all, saved, stops, showsRoutes ->
-        val shown = if (showsRoutes) stops.filterNot { it.completed }.toRouteLines() else emptyList()
+        prefs.mapFoodOnly,
+    ) { all, saved, stops, showsRoutes, foodOnly ->
+        val shown = if (showsRoutes) stops.toRouteLines() else emptyList()
         // The route the map was opened for is drawn whatever else is: even walked, even switched off.
         val askedStops = stops.filter { scope.routeId.isNotEmpty() && it.routeId == scope.routeId }
         val asked = askedStops.toRouteLines().firstOrNull()
             ?.takeIf { line -> shown.none { it.routeId == line.routeId } }
         MapUiState(
-            pins = all,
+            // The spot the map was opened for stays, food or not, or "Our map" would show nothing.
+            pins = if (foodOnly) all.filter { it.type == SpotType.RESTAURANT || it.spotId == scope.spotId } else all,
+            hasPins = all.isNotEmpty(),
             focus = all.focus(saved, askedStops.map { GeoPoint(it.lat, it.lng) }),
             lines = shown + listOfNotNull(asked),
+            badges = stops.routeBadges(),
             showsRoutes = showsRoutes,
+            foodOnly = foodOnly,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MapUiState())
 
     fun setShowsRoutes(show: Boolean) {
         viewModelScope.launch { prefs.setMapShowsRoutes(show) }
+    }
+
+    fun setFoodOnly(only: Boolean) {
+        viewModelScope.launch { prefs.setMapFoodOnly(only) }
     }
 
     /** Called each time the map comes to rest, so the next plain opening carries on from here. */

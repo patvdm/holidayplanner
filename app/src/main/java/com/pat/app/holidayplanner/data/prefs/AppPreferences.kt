@@ -72,11 +72,18 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
         store.edit { it[KEY_MAP_VIEW] = view.format() }
     }
 
-    /** Whether the map draws the routes still to walk. On until switched off. */
+    /** Whether the map draws the route lines, walked ones in grey. On until switched off. */
     val mapShowsRoutes: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_MAP_SHOWS_ROUTES] != false }
 
     suspend fun setMapShowsRoutes(show: Boolean) {
         store.edit { it[KEY_MAP_SHOWS_ROUTES] = show }
+    }
+
+    /** Whether the map shows only places to eat. Off until switched on. */
+    val mapFoodOnly: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_MAP_FOOD_ONLY] == true }
+
+    suspend fun setMapFoodOnly(only: Boolean) {
+        store.edit { it[KEY_MAP_FOOD_ONLY] = only }
     }
 
     fun sortMode(scope: SortScope): Flow<SortMode> = store.data.map { prefs ->
@@ -120,6 +127,7 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_MAP_VIEW = stringPreferencesKey("map_view")
         val KEY_MAP_SHOWS_ROUTES = booleanPreferencesKey("map_shows_routes")
+        val KEY_MAP_FOOD_ONLY = booleanPreferencesKey("map_food_only")
         // Renamed when the search learns something new, so spots it gave up on get one more try.
         val KEY_SPOT_PICTURE_RETRY = booleanPreferencesKey("spot_picture_retry_town_named_spots")
         val KEY_BACKEND_URL = stringPreferencesKey("backend_url")
