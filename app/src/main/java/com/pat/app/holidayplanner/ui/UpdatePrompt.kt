@@ -5,7 +5,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -23,7 +23,7 @@ import org.koin.compose.koinInject
 @Composable
 fun UpdatePrompt(updater: AppUpdater = koinInject()) {
     val update by updater.state.collectAsStateWithLifecycle()
-    var dismissedCode by rememberSaveable { mutableStateOf(0L) }
+    var dismissedCode by rememberSaveable { mutableLongStateOf(0L) }
     val scope = rememberCoroutineScope()
     val ready = update ?: return
     if (ready.versionCode == dismissedCode) return

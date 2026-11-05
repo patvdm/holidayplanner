@@ -27,7 +27,6 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:theme="@style/Theme.HolidayPlanner"
             android:windowSoftInputMode="adjustResize|stateUnchanged">
             <intent-filter>
@@ -41,7 +40,6 @@
             android:name=".ui.share.ShareActivity"
             android:excludeFromRecents="true"
             android:exported="true"
-            android:label="@string/app_name"
             android:noHistory="true"
             android:taskAffinity=""
             android:theme="@style/Theme.HolidayPlanner.Share">

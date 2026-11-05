@@ -163,7 +163,7 @@ fun RouteCard(route: RouteLine, onOpen: () -> Unit, modifier: Modifier = Modifie
                 Text(route.name, style = MaterialTheme.typography.titleMedium)
                 val stops = pluralStringResource(R.plurals.map_route_stops, route.points.size, route.points.size)
                 Text(
-                    text = if (route.walked) "${stringResource(R.string.map_route_walked)} · $stops" else stops,
+                    text = if (route.walked) stringResource(R.string.map_route_walked, stops) else stops,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

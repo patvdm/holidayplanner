@@ -138,8 +138,7 @@ class AppUpdater(
     private fun describe(file: File): ReadyUpdate? {
         val info = context.packageManager.getPackageArchiveInfo(file.path, 0) ?: return null
         if (info.packageName != context.packageName) return null
-        val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode else 0L
-        return ReadyUpdate(versionName = info.versionName.orEmpty(), versionCode = code, file = file)
+        return ReadyUpdate(versionName = info.versionName.orEmpty(), versionCode = info.longVersionCode, file = file)
     }
 
     private suspend fun forgetDownloads(keepCode: Long?) = withContext(Dispatchers.IO) {

@@ -2,6 +2,7 @@ package com.pat.app.holidayplanner.data.image
 
 import android.content.Context
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -71,7 +72,7 @@ class PhotoQueue(
     /** Only files in our own folder, whatever the address claims. */
     private fun fileOf(url: String): File? {
         if (!isWaiting(url)) return null
-        val file = File(Uri.parse(url).path ?: return null)
+        val file = File(url.toUri().path ?: return null)
         return file.takeIf { it.parentFile?.canonicalPath == folder.canonicalPath }
     }
 
