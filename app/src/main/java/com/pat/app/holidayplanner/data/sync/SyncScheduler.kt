@@ -19,8 +19,12 @@ import kotlin.time.toJavaDuration
 private const val WORK_NOW = "sync_now"
 private const val WORK_DEBOUNCED = "sync_debounced"
 private const val WORK_PERIODIC = "sync_periodic"
+private const val WORK_DEADLINE = "sync_deadline"
 
 private val DEBOUNCE = 3.seconds
+
+/** The longest a write waits for its sync, however many more writes keep arriving. */
+private val MAX_WAIT = 30.seconds
 private val PERIOD = 15.minutes
 
 /**
@@ -48,18 +52,21 @@ class SyncScheduler(context: Context) {
 
     /**
      * Called after a local write. Replacing the pending request debounces a burst of edits into one
-     * sync a few seconds after the last of them.
+     * sync a few seconds after the last of them. A steady stream of writes, such as a background
+     * fill saving a spot every second or two, would push that back for ever, so the first write
+     * also sets a deadline that later ones leave alone.
      */
     fun syncAfterLocalWrite() {
         enqueue(WORK_DEBOUNCED, DEBOUNCE)
+        enqueue(WORK_DEADLINE, MAX_WAIT, ExistingWorkPolicy.KEEP)
     }
 
-    private fun enqueue(name: String, delay: Duration) {
+    private fun enqueue(name: String, delay: Duration, policy: ExistingWorkPolicy = ExistingWorkPolicy.REPLACE) {
         val request = OneTimeWorkRequestBuilder<SyncWorker>()
             .setInitialDelay(delay.toJavaDuration())
             .applyDefaults()
             .build()
-        workManager.enqueueUniqueWork(name, ExistingWorkPolicy.REPLACE, request)
+        workManager.enqueueUniqueWork(name, policy, request)
     }
 }
 
