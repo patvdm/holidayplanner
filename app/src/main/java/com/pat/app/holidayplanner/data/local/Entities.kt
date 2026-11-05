@@ -81,6 +81,8 @@ data class SpotEntity(
     val sortKey: String,
     val priority: Priority,
     val imageUrl: String,
+    /** When it is open, as [com.pat.app.holidayplanner.domain.OpeningHours] writes it; blank until asked. */
+    val openingHours: String = "",
 ) : SyncEntity
 
 /**

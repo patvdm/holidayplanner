@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.local.dao
 
+import com.pat.app.holidayplanner.data.local.RouteStopHours
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
@@ -22,7 +23,7 @@ interface TripItemDao : SyncDao<TripItemEntity> {
         """
         SELECT i.*,
             s.name AS spotName, s.priority AS spotPriority, s.status AS spotStatus, s.type AS spotType, s.marks AS spotMarks,
-            s.imageUrl AS spotImageUrl,
+            s.imageUrl AS spotImageUrl, s.openingHours AS spotOpeningHours,
             r.name AS routeName, r.completed AS routeCompleted, rc.name AS routeCityName,
             (SELECT COUNT(*) FROM route_stops st WHERE st.routeId = r.id AND st.deleted = 0) AS routeStopCount
         FROM trip_items i
@@ -34,6 +35,20 @@ interface TripItemDao : SyncDao<TripItemEntity> {
         """,
     )
     fun observeRowsByTrip(tripId: String): Flow<List<TripItemRow>>
+
+    /** When each stop on this trip's routes is open, so a day can warn about one that is shut. */
+    @Query(
+        """
+        SELECT st.routeId AS routeId, s.name AS spotName, s.openingHours AS openingHours
+        FROM route_stops st
+        JOIN spots s ON s.id = st.spotId AND s.deleted = 0
+        WHERE st.deleted = 0 AND st.routeId IN (
+            SELECT routeId FROM trip_items WHERE tripId = :tripId AND deleted = 0 AND routeId != ''
+        )
+        ORDER BY st.routeId, st.sortKey
+        """,
+    )
+    fun observeStopHours(tripId: String): Flow<List<RouteStopHours>>
 
     /** The zone last used on this trip, so a new item starts where the previous one left off. */
     @Query(

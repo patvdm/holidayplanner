@@ -1,5 +1,11 @@
 package com.pat.app.holidayplanner.data.remote
 
+import java.time.LocalTime
+import java.time.LocalDate
+import java.time.DayOfWeek
+import com.pat.app.holidayplanner.domain.OpenPeriod
+import com.pat.app.holidayplanner.domain.OpeningHours
+import com.google.android.libraries.places.api.net.SearchByTextRequest
 import android.content.Context
 import android.util.Log
 import com.google.android.gms.common.api.ApiException
@@ -17,6 +23,9 @@ import java.io.IOException
 import kotlinx.coroutines.tasks.await
 
 private const val TAG = "GooglePlacesSearch"
+
+/** How close to a spot's saved position its Google place is looked for, in metres. */
+private const val FIND_RADIUS_M = 250.0
 
 /** How far around the current place suggestions are preferred, in metres. */
 private const val BIAS_RADIUS_M = 30_000.0
@@ -88,6 +97,25 @@ class GooglePlacesSearch(private val context: Context) : PlacesSearch {
         }
     }
 
+    override suspend fun openingHours(googlePlaceId: String): Result<OpeningHours> {
+        val places = client ?: return notConfigured()
+        val request = FetchPlaceRequest.builder(googlePlaceId, listOf(Place.Field.OPENING_HOURS)).build()
+        return runCatchingPlaces("hours") {
+            places.fetchPlace(request).await().place.openingHours.toOpeningHours(LocalDate.now())
+        }
+    }
+
+    override suspend fun findPlaceId(name: String, lat: Double, lng: Double): Result<String?> {
+        val places = client ?: return notConfigured()
+        val request = SearchByTextRequest.builder(name, listOf(Place.Field.ID))
+            .setLocationBias(CircularBounds.newInstance(LatLng(lat, lng), FIND_RADIUS_M))
+            .setMaxResultCount(1)
+            .build()
+        return runCatchingPlaces("find") {
+            places.searchByText(request).await().places.firstOrNull()?.id
+        }
+    }
+
     private fun createClient(): PlacesClient? {
         if (!isConfigured) return null
         return try {
@@ -138,3 +166,40 @@ private fun Place.toDetails(requestedId: String) = PlaceDetails(
         )
     },
 )
+
+/**
+ * Google's periods in our own form. Always open comes as one period from Sunday midnight with no
+ * close; a period missing either end otherwise is dropped rather than guessed at.
+ */
+private fun com.google.android.libraries.places.api.model.OpeningHours?.toOpeningHours(today: LocalDate): OpeningHours {
+    val periods = this?.periods.orEmpty()
+    if (periods.size == 1 && periods.first().close == null) {
+        return OpeningHours(today, always = true, periods = emptyList())
+    }
+    return OpeningHours(
+        checked = today,
+        always = false,
+        periods = periods.mapNotNull { period ->
+            val open = period.open ?: return@mapNotNull null
+            val close = period.close ?: return@mapNotNull null
+            OpenPeriod(
+                openDay = open.day.toJava(),
+                open = LocalTime.of(open.time.hours, open.time.minutes),
+                closeDay = close.day.toJava(),
+                close = LocalTime.of(close.time.hours % HOURS_PER_DAY, close.time.minutes),
+            )
+        },
+    )
+}
+
+private const val HOURS_PER_DAY = 24
+
+private fun com.google.android.libraries.places.api.model.DayOfWeek.toJava(): DayOfWeek = when (this) {
+    com.google.android.libraries.places.api.model.DayOfWeek.MONDAY -> DayOfWeek.MONDAY
+    com.google.android.libraries.places.api.model.DayOfWeek.TUESDAY -> DayOfWeek.TUESDAY
+    com.google.android.libraries.places.api.model.DayOfWeek.WEDNESDAY -> DayOfWeek.WEDNESDAY
+    com.google.android.libraries.places.api.model.DayOfWeek.THURSDAY -> DayOfWeek.THURSDAY
+    com.google.android.libraries.places.api.model.DayOfWeek.FRIDAY -> DayOfWeek.FRIDAY
+    com.google.android.libraries.places.api.model.DayOfWeek.SATURDAY -> DayOfWeek.SATURDAY
+    com.google.android.libraries.places.api.model.DayOfWeek.SUNDAY -> DayOfWeek.SUNDAY
+}

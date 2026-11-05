@@ -132,6 +132,7 @@ class TripPlanTest {
         spotType = null,
         spotMarks = null,
         spotImageUrl = null,
+        spotOpeningHours = null,
         routeName = null,
         routeCompleted = null,
         routeCityName = null,

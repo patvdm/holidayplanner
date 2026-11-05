@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.remote
 
+import com.pat.app.holidayplanner.domain.OpeningHours
 import com.pat.app.holidayplanner.domain.AddressPart
 
 /** One suggestion while typing. [secondaryText] is the "Den Haag, Netherlands" line under the name. */
@@ -54,4 +55,17 @@ interface PlacesSearch {
 
     /** Fetches the picked place with the smallest field list that answers where it is. */
     suspend fun details(googlePlaceId: String, session: PlacesSession): Result<PlaceDetails>
+
+    /**
+     * The place's weekly hours, with nothing else, since hours are billed at Google's dearest tier:
+     * one request on its own keeps every other lookup in the cheap one. Unknown hours when Google
+     * has none.
+     */
+    suspend fun openingHours(googlePlaceId: String): Result<OpeningHours>
+
+    /**
+     * Google's id for a spot saved without one, by name close to where it is. Asks for the id alone,
+     * which Google does not charge for. Null when nothing matches.
+     */
+    suspend fun findPlaceId(name: String, lat: Double, lng: Double): Result<String?>
 }

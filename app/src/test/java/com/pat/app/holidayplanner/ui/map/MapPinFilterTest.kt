@@ -12,7 +12,7 @@ class MapPinFilterTest {
 
     private fun pin(type: SpotType = SpotType.POI, marks: String = "") = SpotPin(
         spotId = "s", name = "Spot", lat = 52.0, lng = 4.0, status = SpotStatus.UNVISITED,
-        priority = Priority.NORMAL, type = type, marks = marks,
+        priority = Priority.NORMAL, type = type, marks = marks, openingHours = "",
         cityId = "c", cityName = "Amsterdam", countryId = "nl", countryName = "Netherlands",
     )
 

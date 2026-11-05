@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.trips
 
+import com.pat.app.holidayplanner.data.local.RouteStopHours
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.CityOption
@@ -35,6 +36,8 @@ data class TripUiState(
     val routes: List<RouteRow> = emptyList(),
     /** The cities of this trip's country, which a new route can walk. */
     val cities: List<CityOption> = emptyList(),
+    /** When the stops of this trip's routes are open, by route id. */
+    val stopHours: Map<String, List<RouteStopHours>> = emptyMap(),
 ) {
     /** The country this trip is to, which is where its spots and routes come from. */
     val country: CountryEntity? get() = countries.firstOrNull { it.meta.id == trip?.countryId }
@@ -78,7 +81,8 @@ class TripViewModel(
         repository.observeItemRows(tripId),
         countryRepository.observeCountries(),
         inCountry,
-    ) { current, rows, countries, scope ->
+        repository.observeStopHours(tripId),
+    ) { current, rows, countries, scope, stopHours ->
         TripUiState(
             trip = current,
             plan = rows.toPlan(
@@ -88,6 +92,7 @@ class TripViewModel(
             countries = countries,
             routes = scope.routes,
             cities = scope.cities,
+            stopHours = stopHours.groupBy { it.routeId },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TripUiState())
 

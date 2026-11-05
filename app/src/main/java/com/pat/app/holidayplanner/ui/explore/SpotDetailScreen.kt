@@ -1,5 +1,7 @@
 package com.pat.app.holidayplanner.ui.explore
 
+import com.pat.app.holidayplanner.ui.components.WeekHours
+import com.pat.app.holidayplanner.domain.OpeningHours
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -177,6 +179,8 @@ fun SpotDetailScreen(
                     onDelete = viewModel::deleteAttachment,
                     onAdd = { dialogs.addingLink = true },
                 )
+
+                HoursSection(state.spot?.openingHours.orEmpty())
 
                 HorizontalDivider()
                 SectionLabel(stringResource(R.string.spot_location))
@@ -441,6 +445,15 @@ private fun SpotDialogs(
             onDismiss = { dialogs.confirmingDelete = false },
         )
     }
+}
+
+/** The week's hours, once Google has been asked; nothing at all before that. */
+@Composable
+private fun HoursSection(stored: String) {
+    val hours = OpeningHours.parse(stored) ?: return
+    HorizontalDivider()
+    SectionLabel(stringResource(R.string.spot_opening_hours))
+    WeekHours(hours)
 }
 
 @Composable

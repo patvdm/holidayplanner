@@ -1,5 +1,8 @@
 package com.pat.app.holidayplanner.ui.map
 
+import java.time.LocalDate
+import com.pat.app.holidayplanner.ui.components.dayHoursText
+import com.pat.app.holidayplanner.domain.OpeningHours
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -364,6 +367,15 @@ private fun SpotCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    OpeningHours.parse(pin.openingHours)
+                        ?.let { dayHoursText(it, LocalDate.now().dayOfWeek) }
+                        ?.let {
+                            Text(
+                                text = stringResource(R.string.hours_today, it),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                 }
                 // Standing in front of it is when you know, so it can be ticked off right here.
                 val visited = pin.status == SpotStatus.VISITED

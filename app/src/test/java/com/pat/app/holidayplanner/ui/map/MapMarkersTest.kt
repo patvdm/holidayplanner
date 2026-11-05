@@ -16,7 +16,7 @@ class MapMarkersTest {
         marks: String = "",
     ) = SpotPin(
         spotId = "s", name = "Micropia", lat = 52.0, lng = 4.0, status = status, priority = priority,
-        type = type, marks = marks,
+        type = type, marks = marks, openingHours = "",
         cityId = "c", cityName = "Amsterdam", countryId = "nl", countryName = "Netherlands",
     )
 

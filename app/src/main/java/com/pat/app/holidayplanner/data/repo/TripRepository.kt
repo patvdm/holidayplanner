@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.repo
 
+import com.pat.app.holidayplanner.data.local.RouteStopHours
 import com.pat.app.holidayplanner.data.local.SyncMeta
 import com.pat.app.holidayplanner.data.local.TripEntity
 import com.pat.app.holidayplanner.data.local.TripItemEntity
@@ -31,6 +32,8 @@ class TripRepository(
 
     /** The items with what they point at resolved, which is what the day view shows. */
     fun observeItemRows(tripId: String): Flow<List<TripItemRow>> = itemDao.observeRowsByTrip(tripId)
+
+    fun observeStopHours(tripId: String): Flow<List<RouteStopHours>> = itemDao.observeStopHours(tripId)
 
     suspend fun add(name: String, countryId: String, startDate: String, endDate: String): String {
         val stamp = writer.stamp()

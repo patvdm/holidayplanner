@@ -129,6 +129,8 @@ data class SpotPin(
     val type: SpotType,
     /** What the spot is good for, as space-separated keys; see SpotMark. */
     val marks: String,
+    /** As OpeningHours writes it; blank until asked. */
+    val openingHours: String,
     val cityId: String,
     val cityName: String,
     val countryId: String,
@@ -145,6 +147,13 @@ data class RouteLinePoint(
     val completed: Boolean,
     val lat: Double,
     val lng: Double,
+)
+
+/** A stop on one of a trip's routes and when it is open, for warning about a day it is shut. */
+data class RouteStopHours(
+    val routeId: String,
+    val spotName: String,
+    val openingHours: String,
 )
 
 /** A route as the Routes tab lists it. */
@@ -175,6 +184,7 @@ data class TripItemRow(
     val spotType: SpotType?,
     val spotMarks: String?,
     val spotImageUrl: String?,
+    val spotOpeningHours: String?,
     val routeName: String?,
     val routeCompleted: Boolean?,
     val routeCityName: String?,

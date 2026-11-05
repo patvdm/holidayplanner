@@ -1,5 +1,11 @@
 package com.pat.app.holidayplanner.ui.trips
 
+import androidx.compose.foundation.layout.size
+import java.util.Locale
+import java.time.format.TextStyle
+import java.time.DayOfWeek
+import com.pat.app.holidayplanner.ui.components.label
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -146,6 +152,7 @@ fun TripScreen(
                 items(day.entries, key = { it.item.meta.id }) { row ->
                     TripItemCard(
                         row = row,
+                        warning = hoursWarning(row, state.stopHours),
                         onClick = { open(row, onOpenItem, onOpenRoute) },
                         onRemove = { viewModel.deleteItem(row.item.meta.id) },
                     )
@@ -164,6 +171,7 @@ fun TripScreen(
                 items(state.plan.undated, key = { "undated-${it.item.meta.id}" }) { row ->
                     TripItemCard(
                         row = row,
+                        warning = hoursWarning(row, state.stopHours),
                         onClick = { open(row, onOpenItem, onOpenRoute) },
                         onRemove = { viewModel.deleteItem(row.item.meta.id) },
                     )
@@ -319,7 +327,7 @@ private fun DayHeader(date: LocalDate, onAdd: () -> Unit, onShowOnMap: (() -> Un
 
 /** One thing on a day. A flight and a route say what they are; a spot shows its picture and tags. */
 @Composable
-private fun TripItemCard(row: TripItemRow, onClick: () -> Unit, onRemove: () -> Unit) {
+private fun TripItemCard(row: TripItemRow, warning: HoursWarning?, onClick: () -> Unit, onRemove: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -359,6 +367,7 @@ private fun TripItemCard(row: TripItemRow, onClick: () -> Unit, onRemove: () -> 
                 row.spotType?.let { TypeBadge(it) }
                 row.routeCompleted?.let { WalkedBadge(it) }
             }
+            warning?.let { HoursWarningLine(it) }
         }
         RemoveMenu(onRemove)
     }
@@ -403,6 +412,35 @@ private fun RemoveMenu(onRemove: () -> Unit) {
         )
     }
 }
+
+/** A plan that meets a closed door, in the error colour so it is seen before the day, not on it. */
+@Composable
+private fun HoursWarningLine(warning: HoursWarning) {
+    val text = when (warning) {
+        is HoursWarning.ClosedAt -> stringResource(
+            R.string.hours_warn_closed_at,
+            warning.time,
+            warning.thatDay.label().orEmpty(),
+        )
+        is HoursWarning.ClosedThatDay -> stringResource(R.string.hours_warn_closed_day, warning.day.fullName())
+        is HoursWarning.StopsClosed -> stringResource(
+            R.string.hours_warn_stops_closed,
+            warning.day.fullName(),
+            warning.names.joinToString(", "),
+        )
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Outlined.Schedule,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(text = text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+    }
+}
+
+private fun DayOfWeek.fullName(): String = getDisplayName(TextStyle.FULL, Locale.getDefault())
 
 /** What a row says under its name: a flight its number and length, a route its city and stops. */
 @Composable

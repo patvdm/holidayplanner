@@ -113,11 +113,24 @@ interface SpotDao : SyncDao<SpotEntity> {
     )
     suspend fun withLinkButNoCoordinates(): List<SpotEntity>
 
+    /**
+     * Every spot Google could be asked about: it has a place id, or a position to search near. The
+     * high-priority ones first, since those are the ones being planned around.
+     */
+    @Query(
+        """
+        SELECT * FROM spots
+        WHERE deleted = 0 AND (googlePlaceId != '' OR (lat IS NOT NULL AND lng IS NOT NULL))
+        ORDER BY CASE WHEN priority = 'HIGH' THEN 0 ELSE 1 END, createdAt DESC
+        """,
+    )
+    fun observeHoursCandidates(): Flow<List<SpotEntity>>
+
     /** Every spot we know the position of. The map shows them all and only chooses where to look. */
     @Query(
         """
         SELECT s.id AS spotId, s.name AS name, s.lat AS lat, s.lng AS lng, s.status AS status,
-            s.priority AS priority, s.type AS type, s.marks AS marks,
+            s.priority AS priority, s.type AS type, s.marks AS marks, s.openingHours AS openingHours,
             s.parentCityId AS cityId, COALESCE(p.name, '') AS cityName, c.id AS countryId,
             c.name AS countryName
         FROM spots s

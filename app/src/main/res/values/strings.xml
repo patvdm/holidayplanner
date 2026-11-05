@@ -92,6 +92,14 @@
     </plurals>
 
     <string name="spot_breadcrumb">%1$s › %2$s</string>
+    <string name="spot_opening_hours">Opening hours</string>
+    <string name="hours_always">Open 24 hours</string>
+    <string name="hours_closed">Closed</string>
+    <string name="hours_unknown">Google has no opening hours for this place.</string>
+    <string name="hours_today">Today: %1$s</string>
+    <string name="hours_warn_closed_at">Closed at %1$s. That day: %2$s</string>
+    <string name="hours_warn_closed_day">Closed on %1$s</string>
+    <string name="hours_warn_stops_closed">Closed on %1$s: %2$s</string>
     <string name="spot_location">Location</string>
     <string name="spot_open_in_maps">Open in Google Maps</string>
     <string name="spot_show_on_map">Our map</string>
