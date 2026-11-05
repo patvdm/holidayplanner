@@ -11,7 +11,10 @@ import com.pat.app.holidayplanner.data.repo.SpotPinRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.domain.GeoPoint
 import com.pat.app.holidayplanner.domain.MapView
+import com.pat.app.holidayplanner.domain.MapPinFilter
+import com.pat.app.holidayplanner.domain.SpotMark
 import com.pat.app.holidayplanner.domain.SpotType
+import com.pat.app.holidayplanner.domain.hasMark
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -68,7 +71,7 @@ data class MapUiState(
     /** The route sign each pin on a route wears, by spot id. */
     val badges: Map<String, RouteBadge> = emptyMap(),
     val showsRoutes: Boolean = true,
-    val foodOnly: Boolean = false,
+    val filter: MapPinFilter = MapPinFilter.ALL,
 )
 
 /**
@@ -118,22 +121,22 @@ class MapViewModel(
         prefs.mapView.take(1),
         routes.observeLinePoints(),
         prefs.mapShowsRoutes,
-        prefs.mapFoodOnly,
-    ) { all, saved, stops, showsRoutes, foodOnly ->
+        prefs.mapPinFilter,
+    ) { all, saved, stops, showsRoutes, filter ->
         val shown = if (showsRoutes) stops.toRouteLines() else emptyList()
         // The route the map was opened for is drawn whatever else is: even walked, even switched off.
         val askedStops = stops.filter { scope.routeId.isNotEmpty() && it.routeId == scope.routeId }
         val asked = askedStops.toRouteLines().firstOrNull()
             ?.takeIf { line -> shown.none { it.routeId == line.routeId } }
         MapUiState(
-            // The spot the map was opened for stays, food or not, or "Our map" would show nothing.
-            pins = if (foodOnly) all.filter { it.type == SpotType.RESTAURANT || it.spotId == scope.spotId } else all,
+            // The spot the map was opened for stays whatever the filter, or "Our map" would show nothing.
+            pins = all.filter { it.spotId == scope.spotId || filter.lets(it) },
             hasPins = all.isNotEmpty(),
             focus = all.focus(saved, askedStops.map { GeoPoint(it.lat, it.lng) }),
             lines = shown + listOfNotNull(asked),
             badges = stops.routeBadges(),
             showsRoutes = showsRoutes,
-            foodOnly = foodOnly,
+            filter = filter,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MapUiState())
 
@@ -141,8 +144,8 @@ class MapViewModel(
         viewModelScope.launch { prefs.setMapShowsRoutes(show) }
     }
 
-    fun setFoodOnly(only: Boolean) {
-        viewModelScope.launch { prefs.setMapFoodOnly(only) }
+    fun setFilter(filter: MapPinFilter) {
+        viewModelScope.launch { prefs.setMapPinFilter(filter) }
     }
 
     /** Called each time the map comes to rest, so the next plain opening carries on from here. */
@@ -172,6 +175,13 @@ class MapViewModel(
             else -> MapFocus(centre(), zoomForSpread())
         }
     }
+}
+
+/** Whether [pin] passes this filter. Drone means the mark, whatever kind of place carries it. */
+internal fun MapPinFilter.lets(pin: SpotPin): Boolean = when (this) {
+    MapPinFilter.ALL -> true
+    MapPinFilter.FOOD -> pin.type == SpotType.RESTAURANT
+    MapPinFilter.DRONE -> pin.marks.hasMark(SpotMark.DRONE)
 }
 
 private fun List<GeoPoint>.middle(): GeoPoint =

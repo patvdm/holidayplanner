@@ -6,11 +6,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -146,32 +143,6 @@ private const val CHOSEN_LAYER = 4f
 
 private fun RouteLine.colour(look: RouteLineStyle): Color =
     if (walked) WalkedColour else RouteColours[look.colourIndex]
-
-/** Shows only places to eat, beside the routes switch. */
-@Composable
-fun FoodOnlyChip(only: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    FilterChip(
-        selected = only,
-        onClick = { onChange(!only) },
-        label = { Text(stringResource(R.string.map_food_only)) },
-        leadingIcon = { Icon(Icons.Filled.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp)) },
-        colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = modifier,
-    )
-}
-
-/** Switches the route lines on and off, over the map's top left corner. */
-@Composable
-fun RoutesChip(showing: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    FilterChip(
-        selected = showing,
-        onClick = { onChange(!showing) },
-        label = { Text(stringResource(R.string.map_routes)) },
-        leadingIcon = { Icon(Icons.Filled.Route, contentDescription = null, modifier = Modifier.size(18.dp)) },
-        colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = modifier,
-    )
-}
 
 /** The route whose line was tapped: what it is called and a way into it. */
 @Composable

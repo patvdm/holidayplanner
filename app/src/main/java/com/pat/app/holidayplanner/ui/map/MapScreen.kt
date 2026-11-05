@@ -17,6 +17,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.outlined.AddRoad
 import androidx.compose.material3.Icon
 import com.pat.app.holidayplanner.data.local.LinkEntity
@@ -53,6 +55,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.data.local.SpotPin
+import com.pat.app.holidayplanner.domain.MapPinFilter
 import com.pat.app.holidayplanner.domain.MapView
 import com.pat.app.holidayplanner.domain.MapsUrls
 import com.pat.app.holidayplanner.domain.RoutePoint
@@ -117,7 +120,7 @@ fun MapScreen(
                 onShow = viewModel::setShowsRoutes,
                 onOpen = onOpenRoute,
             ),
-            filter = FoodFilter(only = state.foodOnly, onChange = viewModel::setFoodOnly),
+            filter = PinFilterState(current = state.filter, onChange = viewModel::setFilter),
             onSelect = viewModel::select,
             onOpenSpot = onOpenSpot,
             onAddToRoute = { addingToRoute = it },
@@ -148,7 +151,7 @@ private fun SpotMap(
     showMyLocation: Boolean,
     detail: PinDetail?,
     routes: RouteLayerState,
-    filter: FoodFilter,
+    filter: PinFilterState,
     onSelect: (String?) -> Unit,
     onOpenSpot: (String) -> Unit,
     onAddToRoute: (SpotPin) -> Unit,
@@ -268,31 +271,50 @@ private fun SpotMap(
     }
 }
 
-/** The switches over the map's top left corner: route lines, and food only. */
+/**
+ * The round switches over the map's top left corner: route lines, then the pin filters. Icons
+ * only, to keep the map clear; a filled button is on. The two filters take turns, so picking one
+ * drops the other, and tapping the one that is on shows everything again.
+ */
 @Composable
 private fun MapChips(
     routes: RouteLayerState,
-    filter: FoodFilter,
+    filter: PinFilterState,
     onRoutesOff: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // Shown while there is something to switch, and always while switched off, to switch back.
         if (routes.lines.isNotEmpty() || !routes.showing) {
-            RoutesChip(
-                showing = routes.showing,
+            MapToggle(
+                checked = routes.showing,
                 onChange = {
                     routes.onShow(it)
                     if (!it) onRoutesOff()
                 },
+                icon = Icons.Filled.Route,
+                description = stringResource(R.string.map_routes),
             )
         }
-        FoodOnlyChip(only = filter.only, onChange = filter.onChange)
+        PinFilterOptions.forEach { (option, icon, label) ->
+            MapToggle(
+                checked = filter.current == option,
+                onChange = { on -> filter.onChange(if (on) option else MapPinFilter.ALL) },
+                icon = icon,
+                description = stringResource(label),
+            )
+        }
     }
 }
 
-/** Whether the map shows only places to eat, and how to change that. */
-private class FoodFilter(val only: Boolean, val onChange: (Boolean) -> Unit)
+/** Each pin filter's button: what it picks, its icon, and what a screen reader calls it. */
+private val PinFilterOptions = listOf(
+    Triple(MapPinFilter.FOOD, Icons.Filled.Restaurant, R.string.map_food_only),
+    Triple(MapPinFilter.DRONE, DroneIcon, R.string.map_drone_only),
+)
+
+/** Which pins are showing, and how to change that. */
+private class PinFilterState(val current: MapPinFilter, val onChange: (MapPinFilter) -> Unit)
 
 /** The route lines and what they can do, handed to the map as one. */
 private class RouteLayerState(
