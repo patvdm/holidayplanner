@@ -88,3 +88,15 @@ A 500 saying "No PHOTOS bucket bound" means step 2 is missing.
 - Claude decides when to call the tools from the descriptions in `worker.js`. If it adds things
   you did not want, or phrases spots badly, tighten those descriptions.
 - Apps Script geocodes each row; a run of more than ~150 places at once may hit its time limit.
+
+## Keeping it in step with the app
+
+`contract.json` holds what the app, the sheet and this worker must agree on: the values a spot,
+priority, status and trip item can take, and the sort keys handed out after a given key.
+`contract.test.mjs` checks this worker against it and against the columns in `backend/Code.gs`;
+the app's `SheetContractTest` checks the app against the same file and the same `Code.gs`. Both run
+with the app's unit tests (`:app:testDebugUnitTest`, which skips the worker's half where Node is
+missing), or on their own with `node --test tools/mcp/contract.test.mjs`.
+
+So when a column or a value changes, change `Code.gs`, the app and this worker together, and update
+`contract.json` if a value list or the sort keys moved. Whichever side was missed fails its test.

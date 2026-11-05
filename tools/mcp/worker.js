@@ -915,6 +915,11 @@ function checkDates(start, end) {
   return null;
 }
 
+/** A new Trips row. Its columns are checked against the sheet's in contract.test.mjs. */
+function newTrip(now, fields) {
+  return { ...created(now), name: '', countryId: '', startDate: '', endDate: '', notes: '', ...fields };
+}
+
 async function createTrip(args, env) {
   const db = await loadPlans(env);
   if (missing(db)) return toolText(db, true);
@@ -929,10 +934,9 @@ async function createTrip(args, env) {
   const bad = checkDates(text(args.start_date), text(args.end_date));
   if (bad) return toolText(bad, true);
   const now = String(Date.now());
-  const trip = {
-    ...created(now), name, startDate: text(args.start_date), endDate: text(args.end_date), countryIds: '',
-    notes: text(args.notes), cityId: '', countryId: country.id,
-  };
+  const trip = newTrip(now, {
+    name, startDate: text(args.start_date), endDate: text(args.end_date), notes: text(args.notes), countryId: country.id,
+  });
   const failed = await pushRows(env, { Trips: [trip] });
   if (failed) return toolText(failed, true);
   return toolText(`Created the trip ${name} in ${country.name}, ${dayLabel(trip.startDate)} to ${dayLabel(trip.endDate)}.`);
@@ -972,7 +976,7 @@ function suggestedZone(db, tripId) {
 function newTripItem(now, tripId, type, startLocal, fields) {
   return {
     ...created(now), tripId, type, title: '', origin: '', destination: '', startLocal, startTimeZone: '',
-    endLocal: '', endTimeZone: '', spotId: '', routeId: '', cityId: '', bookingRef: '', notes: '', ...fields,
+    endLocal: '', endTimeZone: '', spotId: '', routeId: '', bookingRef: '', notes: '', ...fields,
   };
 }
 
@@ -1103,7 +1107,12 @@ function resolveStops(db, names, city) {
 }
 
 function newStop(now, routeId, spotId, sortKey) {
-  return { ...created(now), routeId, spotId, sortKey, onMaps: 'true', tripItemId: '' };
+  return { ...created(now), routeId, spotId, sortKey, onMaps: 'true' };
+}
+
+/** A new Routes row. Its columns are checked against the sheet's in contract.test.mjs. */
+function newRoute(now, fields) {
+  return { ...created(now), cityId: '', name: '', completed: 'false', notes: '', ...fields };
 }
 
 async function createRoute(args, env) {
@@ -1132,7 +1141,7 @@ async function createRoute(args, env) {
   }
 
   const now = String(Date.now());
-  const route = { ...created(now), cityId: city.id, name, completed: 'false', notes: text(args.notes) };
+  const route = newRoute(now, { cityId: city.id, name, notes: text(args.notes) });
   let key = '';
   const stops = spots.map((s) => newStop(now, route.id, s.id, (key = keyAfter(key))));
   const rows = { Routes: [route], RouteStops: stops };

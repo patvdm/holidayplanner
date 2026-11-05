@@ -1,0 +1,23 @@
+{
+  "_about": "What the app, the sheet backend and the claude.ai connector must agree on. The app's unit tests (SheetContractTest) and the connector's (contract.test.mjs) both check against this file, so a change on one side that the other has not made fails a test.",
+  "enums": {
+    "SpotType": ["POI", "RESTAURANT", "ACCOMMODATION"],
+    "Priority": ["HIGH", "NORMAL"],
+    "SpotStatus": ["UNVISITED", "VISITED"],
+    "TripItemType": ["FLIGHT", "SPOT", "ROUTE"]
+  },
+  "sortKeyAfter": [
+    ["", "V"],
+    ["V", "l"],
+    ["l", "t"],
+    ["t", "x"],
+    ["x", "z"],
+    ["y", "z"],
+    ["z", "zV"],
+    ["zz", "zzV"],
+    ["zzV", "zzl"],
+    ["z5", "zY"],
+    ["V0", "V"],
+    ["a-b", "V"]
+  ]
+}

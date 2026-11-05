@@ -111,6 +111,18 @@ tasks.named("preBuild") {
     dependsOn("detekt")
 }
 
+// The claude.ai connector (tools/mcp) checks itself against the same contract as the app's
+// SheetContractTest, so the unit tests cover both sides. Skipped where Node is not installed.
+val connectorContractTest = tasks.register<Exec>("connectorContractTest") {
+    description = "Checks the claude.ai connector against tools/mcp/contract.json and backend/Code.gs."
+    workingDir = rootDir
+    commandLine("node", "--test", "tools/mcp/contract.test.mjs")
+    onlyIf("Node is installed") {
+        runCatching { ProcessBuilder("node", "--version").start().waitFor() == 0 }.getOrDefault(false)
+    }
+}
+tasks.matching { it.name == "testDebugUnitTest" }.configureEach { dependsOn(connectorContractTest) }
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
