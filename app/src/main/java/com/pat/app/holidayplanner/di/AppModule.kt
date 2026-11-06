@@ -59,6 +59,7 @@ import com.pat.app.holidayplanner.ui.share.ShareViewModel
 import com.pat.app.holidayplanner.ui.sync.SyncRefreshViewModel
 import com.pat.app.holidayplanner.ui.trips.RouteViewModel
 import com.pat.app.holidayplanner.ui.trips.TripItemViewModel
+import com.pat.app.holidayplanner.ui.trips.TripStopViewModel
 import com.pat.app.holidayplanner.ui.trips.TripViewModel
 import com.pat.app.holidayplanner.ui.trips.TripsViewModel
 import com.pat.app.holidayplanner.ui.onboarding.OnboardingViewModel
@@ -152,6 +153,7 @@ val appModule = module {
     viewModel { (spotId: String) -> SpotDetailViewModel(spotId, get(), get(), get(), get(), get()) }
     viewModel { (tripId: String) -> TripViewModel(tripId, get(), get(), get(), get()) }
     viewModel { (itemId: String) -> TripItemViewModel(itemId, get(), get()) }
+    viewModel { (itemId: String) -> TripStopViewModel(itemId, get()) }
     viewModel { (routeId: String) -> RouteViewModel(routeId, get(), get(), get(), get()) }
     viewModel { (spotId: String) -> AddToRouteViewModel(spotId, get(), get()) }
     factory { MapSources(get(), get(), get(), get(), get()) }

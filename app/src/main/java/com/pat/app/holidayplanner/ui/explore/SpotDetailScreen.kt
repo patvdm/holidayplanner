@@ -59,6 +59,7 @@ import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
 import com.pat.app.holidayplanner.ui.components.LinkList
 import com.pat.app.holidayplanner.ui.components.PictureStrip
+import com.pat.app.holidayplanner.ui.trips.TripStopCard
 import com.pat.app.holidayplanner.ui.components.PictureStripActions
 import com.pat.app.holidayplanner.ui.components.PictureViewer
 import com.pat.app.holidayplanner.ui.components.rememberFoundPictures
@@ -87,6 +88,8 @@ fun SpotDetailScreen(
     onBack: () -> Unit,
     onShowOnMap: () -> Unit,
     onOpenRoute: (String) -> Unit,
+    tripItemId: String = "",
+    onTripSpotChanged: (String) -> Unit = {},
     viewModel: SpotDetailViewModel = koinViewModel { parametersOf(spotId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -171,6 +174,8 @@ fun SpotDetailScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                // First when it is there: opened from a trip, the trip's side of it is why you came.
+                TripStopCard(itemId = tripItemId, onSpotChanged = onTripSpotChanged, onRemoved = onBack)
                 LinksSection(
                     links = state.references,
                     onOpen = { context.openExternalUrl(it.url) },

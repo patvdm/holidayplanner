@@ -48,4 +48,18 @@ class TabNavStateTest {
 
         assertEquals(TripKey("t1"), nav.currentKey)
     }
+
+    @Test
+    fun `a spot swapped for another keeps back pointing at the trip`() {
+        val nav = nav()
+        nav.selectTab(AppTab.TRIPS)
+        nav.push(TripKey("t1"))
+        nav.push(SpotKey("lions-head", tripItemId = "i1"))
+
+        nav.replace(SpotKey("table-mountain", tripItemId = "i1"))
+        assertEquals(SpotKey("table-mountain", tripItemId = "i1"), nav.currentKey)
+        nav.back()
+
+        assertEquals(TripKey("t1"), nav.currentKey)
+    }
 }

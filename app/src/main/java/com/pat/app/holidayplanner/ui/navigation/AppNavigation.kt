@@ -100,7 +100,10 @@ fun AppNavigation() {
                 entry<SpotKey> { key ->
                     SpotDetailScreen(
                         spotId = key.spotId,
+                        tripItemId = key.tripItemId,
                         onBack = nav::back,
+                        // The trip stop now points elsewhere, so show that spot in this one's place.
+                        onTripSpotChanged = { nav.replace(SpotKey(it, key.tripItemId)) },
                         // The same map as the middle button, which from a spot opens on that spot.
                         onShowOnMap = nav::openMap,
                         onOpenRoute = { nav.push(RouteKey(it)) },
@@ -132,6 +135,8 @@ fun AppNavigation() {
                         tripId = key.tripId,
                         onBack = nav::back,
                         onOpenItem = { nav.push(TripItemKey(it)) },
+                        // A spot on the trip opens as the spot itself, with the trip's side of it on top.
+                        onOpenStop = { spotId, itemId -> nav.push(SpotKey(spotId, tripItemId = itemId)) },
                         onOpenRoute = { nav.push(RouteKey(it)) },
                         onEditTrip = { nav.push(TripEditorKey(key.tripId)) },
                         onShowDayOnMap = { day -> nav.push(MapKey(tripId = key.tripId, day = day.toString())) },

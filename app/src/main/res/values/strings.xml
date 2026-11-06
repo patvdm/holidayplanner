@@ -244,6 +244,10 @@
     <string name="item_pick_spot">Link a spot</string>
     <string name="item_change_spot">Change the linked spot</string>
     <string name="item_open_spot">Open spot</string>
+    <string name="trip_stop_on">On %1$s</string>
+    <string name="trip_stop_add_booking">Add booking reference</string>
+    <string name="trip_stop_notes">Trip notes</string>
+    <string name="trip_stop_add_notes">Add trip notes</string>
 
 
     <string name="search_title">Search</string>

@@ -95,6 +95,7 @@ fun TripScreen(
     tripId: String,
     onBack: () -> Unit,
     onOpenItem: (String) -> Unit,
+    onOpenStop: (spotId: String, itemId: String) -> Unit,
     onOpenRoute: (String) -> Unit,
     onEditTrip: () -> Unit,
     onShowDayOnMap: (LocalDate) -> Unit,
@@ -171,7 +172,7 @@ fun TripScreen(
                     TripItemCard(
                         row = row,
                         warning = hoursWarning(row, state.stopHours),
-                        onClick = { open(row, onOpenItem, onOpenRoute) },
+                        onClick = { open(row, onOpenItem, onOpenStop, onOpenRoute) },
                         onRemove = { viewModel.deleteItem(row.item.meta.id) },
                     )
                 }
@@ -190,7 +191,7 @@ fun TripScreen(
                     TripItemCard(
                         row = row,
                         warning = hoursWarning(row, state.stopHours),
-                        onClick = { open(row, onOpenItem, onOpenRoute) },
+                        onClick = { open(row, onOpenItem, onOpenStop, onOpenRoute) },
                         onRemove = { viewModel.deleteItem(row.item.meta.id) },
                     )
                 }
@@ -210,12 +211,21 @@ fun TripScreen(
     )
 }
 
-/** A route opens its own screen; anything else opens the item, where its details live. */
-private fun open(row: TripItemRow, onOpenItem: (String) -> Unit, onOpenRoute: (String) -> Unit) {
-    if (row.item.type == TripItemType.ROUTE && row.item.routeId.isNotBlank()) {
-        onOpenRoute(row.item.routeId)
-    } else {
-        onOpenItem(row.item.meta.id)
+/**
+ * A route opens its own screen, and a spot opens as the spot itself with the trip's side of it on
+ * top. Anything else, a flight or a stop still waiting for its spot, opens the item.
+ */
+private fun open(
+    row: TripItemRow,
+    onOpenItem: (String) -> Unit,
+    onOpenStop: (spotId: String, itemId: String) -> Unit,
+    onOpenRoute: (String) -> Unit,
+) {
+    val item = row.item
+    when {
+        item.type == TripItemType.ROUTE && item.routeId.isNotBlank() -> onOpenRoute(item.routeId)
+        item.type == TripItemType.SPOT && item.spotId.isNotBlank() -> onOpenStop(item.spotId, item.meta.id)
+        else -> onOpenItem(item.meta.id)
     }
 }
 

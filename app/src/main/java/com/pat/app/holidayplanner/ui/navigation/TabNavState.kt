@@ -84,6 +84,13 @@ class TabNavState(
         if (stack.last() != key) stack.add(key)
     }
 
+    /** Swaps the screen that is showing for [key], so back goes where it would have gone. */
+    fun replace(key: NavKey) {
+        val stack = stacks.getValue(currentTab)
+        if (stack.size <= 1) return push(key)
+        stack[stack.lastIndex] = key
+    }
+
     /**
      * Closes the current screen, then opens [key] on [tab]. Used by search, where the result often
      * lives under a different tab than the one the search was started from.

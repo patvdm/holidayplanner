@@ -23,7 +23,11 @@ data object SpotsRootKey : NavKey
 data class CountryKey(val countryId: String, val cityId: String = "") : NavKey
 
 @Serializable
-data class SpotKey(val spotId: String) : NavKey
+data class SpotKey(
+    val spotId: String,
+    /** Set when opened from a trip: the stop on that trip, whose day and booking the screen shows too. */
+    val tripItemId: String = "",
+) : NavKey
 
 @Serializable
 data class TripKey(val tripId: String) : NavKey

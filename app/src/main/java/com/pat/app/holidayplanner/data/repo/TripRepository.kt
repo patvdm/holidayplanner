@@ -59,6 +59,8 @@ class TripRepository(
 
     suspend fun findItem(id: String): TripItemEntity? = itemDao.find(id)
 
+    fun observeItem(id: String): Flow<TripItemEntity?> = itemDao.observeById(id)
+
     /** The ISO code of the country a trip is to, or empty when it has none yet. */
     suspend fun countryIsoOf(tripId: String): String = dao.countryIso(tripId).orEmpty()
 
