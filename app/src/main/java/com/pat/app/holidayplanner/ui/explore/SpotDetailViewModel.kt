@@ -18,9 +18,7 @@ import com.pat.app.holidayplanner.data.repo.AttachmentTarget
 import com.pat.app.holidayplanner.data.repo.CityRepository
 import com.pat.app.holidayplanner.data.repo.SpotRepository
 import com.pat.app.holidayplanner.data.repo.UserRepository
-import com.pat.app.holidayplanner.domain.LinkSource
 import com.pat.app.holidayplanner.domain.MapsUrls
-import com.pat.app.holidayplanner.domain.ShareParser
 import com.pat.app.holidayplanner.domain.Priority
 import com.pat.app.holidayplanner.domain.SpotMark
 import com.pat.app.holidayplanner.domain.SpotStatus
@@ -159,23 +157,6 @@ class SpotDetailViewModel(
 
     fun moveTo(home: SpotHome) {
         viewModelScope.launch { spotRepository.moveTo(spotId, home) }
-    }
-
-    /**
-     * Pasting a link attaches it to this spot. A Maps link is not a link in that sense: a spot has
-     * one location, so it replaces the spot's Maps link rather than joining a list.
-     */
-    fun addLink(url: String) {
-        val trimmed = url.trim()
-        if (trimmed.isEmpty()) return
-        val source = ShareParser.sourceOf(trimmed)
-        viewModelScope.launch {
-            if (source == LinkSource.MAPS) {
-                spotRepository.setMapsUrl(spotId, trimmed)
-            } else {
-                linkRepository.add(url = trimmed, source = source, owner = AttachmentOwner(spotId = spotId))
-            }
-        }
     }
 
     /** Blank lets the automatic search have another go. */

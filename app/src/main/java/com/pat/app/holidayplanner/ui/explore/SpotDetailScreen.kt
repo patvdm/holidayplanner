@@ -37,7 +37,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -177,10 +176,7 @@ fun SpotDetailScreen(
                     onOpen = { context.openExternalUrl(it.url) },
                     onMove = { dialogs.moving = it },
                     onDelete = viewModel::deleteAttachment,
-                    onAdd = { dialogs.addingLink = true },
                 )
-
-                HorizontalDivider()
                 SectionLabel(stringResource(R.string.spot_location))
                 state.spot?.address?.takeIf { it.isNotBlank() }?.let {
                     Text(text = it, style = MaterialTheme.typography.bodyMedium)
@@ -280,7 +276,6 @@ fun SpotDetailScreen(
 /** Which dialog is open, kept together so the screen itself stays readable. */
 private class SpotDialogs {
     var renaming by mutableStateOf(false)
-    var addingLink by mutableStateOf(false)
     var movingSpot by mutableStateOf(false)
     var changingPicture by mutableStateOf(false)
     var confirmingDelete by mutableStateOf(false)
@@ -354,19 +349,6 @@ private fun SpotDialogs(
                 dialogs.changingPicture = false
             },
             onDismiss = { dialogs.changingPicture = false },
-        )
-    }
-
-    if (dialogs.addingLink) {
-        TextInputDialog(
-            title = stringResource(R.string.spot_add_link),
-            label = stringResource(R.string.label_url),
-            confirmLabel = stringResource(R.string.action_add),
-            onConfirm = {
-                viewModel.addLink(it)
-                dialogs.addingLink = false
-            },
-            onDismiss = { dialogs.addingLink = false },
         )
     }
 
@@ -458,26 +440,13 @@ private fun LinksSection(
     onOpen: (LinkEntity) -> Unit,
     onMove: (LinkEntity) -> Unit,
     onDelete: (LinkEntity) -> Unit,
-    onAdd: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        SectionLabel(stringResource(R.string.spot_links))
-        TextButton(onClick = onAdd) { Text(stringResource(R.string.spot_add_link)) }
-    }
-
-    if (links.isEmpty()) {
-        Text(
-            text = stringResource(R.string.spot_links_none),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-
+    // Links arrive from outside, shared or sent through the connector, so there is no empty
+    // section waiting for one here.
+    if (links.isEmpty()) return
+    SectionLabel(stringResource(R.string.spot_links))
     LinkList(links = links, onOpen = onOpen, onMove = onMove, onDelete = onDelete)
+    HorizontalDivider()
 }
 
 
