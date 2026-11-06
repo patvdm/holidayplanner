@@ -102,26 +102,40 @@ class AttachmentRepository(
         queue.discard(link.url)
     }
 
-    /** Makes [url] the place's main picture, but only if it has none of its own. */
+    /**
+     * Makes a photo that just arrived the place's main picture: your own newest photo beats one the
+     * app found, and beats an older photo too. Only a picture somebody chose stays.
+     */
     private suspend fun adoptAsPicture(owner: AttachmentOwner, url: String) {
-        if (places.lacksPicture(owner)) places.setPicture(owner, url, PictureOrigin.PHOTO)
+        val origin = places.originOf(owner) ?: return
+        if (origin != PictureOrigin.CHOSEN || places.lacksPicture(owner)) {
+            places.setPicture(owner, url, PictureOrigin.PHOTO)
+        }
     }
 
     /**
-     * Gives every place that has photos but no picture its first photo as the picture. Run at app
-     * start, before the automatic picture search, so a place someone photographed is never given
-     * a stranger's picture instead.
+     * Gives every place that has photos but shows none of them its newest photo as the picture,
+     * whether it had no picture or only one the app found. Run at app start, before the automatic
+     * picture search, so a place someone photographed is never given a stranger's picture instead.
      */
     suspend fun adoptPhotosAsPictures() {
         links.uploadedPhotos()
             .groupBy(AttachmentOwner::of)
-            .forEach { (owner, photos) -> adoptAsPicture(owner, photos.first().url) }
+            .forEach { (owner, photos) ->
+                val origin = places.originOf(owner)
+                if (origin == PictureOrigin.AUTO || places.lacksPicture(owner)) {
+                    places.setPicture(owner, photos.last().url, PictureOrigin.PHOTO)
+                }
+            }
     }
 
-    /** Shows this photo as the main picture of whatever it hangs on, replacing what was there. */
+    /**
+     * Shows this photo as the main picture of whatever it hangs on, replacing what was there. It
+     * counts as chosen, so a photo added later does not take over from it.
+     */
     suspend fun useAsPicture(photo: LinkEntity) {
         if (!photo.source.isPhoto || PhotoQueue.isWaiting(photo.url)) return
-        places.setPicture(AttachmentOwner.of(photo), photo.url, PictureOrigin.PHOTO)
+        places.setPicture(AttachmentOwner.of(photo), photo.url, PictureOrigin.CHOSEN)
     }
 
     /** Queues again every photo still waiting, in case its upload was lost. Called at app start. */
@@ -153,12 +167,12 @@ class AttachmentRepository(
 
     /**
      * A deleted photo that was the place's main picture would leave it pointing at nothing. The
-     * next photo of the place takes over; with none left, the automatic search gets another go.
+     * newest other photo of the place takes over; with none left, the automatic search gets another go.
      */
     private suspend fun replacePictureIfGone(photo: LinkEntity) {
         val owner = AttachmentOwner.of(photo)
         if (places.pictureOf(owner) != photo.url) return
-        val next = links.uploadedPhotos().firstOrNull { AttachmentOwner.of(it) == owner && it.url != photo.url }
+        val next = links.uploadedPhotos().lastOrNull { AttachmentOwner.of(it) == owner && it.url != photo.url }
         places.setPicture(owner, next?.url.orEmpty(), PictureOrigin.PHOTO)
     }
 }

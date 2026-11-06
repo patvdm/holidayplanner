@@ -3,6 +3,9 @@ package com.pat.app.holidayplanner.ui.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.LinkEntity
+import com.pat.app.holidayplanner.data.remote.SpotPictureQuery
+import com.pat.app.holidayplanner.data.repo.spotPictureQuery
+import com.pat.app.holidayplanner.domain.pictureUrlOrNull
 import com.pat.app.holidayplanner.data.local.SpotPin
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
 import com.pat.app.holidayplanner.data.local.RouteLinePoint
@@ -65,7 +68,15 @@ data class PinDetail(
     val notes: String,
     val links: List<LinkEntity>,
     val googlePlaceId: String = "",
-)
+    /** The main picture, as stored. */
+    val imageUrl: String = "",
+    /** The spot's own photos, newest first, which the card's picture opens onto. */
+    val photos: List<LinkEntity> = emptyList(),
+    /** What finds more pictures of it, once the card's picture is opened. */
+    val pictureQuery: SpotPictureQuery? = null,
+) {
+    val hasPictures: Boolean get() = imageUrl.pictureUrlOrNull() != null || photos.isNotEmpty()
+}
 
 data class MapUiState(
     /** The pins to draw, after the food filter. */
@@ -104,12 +115,20 @@ class MapViewModel(
             if (id == null) {
                 flowOf(null)
             } else {
-                combine(sources.spots.observeSpot(id), sources.links.observeLinks(id)) { spot, all ->
+                combine(
+                    sources.spots.observeSpot(id),
+                    sources.links.observeLinks(id),
+                    sources.spots.observeContext(id),
+                ) { spot, all, context ->
+                    val links = all.filterNot { it.source.isPhoto }
                     PinDetail(
                         spotId = id,
                         notes = spot?.notes.orEmpty().trim(),
-                        links = all.filterNot { it.source.isPhoto },
+                        links = links,
                         googlePlaceId = spot?.googlePlaceId.orEmpty(),
+                        imageUrl = spot?.imageUrl.orEmpty(),
+                        photos = all.filter { it.source.isPhoto },
+                        pictureQuery = spot?.let { spotPictureQuery(it, context, links) },
                     )
                 }
             }

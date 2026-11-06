@@ -130,7 +130,7 @@ class WikimediaPictures(
         if (proof.isEmpty()) return candidatesForPlace(query.name, query.countryName)
         val here = query.position()
         return Result.success(
-            (named(query, proof, here) + nearby(query, here)).distinctPictures(),
+            (named(query, proof, here) + nearby(query, proof, here)).distinctPictures(),
         )
     }
 
@@ -150,11 +150,11 @@ class WikimediaPictures(
     }
 
     /** Whatever is close to the spot, named or not, closest first: articles, then photos. */
-    private suspend fun nearby(query: SpotPictureQuery, here: GeoPoint?): List<PictureCandidate> {
+    private suspend fun nearby(query: SpotPictureQuery, proof: Set<String>, here: GeoPoint?): List<PictureCandidate> {
         if (here == null) return emptyList()
         val articles = query.languages().flatMap { api -> orNone { nearPages(api, here, NEAR_PAGES_METRES) } }
         val files = orNone { nearFiles(here, NEAR_FILES_METRES) }
-        return articles.offered(here, PictureFrom.WIKIPEDIA) + files.offered(here, PictureFrom.COMMONS)
+        return articles.offered(here, proof, PictureFrom.WIKIPEDIA) + files.offered(here, proof, PictureFrom.COMMONS)
     }
 
     /** The page called [title], or null when there is none. Redirects are followed. */
@@ -347,6 +347,10 @@ private fun titleProves(title: String, proof: Set<String>): Boolean {
     return proof.any { plain.contains(it) }
 }
 
-private fun List<Page>.offered(here: GeoPoint, from: PictureFrom): List<PictureCandidate> =
+private fun List<Page>.offered(here: GeoPoint, proof: Set<String>, from: PictureFrom): List<PictureCandidate> =
     sortedBy { it.metresFrom(here) ?: Int.MAX_VALUE }
-        .mapNotNull { page -> page.photo()?.let { PictureCandidate(it, from, page.metresFrom(here)) } }
+        .mapNotNull { page ->
+            page.photo()?.let { photo ->
+                PictureCandidate(photo, from, page.metresFrom(here), named = titleProves(page.title, proof))
+            }
+        }

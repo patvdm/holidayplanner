@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -99,7 +101,7 @@ fun PhotoRoll(
 
 /** Marks a photo that is still on this phone only, so nobody wonders why the other phone lacks it. */
 @Composable
-private fun WaitingBadge(modifier: Modifier = Modifier) {
+internal fun WaitingBadge(modifier: Modifier = Modifier) {
     Icon(
         imageVector = Icons.Outlined.CloudUpload,
         contentDescription = stringResource(R.string.photo_waiting),
@@ -112,20 +114,33 @@ private fun WaitingBadge(modifier: Modifier = Modifier) {
     )
 }
 
-/** What holding a photo or a link offers: send it somewhere else, or get rid of it. */
+/**
+ * What holding a photo or a link offers: make it the main picture, send it somewhere else, or get
+ * rid of it. On a banner it also offers to change the main picture, from the chooser.
+ */
 @Composable
-private fun AttachmentMenu(
+internal fun AttachmentMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     onMove: (() -> Unit)?,
-    onDelete: () -> Unit,
+    onDelete: (() -> Unit)?,
     onUseAsPicture: (() -> Unit)? = null,
+    onChangePicture: (() -> Unit)? = null,
 ) {
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
         properties = PopupProperties(focusable = false),
     ) {
+        if (onChangePicture != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.picture_change)) },
+                onClick = {
+                    onDismiss()
+                    onChangePicture()
+                },
+            )
+        }
         if (onUseAsPicture != null) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.photo_use_as_picture)) },
@@ -144,37 +159,67 @@ private fun AttachmentMenu(
                 },
             )
         }
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.action_delete)) },
-            onClick = {
-                onDismiss()
-                onDelete()
-            },
-        )
+        if (onDelete != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.action_delete)) },
+                onClick = {
+                    onDismiss()
+                    onDelete()
+                },
+            )
+        }
     }
 }
 
 /** One photo, as big as the screen allows. A tap anywhere closes it again. */
 @Composable
 fun PhotoViewer(url: String, onDismiss: () -> Unit) {
+    PictureViewer(urls = listOf(url), start = 0, onDismiss = onDismiss)
+}
+
+/**
+ * Pictures as big as the screen allows, swiped through from [start]. A tap anywhere closes it.
+ * The list may grow while it is open, as found pictures arrive.
+ */
+@Composable
+fun PictureViewer(urls: List<String>, start: Int, onDismiss: () -> Unit) {
+    if (urls.isEmpty()) return
+    val pager = rememberPagerState(initialPage = start.coerceIn(0, urls.lastIndex)) { urls.size }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = VIEWER_DIM))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismiss,
-                ),
+                .background(Color.Black.copy(alpha = VIEWER_DIM)),
             contentAlignment = Alignment.Center,
         ) {
-            AsyncImage(
-                model = url,
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onDismiss,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AsyncImage(
+                        model = urls[page],
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+            if (urls.size > 1) {
+                PageCount(
+                    page = pager.currentPage,
+                    count = urls.size,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp),
+                )
+            }
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier
@@ -185,6 +230,19 @@ fun PhotoViewer(url: String, onDismiss: () -> Unit) {
             }
         }
     }
+}
+
+/** "2 / 7" on a dark pill, readable over any picture. */
+@Composable
+internal fun PageCount(page: Int, count: Int, modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(R.string.picture_count, page + 1, count),
+        style = MaterialTheme.typography.labelMedium,
+        color = Color.White,
+        modifier = modifier
+            .background(Color.Black.copy(alpha = WAITING_BADGE_DIM), CircleShape)
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+    )
 }
 
 /**

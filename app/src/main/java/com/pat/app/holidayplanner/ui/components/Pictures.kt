@@ -1,9 +1,11 @@
 package com.pat.app.holidayplanner.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -22,14 +25,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.pat.app.holidayplanner.R
 import com.pat.app.holidayplanner.domain.pictureUrlOrNull
 
 private val THUMBNAIL_SHAPE = RoundedCornerShape(12.dp)
-private const val HERO_HEIGHT_DP = 200
+internal const val HERO_HEIGHT_DP = 200
 private const val HERO_SCRIM_START = 0.35f
 
 /**
@@ -88,6 +93,7 @@ fun BoxScope.FlagFallback(flag: String) {
 /**
  * The wide picture at the top of a country, city or spot screen, with the name written over it.
  * Without a picture it is a plain band in the container colour, so the screen reads the same.
+ * With [onClick], tapping the picture opens it full size.
  */
 @Composable
 fun HeroImage(
@@ -95,6 +101,7 @@ fun HeroImage(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    onClick: (() -> Unit)? = null,
 ) {
     val url = imageUrl.pictureUrlOrNull()
     Box(
@@ -106,45 +113,79 @@ fun HeroImage(
         if (url != null) {
             AsyncImage(
                 model = url,
-                contentDescription = null,
+                contentDescription = onClick?.let { stringResource(R.string.picture_open) },
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            HERO_SCRIM_START to Color.Transparent,
-                            1f to Color.Black.copy(alpha = 0.75f),
-                        ),
-                    ),
+                    .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
             )
+            HeroScrim()
         }
-        val onPicture = if (url != null) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(16.dp),
-        ) {
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = onPicture,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!subtitle.isNullOrBlank()) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = onPicture.copy(alpha = 0.85f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+        HeroTitle(title = title, subtitle = subtitle, onPicture = url != null)
+    }
+}
+
+/** Darkens the bottom of a picture so the name over it can be read. Taps go through to the picture. */
+@Composable
+internal fun BoxScope.HeroScrim() {
+    Box(
+        modifier = Modifier
+            .matchParentSize()
+            .background(
+                Brush.verticalGradient(
+                    HERO_SCRIM_START to Color.Transparent,
+                    1f to Color.Black.copy(alpha = 0.75f),
+                ),
+            ),
+    )
+}
+
+/**
+ * The name and where it is, bottom left over the banner. With [onEdit], a pencil beside the name
+ * renames it.
+ */
+@Composable
+internal fun BoxScope.HeroTitle(
+    title: String,
+    subtitle: String?,
+    onPicture: Boolean,
+    onEdit: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    val colour = if (onPicture) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
+    Column(
+        modifier = modifier
+            .align(Alignment.BottomStart)
+            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = colour,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            if (onEdit != null) {
+                CompactIconButton(onClick = onEdit) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = stringResource(R.string.action_rename),
+                        tint = colour,
+                        modifier = Modifier.size(CompactIconSize),
                     )
                 }
             }
+        }
+        if (!subtitle.isNullOrBlank()) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colour.copy(alpha = 0.85f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

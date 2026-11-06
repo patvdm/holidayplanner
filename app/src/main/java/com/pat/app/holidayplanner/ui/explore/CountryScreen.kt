@@ -106,6 +106,7 @@ fun CountryScreen(
             override val onShowCityOnMap: (String) -> Unit = { showCityOnMap(it) }
             override val onFilters: (SpotFilters) -> Unit = viewModel::setFilters
             override val onOpenPhoto: (LinkEntity) -> Unit = { dialogs.viewingPhoto = it.url }
+            override val onOpenPicture: (String) -> Unit = { dialogs.viewingPhoto = it }
             override val onOpenLink: (LinkEntity) -> Unit = { context.openExternalUrl(it.url) }
             override val onMoveAttachment: (LinkEntity) -> Unit = { dialogs.movingAttachment = it }
             override val onDeleteAttachment: (LinkEntity) -> Unit = { dialogs.deletingAttachment = it }

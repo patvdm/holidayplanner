@@ -2,6 +2,8 @@ package com.pat.app.holidayplanner.ui.explore
 
 import com.pat.app.holidayplanner.data.remote.SpotPictureQuery
 import com.pat.app.holidayplanner.domain.PictureOrigin
+import com.pat.app.holidayplanner.data.repo.GalleryPicture
+import com.pat.app.holidayplanner.data.repo.spotPictureQuery
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pat.app.holidayplanner.data.local.LinkEntity
@@ -74,16 +76,8 @@ data class SpotDetailUiState(
     /** True when the spot carries a shared Maps link of its own, rather than a derived one. */
     val hasOwnMapsLink: Boolean get() = spot?.mapsUrl?.isNotBlank() == true
 
-    /** What the picture chooser searches for: the spot, where it is, and its own websites. */
-    fun pictureQuery(): SpotPictureQuery = SpotPictureQuery(
-        name = spot?.name.orEmpty(),
-        cityName = context?.cityName.orEmpty(),
-        countryName = context?.countryName.orEmpty(),
-        isoCode = context?.isoCode.orEmpty(),
-        lat = spot?.lat,
-        lng = spot?.lng,
-        websites = references.filter { it.source == LinkSource.WEB }.map { it.url },
-    )
+    /** What the picture chooser and the strip search for: the spot, where it is, and its own websites. */
+    fun pictureQuery(): SpotPictureQuery = spotPictureQuery(spot, context, references)
 }
 
 /** Everything the spot screen shows, combined separately to stay within combine's arity. */
@@ -205,6 +199,12 @@ class SpotDetailViewModel(
     /** Hangs a photo or a link of this spot on something else in its country. */
     fun moveAttachment(attachment: LinkEntity, owner: AttachmentOwner) {
         viewModelScope.launch { attachments.moveTo(attachment, owner) }
+    }
+
+    /** Makes a picture of the strip the main one: a photo of this spot, or one that was found for it. */
+    fun useAsCover(picture: GalleryPicture) {
+        val photo = picture.photo
+        if (photo != null) useAsPicture(photo) else setImageUrl(picture.url)
     }
 
     /** Shows a photo as this spot's main picture. */

@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -141,15 +142,17 @@ private fun CandidateTile(candidate: PictureCandidate, onClick: () -> Unit) {
 
 @Composable
 private fun caption(candidate: PictureCandidate): String {
-    val from = stringResource(
-        when (candidate.from) {
-            PictureFrom.WIKIVOYAGE -> R.string.picture_from_wikivoyage
-            PictureFrom.WIKIPEDIA -> R.string.picture_from_wikipedia
-            PictureFrom.COMMONS -> R.string.picture_from_commons
-            PictureFrom.WEBSITE -> R.string.picture_from_website
-        },
-    )
+    val from = stringResource(candidate.from.label())
     return candidate.metres?.let { stringResource(R.string.picture_from_near, from, it) } ?: from
+}
+
+/** Where a picture was found, as said under or over it. */
+@StringRes
+internal fun PictureFrom.label(): Int = when (this) {
+    PictureFrom.WIKIVOYAGE -> R.string.picture_from_wikivoyage
+    PictureFrom.WIKIPEDIA -> R.string.picture_from_wikipedia
+    PictureFrom.COMMONS -> R.string.picture_from_commons
+    PictureFrom.WEBSITE -> R.string.picture_from_website
 }
 
 private const val GRID_COLUMNS = 3

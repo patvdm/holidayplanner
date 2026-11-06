@@ -19,6 +19,7 @@ import com.pat.app.holidayplanner.data.remote.ImageStore
 import com.pat.app.holidayplanner.data.remote.RoutedImageStore
 import com.pat.app.holidayplanner.data.remote.LinkResolver
 import com.pat.app.holidayplanner.data.remote.PictureSource
+import com.pat.app.holidayplanner.data.repo.FoundPictures
 import com.pat.app.holidayplanner.data.remote.PlacesSearch
 import com.pat.app.holidayplanner.data.remote.WikimediaPictures
 import com.pat.app.holidayplanner.data.remote.SheetsApi
@@ -99,6 +100,7 @@ val appModule = module {
     single<PlacesSearch> { GooglePlacesSearch(androidContext()) }
     single<LinkResolver> { HttpLinkResolver() }
     single<PictureSource> { WikimediaPictures() }
+    single { FoundPictures(get()) }
     single<ReverseGeocoder> { AndroidReverseGeocoder(androidContext()) }
     single<DeviceLocation> { FusedDeviceLocation(androidContext()) }
     single { SheetsApi(get()) }

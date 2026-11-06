@@ -62,6 +62,9 @@ private const val SHEET_SETTLE_MS = 250L
 /** Enough of your own places to find the one you meant, without pushing Google's off the screen. */
 private const val MAX_EXISTING_MATCHES = 6
 
+/** Room for a few lines before the box scrolls, so the save button stays in reach. */
+private const val NOTES_MAX_LINES = 4
+
 /** Somewhere already saved that a share can be filed under: a spot, or a city itself. */
 data class PlacePick(val id: String, val isCity: Boolean)
 
@@ -171,6 +174,7 @@ private fun SearchStep(
 
     if (state.manual) {
         TypeChips(state.type, viewModel::onTypeChange)
+        NotesBox(state.notes, viewModel::onNotesChange)
         Button(
             onClick = { viewModel.saveManually(onSaved) },
             enabled = state.canSaveManually && !state.saving,
@@ -383,6 +387,7 @@ private fun ConfirmStep(
     }
 
     TypeChips(state.type, viewModel::onTypeChange)
+    NotesBox(state.notes, viewModel::onNotesChange)
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(
@@ -399,6 +404,20 @@ private fun ConfirmStep(
         }
         TextButton(onClick = viewModel::cancelPick) { Text(stringResource(R.string.action_back)) }
     }
+}
+
+/** Optional notes, the same ones the spot screen shows, so they can be written while it is fresh. */
+@Composable
+private fun NotesBox(value: String, onValueChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(stringResource(R.string.place_search_notes)) },
+        minLines = 2,
+        maxLines = NOTES_MAX_LINES,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 /**

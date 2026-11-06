@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
@@ -47,7 +48,7 @@ fun TripsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var adding by remember { mutableStateOf(false) }
-    var showPast by remember { mutableStateOf(false) }
+    var showPast by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         // The tab bar below is already accounted for by the navigation Scaffold, so adding the

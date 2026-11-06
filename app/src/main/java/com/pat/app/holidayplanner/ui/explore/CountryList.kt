@@ -214,6 +214,7 @@ private fun EntryContent(entry: Entry, state: CountryUiState, actions: CountryAc
             HeroImage(
                 imageUrl = country.imageUrl,
                 title = "${CountryCatalog.flag(country.isoCode)} ${country.name}".trim(),
+                onClick = { actions.onOpenPicture(country.imageUrl) },
             )
         }
         Entry.CountryOwn -> Attachments(
@@ -657,6 +658,9 @@ interface CountryActions {
     val onShowCityOnMap: (String) -> Unit
     val onFilters: (SpotFilters) -> Unit
     val onOpenPhoto: (LinkEntity) -> Unit
+
+    /** A picture by its address, such as the banner's. */
+    val onOpenPicture: (String) -> Unit
     val onOpenLink: (LinkEntity) -> Unit
     val onMoveAttachment: (LinkEntity) -> Unit
     val onDeleteAttachment: (LinkEntity) -> Unit

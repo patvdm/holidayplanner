@@ -149,7 +149,8 @@ fun AppNavigation() {
                     TripItemEditorScreen(
                         itemId = key.itemId,
                         onBack = nav::back,
-                        onOpenSpot = { nav.openIn(AppTab.EXPLORE, SpotKey(it)) },
+                        // On top of the item, as from a route, so back comes to the item and the trip.
+                        onOpenSpot = { nav.push(SpotKey(it)) },
                         onShowSpotOnMap = { nav.push(MapKey(spotId = it)) },
                     )
                 }

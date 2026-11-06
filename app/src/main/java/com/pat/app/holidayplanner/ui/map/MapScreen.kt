@@ -6,6 +6,11 @@ import com.pat.app.holidayplanner.ui.components.WeekHours
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.foundation.clickable
+import com.pat.app.holidayplanner.data.repo.galleryOf
+import com.pat.app.holidayplanner.domain.pictureUrlOrNull
+import com.pat.app.holidayplanner.ui.components.PictureViewer
+import com.pat.app.holidayplanner.ui.components.Thumbnail
+import com.pat.app.holidayplanner.ui.components.rememberFoundPictures
 import java.time.LocalDate
 import com.pat.app.holidayplanner.ui.components.dayHoursText
 import com.pat.app.holidayplanner.domain.OpeningHours
@@ -371,6 +376,9 @@ private fun SpotCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(modifier = Modifier.padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (detail != null && detail.hasPictures) {
+                    CardPicture(detail, modifier = Modifier.padding(end = 12.dp))
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(pin.name, style = MaterialTheme.typography.titleMedium)
                     Text(
@@ -429,6 +437,27 @@ private fun SpotCard(
 }
 
 /**
+ * The spot's main picture, small beside its name. Tapping it opens all its pictures full size:
+ * the main one, its photos, then any found for it, which are only looked for at that moment.
+ */
+@Composable
+private fun CardPicture(detail: PinDetail, modifier: Modifier = Modifier) {
+    var viewing by remember(detail.spotId) { mutableStateOf(false) }
+    Thumbnail(
+        imageUrl = detail.imageUrl.pictureUrlOrNull() ?: detail.photos.first().url,
+        size = CARD_PICTURE_SIZE,
+        modifier = modifier.clickable { viewing = true },
+    )
+    if (viewing) {
+        val found = rememberFoundPictures(detail.pictureQuery)
+        val gallery = remember(detail.imageUrl, detail.photos, found) {
+            galleryOf(detail.imageUrl, detail.photos, found)
+        }
+        PictureViewer(urls = gallery.map { it.url }, start = 0, onDismiss = { viewing = false })
+    }
+}
+
+/**
  * Today's hours on a pin's card, which open into the whole week when tapped. Nothing while the
  * hours are unknown or not looked up yet.
  */
@@ -459,6 +488,9 @@ private fun CardHours(hours: OpeningHours) {
 
 /** About a third of a phone screen: room for a good note, with the pin still in view above it. */
 private val CARD_BODY_MAX_HEIGHT = 220.dp
+
+/** Big enough to tell what it is, small enough that the card barely grows. */
+private val CARD_PICTURE_SIZE = 52.dp
 
 /** Stands in for "no route sign" among a marker's keys, which cannot be null. */
 private const val NO_BADGE = "none"

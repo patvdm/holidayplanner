@@ -76,6 +76,7 @@
     <string name="place_search_use_typed">Use the name I typed</string>
     <string name="place_search_filed_under">Filed under %1$s</string>
     <string name="place_search_change_place">City or region</string>
+    <string name="place_search_notes">Notes (optional)</string>
     <string name="place_search_choose_country">Choose a country</string>
     <string name="place_search_city">City or region</string>
     <string name="place_search_city_hint">Leave blank to keep it on the country, with no city.</string>
@@ -120,10 +121,8 @@
     <string name="spot_marks">Good for</string>
     <string name="mark_drone">Drone</string>
     <string name="spot_notes">Notes</string>
-    <string name="spot_photos">Photos</string>
     <string name="spot_add">Add a spot</string>
     <string name="spot_add_photo">Add photo</string>
-    <string name="spot_photos_none">No photos yet. Share one to Holiday Planner, or add one here.</string>
     <string name="photo_open">Open photo</string>
     <string name="link_delete_title">Remove this link?</string>
     <string name="link_delete_message">It goes from both phones.</string>
@@ -381,6 +380,8 @@
     <string name="picture_from_wikipedia">Wikipedia</string>
     <string name="picture_from_commons">Commons</string>
     <string name="picture_from_website">Their website</string>
+    <string name="picture_count">%1$d / %2$d</string>
+    <string name="picture_open">Open picture</string>
     <string name="picture_from_near">%1$s · %2$d m</string>
 
     <!-- Sync status -->

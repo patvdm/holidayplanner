@@ -33,6 +33,19 @@ class Places(
         else -> null
     }
 
+    /** How the place's picture came to be, read from what is stored. Null if the place is gone. */
+    suspend fun originOf(owner: AttachmentOwner): PictureOrigin? {
+        val (url, source) = when {
+            owner.spotId.isNotEmpty() -> spots.observeSpot(owner.spotId).first()?.let { it.imageUrl to it.imageSource }
+            owner.cityId.isNotEmpty() -> cities.find(owner.cityId)?.takeUnless { it.meta.deleted }
+                ?.let { it.imageUrl to it.imageSource }
+            owner.countryId.isNotEmpty() -> countries.observeCountry(owner.countryId).first()
+                ?.let { it.imageUrl to it.imageSource }
+            else -> null
+        } ?: return null
+        return PictureOrigin.of(url, source)
+    }
+
     /** True when the place exists and shows no picture of its own yet. */
     suspend fun lacksPicture(owner: AttachmentOwner): Boolean =
         pictureOf(owner)?.let { it.pictureUrlOrNull() == null } ?: false

@@ -92,6 +92,8 @@ data class PlaceSearchUiState(
     val knownCities: List<String> = emptyList(),
     /** What kind of spot is being added, chosen with one tap before saving. */
     val type: SpotType = SpotType.POI,
+    /** Notes typed while adding, saved with the spot so they need no second visit. */
+    val notes: String = "",
 ) {
     /** Only the country is needed: a blank city files the spot under the country itself. */
     private val homeChosen: Boolean get() = country != null
@@ -172,6 +174,10 @@ class PlaceSearchViewModel(
         state.update { it.copy(type = value) }
     }
 
+    fun onNotesChange(value: String) {
+        state.update { it.copy(notes = value) }
+    }
+
     fun pick(prediction: PlacePrediction) {
         viewModelScope.launch {
             state.update { it.copy(searching = true) }
@@ -225,6 +231,7 @@ class PlaceSearchViewModel(
                 address = target.knownAddress,
                 mapsUrl = target.knownMapsUrl,
                 type = current.type,
+                notes = current.notes,
             )
             onSaved(id)
         }
@@ -241,6 +248,7 @@ class PlaceSearchViewModel(
             countryId = home.countryId,
             name = pending.name,
             type = state.value.type,
+            notes = state.value.notes,
             googlePlaceId = pending.details.googlePlaceId,
             lat = pending.details.lat,
             lng = pending.details.lng,

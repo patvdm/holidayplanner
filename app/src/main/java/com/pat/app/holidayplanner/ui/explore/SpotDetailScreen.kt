@@ -58,10 +58,13 @@ import com.pat.app.holidayplanner.domain.SpotStatus
 import com.pat.app.holidayplanner.domain.hasMark
 import com.pat.app.holidayplanner.domain.SpotType
 import com.pat.app.holidayplanner.ui.components.ConfirmDeleteDialog
-import com.pat.app.holidayplanner.ui.components.HeroImage
 import com.pat.app.holidayplanner.ui.components.LinkList
-import com.pat.app.holidayplanner.ui.components.PhotoRoll
-import com.pat.app.holidayplanner.ui.components.PhotoViewer
+import com.pat.app.holidayplanner.ui.components.PictureStrip
+import com.pat.app.holidayplanner.ui.components.PictureStripActions
+import com.pat.app.holidayplanner.ui.components.PictureViewer
+import com.pat.app.holidayplanner.ui.components.rememberFoundPictures
+import com.pat.app.holidayplanner.data.repo.GalleryPicture
+import com.pat.app.holidayplanner.data.repo.galleryOf
 import com.pat.app.holidayplanner.ui.components.MoveAttachmentDialog
 import com.pat.app.holidayplanner.ui.components.TextInputDialog
 import com.pat.app.holidayplanner.ui.components.label
@@ -90,6 +93,11 @@ fun SpotDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val dialogs = remember { SpotDialogs() }
+    // Only once the spot and where it is are known, so the search runs once with everything it needs.
+    val found = rememberFoundPictures(state.spot?.takeIf { state.context != null }?.let { state.pictureQuery() })
+    val gallery = remember(state.spot?.imageUrl, state.photos, found) {
+        galleryOf(state.spot?.imageUrl.orEmpty(), state.photos, found)
+    }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(viewModel::addPhoto)
     }
@@ -140,8 +148,8 @@ fun SpotDetailScreen(
                 .verticalScroll(rememberScrollState()),
         ) {
             state.spot?.let { spot ->
-                HeroImage(
-                    imageUrl = spot.imageUrl,
+                PictureStrip(
+                    pictures = gallery,
                     title = spot.name,
                     subtitle = state.context?.let {
                         if (it.cityName.isBlank()) {
@@ -150,21 +158,20 @@ fun SpotDetailScreen(
                             stringResource(R.string.spot_breadcrumb, it.countryName, it.cityName)
                         }
                     },
+                    actions = PictureStripActions(
+                        onOpen = { dialogs.viewing = it },
+                        onUseAsCover = viewModel::useAsCover,
+                        onMove = { dialogs.moving = it },
+                        onDelete = { dialogs.deletingPhoto = it },
+                        onChangePicture = { dialogs.changingPicture = true },
+                        onRename = { dialogs.renaming = true },
+                    ),
                 )
             }
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                PhotosSection(
-                    state = state,
-                    onOpen = { dialogs.viewing = it.url },
-                    onMove = { dialogs.moving = it },
-                    onDelete = { dialogs.deletingPhoto = it },
-                    onUseAsPicture = viewModel::useAsPicture,
-                )
-
-                HorizontalDivider()
                 LinksSection(
                     links = state.references,
                     onOpen = { context.openExternalUrl(it.url) },
@@ -253,14 +260,6 @@ fun SpotDetailScreen(
                 NotesField(initial = state.spot?.notes.orEmpty(), onSave = viewModel::setNotes)
 
                 HorizontalDivider()
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { dialogs.renaming = true }) {
-                        Text(stringResource(R.string.action_rename))
-                    }
-                    OutlinedButton(onClick = { dialogs.changingPicture = true }) {
-                        Text(stringResource(R.string.picture_change))
-                    }
-                }
                 OutlinedButton(onClick = { dialogs.movingSpot = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.spot_move))
                 }
@@ -268,7 +267,14 @@ fun SpotDetailScreen(
         }
     }
 
-    SpotDialogs(state = state, dialogs = dialogs, viewModel = viewModel, onBack = onBack, onOpenRoute = onOpenRoute)
+    SpotDialogs(
+        state = state,
+        gallery = gallery,
+        dialogs = dialogs,
+        viewModel = viewModel,
+        onBack = onBack,
+        onOpenRoute = onOpenRoute,
+    )
 }
 
 /** Which dialog is open, kept together so the screen itself stays readable. */
@@ -278,42 +284,17 @@ private class SpotDialogs {
     var movingSpot by mutableStateOf(false)
     var changingPicture by mutableStateOf(false)
     var confirmingDelete by mutableStateOf(false)
-    var viewing by mutableStateOf<String?>(null)
+    /** Which picture of the strip is open full size. */
+    var viewing by mutableStateOf<Int?>(null)
     var deletingPhoto by mutableStateOf<LinkEntity?>(null)
     var moving by mutableStateOf<LinkEntity?>(null)
     var addingToRoute by mutableStateOf(false)
 }
 
-/** The photos of this spot. They are added from the button in the top bar. */
-@Composable
-private fun PhotosSection(
-    state: SpotDetailUiState,
-    onOpen: (LinkEntity) -> Unit,
-    onMove: (LinkEntity) -> Unit,
-    onDelete: (LinkEntity) -> Unit,
-    onUseAsPicture: (LinkEntity) -> Unit,
-) {
-    SectionLabel(stringResource(R.string.spot_photos))
-    if (state.photos.isEmpty()) {
-        Text(
-            text = stringResource(R.string.spot_photos_none),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    } else {
-        PhotoRoll(
-            photos = state.photos,
-            onOpen = onOpen,
-            onDelete = onDelete,
-            onMove = onMove,
-            onUseAsPicture = onUseAsPicture,
-        )
-    }
-}
-
 @Composable
 private fun SpotDialogs(
     state: SpotDetailUiState,
+    gallery: List<GalleryPicture>,
     dialogs: SpotDialogs,
     viewModel: SpotDetailViewModel,
     onBack: () -> Unit,
@@ -332,8 +313,8 @@ private fun SpotDialogs(
         )
     }
 
-    dialogs.viewing?.let { url ->
-        PhotoViewer(url = url, onDismiss = { dialogs.viewing = null })
+    dialogs.viewing?.let { start ->
+        PictureViewer(urls = gallery.map { it.url }, start = start, onDismiss = { dialogs.viewing = null })
     }
 
     dialogs.deletingPhoto?.let { photo ->

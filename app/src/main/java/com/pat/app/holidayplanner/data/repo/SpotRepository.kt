@@ -64,6 +64,7 @@ class SpotRepository(
         address: String = "",
         mapsUrl: String = "",
         type: SpotType = SpotType.POI,
+        notes: String = "",
     ): String {
         val stamp = writer.stamp()
         val id = newId()
@@ -79,7 +80,7 @@ class SpotRepository(
             lng = lng,
             address = address,
             mapsUrl = mapsUrl,
-            notes = "",
+            notes = notes.trim(),
             status = SpotStatus.UNVISITED,
             marks = "",
             sortKey = SortKey.before(dao.firstSortKey(cityId, home, Priority.NORMAL)),

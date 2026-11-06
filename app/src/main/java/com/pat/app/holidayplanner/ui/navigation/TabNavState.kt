@@ -58,8 +58,13 @@ class TabNavState(
         get() = currentKey is MapKey
 
     fun selectTab(tab: AppTab) {
-        // The map belongs to the moment it was opened, not to the tab it was opened over.
-        if (onMap) back()
+        // The map belongs to the moment it was opened, not to the tab it was opened over. Leaving it
+        // for that same tab goes back to where it was opened, say a trip, rather than to the tab's
+        // root: the tab did not look selected, so the tap meant "back there", not "start over".
+        if (onMap) {
+            back()
+            if (tab == currentTab) return
+        }
         if (tab == currentTab) {
             popToRoot(tab)
         } else {

@@ -16,8 +16,17 @@ data class SpotPictureQuery(
 /** Where a candidate picture was found, said under it in the chooser. */
 enum class PictureFrom { WIKIVOYAGE, WIKIPEDIA, COMMONS, WEBSITE }
 
-/** One picture offered in the chooser. [metres] is how far from the spot it was taken, when known. */
-data class PictureCandidate(val url: String, val from: PictureFrom, val metres: Int? = null)
+/**
+ * One picture offered in the chooser. [metres] is how far from the spot it was taken, when known.
+ * [named] says it is of the place itself, found under its name or on its own page or website,
+ * rather than something that only happens to be close by; only those are shown beside its photos.
+ */
+data class PictureCandidate(
+    val url: String,
+    val from: PictureFrom,
+    val metres: Int? = null,
+    val named: Boolean = true,
+)
 
 /** Finds a picture of a place. Null means nothing suitable was found; a failure means try later. */
 interface PictureSource {
