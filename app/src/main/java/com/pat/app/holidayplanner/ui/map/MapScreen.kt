@@ -69,6 +69,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MarkerComposable
+import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import com.pat.app.holidayplanner.R
@@ -229,6 +230,9 @@ private fun SpotMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = camera,
             properties = MapProperties(isMyLocationEnabled = showMyLocation),
+            // North stays up: a two-finger zoom turned the map too easily, and nothing here needs
+            // it turned or tilted. The remembered view keeps no bearing, so it opens north-up too.
+            uiSettings = MAP_UI,
             onMapClick = {
                 selected = null
                 chosenRoute = null
@@ -488,6 +492,8 @@ private fun CardHours(hours: OpeningHours) {
 
 /** About a third of a phone screen: room for a good note, with the pin still in view above it. */
 private val CARD_BODY_MAX_HEIGHT = 220.dp
+
+private val MAP_UI = MapUiSettings(rotationGesturesEnabled = false, tiltGesturesEnabled = false)
 
 /** Big enough to tell what it is, small enough that the card barely grows. */
 private val CARD_PICTURE_SIZE = 52.dp
