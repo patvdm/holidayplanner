@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.repo
 
+import com.pat.app.holidayplanner.domain.NO_PICTURE
 import com.pat.app.holidayplanner.domain.PictureOrigin
 import com.pat.app.holidayplanner.data.local.CityEntity
 import com.pat.app.holidayplanner.data.local.CityOption
@@ -89,7 +90,10 @@ class CityRepository(
     suspend fun setPicture(id: String, url: String, origin: PictureOrigin) =
         edit(id) { it.copy(imageUrl = url.trim(), imageSource = origin.stored(url)) }
 
-    fun observeWithoutPicture(): Flow<List<CityOption>> = dao.observeWithoutPicture()
+    fun observeWithoutPicture(): Flow<List<CityOption>> = dao.observeWithImageUrl("")
+
+    /** Cities the picture search came back empty for. */
+    fun observeNoneFound(): Flow<List<CityOption>> = dao.observeWithImageUrl(NO_PICTURE)
 
     suspend fun move(id: String, previousKey: String?, nextKey: String?) =
         edit(id) { it.copy(sortKey = SortKey.between(previousKey, nextKey)) }

@@ -53,16 +53,28 @@ private const val NEAR_LIMIT = 12
 private const val COMMONS_HITS = 12
 private const val MAX_CANDIDATES = 18
 
-/** A page or a file as the API describes it: its title, its picture if any, and where it is if known. */
-private data class Page(val title: String, val picture: String?, val at: GeoPoint?, val index: Int)
+/** The banner a Wikivoyage page names in its lead: `{{pagebanner|Australia alt banner.jpg|...}}`. */
+private val PAGE_BANNER = Regex("""\{\{\s*pagebanner\s*\|\s*([^|}\n]+)""", RegexOption.IGNORE_CASE)
+
+/**
+ * A page or a file as the API describes it: its title, its picture if any, where it is if known,
+ * and whether it is only a list of the places sharing a name.
+ */
+private data class Page(
+    val title: String,
+    val picture: String?,
+    val at: GeoPoint?,
+    val index: Int,
+    val ambiguous: Boolean = false,
+)
 
 /**
  * Pictures from Wikivoyage, Wikipedia and Wikimedia Commons, which cost nothing and cover most
  * places worth a trip, and from a spot's own website where they do not.
  *
- * A country or city is looked up on Wikivoyage first. Its pages open with a wide banner kept on
- * Commons as "<Title> banner.jpg", which is the best picture of a place anyone has chosen; failing
- * that its lead image, failing that Wikipedia's page of the same name, failing that a search.
+ * A country or city is looked up on Wikivoyage first. Its pages open with a wide banner, which is
+ * the best picture of a place anyone has chosen; failing that its lead image, failing that
+ * Wikipedia's page of the same name, failing that a search.
  *
  * A spot is searched for by name, and a hit is only trusted when its title shares a real word with
  * the spot's name and, when both have a position, it is near the spot: a search for "Waag" in
@@ -81,11 +93,22 @@ class WikimediaPictures(
         runCatchingNetwork { placePicture(name, within) }
 
     private suspend fun placePicture(name: String, within: String): String? {
-        val guide = pageOf(WIKIVOYAGE, name)
-        val fromGuide = guide?.let { banner(it.title) ?: it.picture?.takeIf { url -> url.isPhotograph() } }
+        val guide = placePage(WIKIVOYAGE, name, within)
+        val fromGuide = guide?.let { banner(it.title) ?: it.photo() }
         return fromGuide
-            ?: pageOf(WIKIPEDIA, name)?.picture?.takeIf { it.isPhotograph() }
+            ?: placePage(WIKIPEDIA, name, within)?.photo()
             ?: searchPages(WIKIPEDIA, "$name $within".trim()).firstNotNullOfOrNull { it.photo() }
+    }
+
+    /**
+     * The page about the place called [name]. A name several places share, such as Georgia, opens
+     * a list of them instead, so the one meant is asked for by its usual qualifier: the country a
+     * city is in, or "country" for a country itself.
+     */
+    private suspend fun placePage(api: String, name: String, within: String): Page? {
+        val page = pageOf(api, name) ?: return null
+        if (!page.ambiguous) return page
+        return pageOf(api, "$name (${within.ifBlank { "country" }})")?.takeUnless { it.ambiguous }
     }
 
     override suspend fun forSpot(query: SpotPictureQuery): Result<String?> = runCatchingNetwork {
@@ -110,11 +133,11 @@ class WikimediaPictures(
     override suspend fun candidatesForPlace(name: String, within: String): Result<List<PictureCandidate>> =
         Result.success(
             buildList {
-                orNothing { pageOf(WIKIVOYAGE, name) }?.let { guide ->
+                orNothing { placePage(WIKIVOYAGE, name, within) }?.let { guide ->
                     orNothing { banner(guide.title) }?.let { add(PictureCandidate(it, PictureFrom.WIKIVOYAGE)) }
                     guide.photo()?.let { add(PictureCandidate(it, PictureFrom.WIKIVOYAGE)) }
                 }
-                orNothing { pageOf(WIKIPEDIA, name) }?.photo()
+                orNothing { placePage(WIKIPEDIA, name, within) }?.photo()
                     ?.let { add(PictureCandidate(it, PictureFrom.WIKIPEDIA)) }
                 orNone { searchPages(WIKIPEDIA, "$name $within".trim()) }
                     .mapNotNull { it.photo() }
@@ -160,19 +183,41 @@ class WikimediaPictures(
     /** The page called [title], or null when there is none. Redirects are followed. */
     private suspend fun pageOf(api: String, title: String): Page? = pages(api) {
         parameter("redirects", "1")
-        parameter("prop", "pageimages")
+        parameter("prop", "pageimages|pageprops")
         parameter("piprop", "thumbnail")
         parameter("pithumbsize", THUMB_WIDTH)
+        parameter("ppprop", "disambiguation")
         parameter("titles", title)
     }.firstOrNull { it["missing"] == null }?.toPage()
 
-    /** The Wikivoyage banner for a page, which lives on Commons under a name that follows the page's. */
-    private suspend fun banner(title: String): String? = pages(WIKIVOYAGE) {
-        parameter("prop", "imageinfo")
-        parameter("iiprop", "url")
-        parameter("iiurlwidth", THUMB_WIDTH)
-        parameter("titles", "File:$title banner.jpg")
-    }.firstOrNull()?.toPage()?.photo()
+    /**
+     * The banner across the top of a Wikivoyage page, kept on Commons. The page names its file, and
+     * the name often strays from the page's own ("Australia alt banner.jpg", "Kazbeg banner.jpg"),
+     * so it is read from the page; "<Title> banner.jpg" is only the guess for a page naming none.
+     */
+    private suspend fun banner(title: String): String? {
+        val file = bannerFile(title) ?: "$title banner.jpg"
+        return pages(WIKIVOYAGE) {
+            parameter("prop", "imageinfo")
+            parameter("iiprop", "url")
+            parameter("iiurlwidth", THUMB_WIDTH)
+            parameter("titles", "File:$file")
+        }.firstOrNull()?.toPage()?.photo()
+    }
+
+    /** The file the `{{pagebanner}}` at the top of a Wikivoyage page names, if it names one. */
+    private suspend fun bannerFile(title: String): String? {
+        val lead = pages(WIKIVOYAGE) {
+            parameter("prop", "revisions")
+            parameter("rvprop", "content")
+            parameter("rvslots", "main")
+            parameter("rvsection", "0")
+            parameter("titles", title)
+        }.firstOrNull()?.leadText() ?: return null
+        return PAGE_BANNER.find(lead)?.groupValues?.get(1)?.trim()
+            ?.removePrefix("File:")?.removePrefix("Image:")
+            ?.takeIf { it.isNotBlank() }
+    }
 
     /** Articles matching [query], best hit first, with their pictures and positions. */
     private suspend fun searchPages(api: String, query: String): List<Page> = pages(api) {
@@ -244,8 +289,15 @@ class WikimediaPictures(
             picture = thumbnail ?: fileThumb,
             at = if (lat != null && lng != null) GeoPoint(lat, lng) else null,
             index = this["index"]?.jsonPrimitive?.intOrNull ?: Int.MAX_VALUE,
+            ambiguous = this["pageprops"]?.jsonObject?.containsKey("disambiguation") == true,
         )
     }
+
+    /** The wikitext of a page asked for with `prop=revisions`, as formatversion 2 nests it. */
+    private fun JsonObject.leadText(): String? =
+        this["revisions"]?.jsonArray?.firstOrNull()?.jsonObject
+            ?.get("slots")?.jsonObject?.get("main")?.jsonObject
+            ?.get("content")?.jsonPrimitive?.content
 
     /** The words of a spot's name that are not also the name of where it is. */
     private fun distinctiveTokens(query: SpotPictureQuery): Set<String> {

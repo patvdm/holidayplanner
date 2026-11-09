@@ -58,15 +58,15 @@ interface CityDao : SyncDao<CityEntity> {
     )
     fun observeHomes(): Flow<List<SpotHome>>
 
-    /** Cities nobody has found a picture for yet. */
+    /** Cities whose picture is [url]: blank for none looked for yet, or the none-found mark. */
     @Query(
         """
         SELECT p.id AS cityId, p.name AS cityName, c.id AS countryId, c.name AS countryName
         FROM cities p JOIN countries c ON c.id = p.countryId
-        WHERE p.deleted = 0 AND c.deleted = 0 AND p.imageUrl = ''
+        WHERE p.deleted = 0 AND c.deleted = 0 AND p.imageUrl = :url
         """,
     )
-    fun observeWithoutPicture(): Flow<List<CityOption>>
+    fun observeWithImageUrl(url: String): Flow<List<CityOption>>
 
     /** The first key among a country's cities of [priority], leaving out [excluding]: where the top is. */
     @Query(

@@ -59,6 +59,12 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
         store.edit { it[KEY_SPOT_PICTURE_RECHECK] = true }
     }
 
+    val placePictureRetryDone: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_PLACE_PICTURE_RETRY] == true }
+
+    suspend fun markPlacePictureRetryDone() {
+        store.edit { it[KEY_PLACE_PICTURE_RETRY] = true }
+    }
+
     /** Dark unless Light or Match phone was picked in Settings. */
     val themeMode: Flow<ThemeMode> = store.data.map { prefs -> ThemeMode.fromPref(prefs[KEY_THEME_MODE]) }
 
@@ -131,6 +137,7 @@ class AppPreferences(context: Context) : SyncOutcomeStore {
         val KEY_MAP_PIN_FILTER = stringPreferencesKey("map_pin_filter")
         // Renamed when the search learns something new, so the automatic pictures get one more look.
         val KEY_SPOT_PICTURE_RECHECK = booleanPreferencesKey("spot_picture_recheck_near_and_website")
+        val KEY_PLACE_PICTURE_RETRY = booleanPreferencesKey("place_picture_retry_page_banner")
         val KEY_BACKEND_URL = stringPreferencesKey("backend_url")
         val KEY_BACKEND_SECRET = stringPreferencesKey("backend_secret")
         val KEY_LAST_SYNC_AT = longPreferencesKey("last_sync_at")

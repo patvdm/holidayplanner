@@ -29,9 +29,9 @@ interface CountryDao : SyncDao<CountryEntity> {
     )
     fun observeRows(): Flow<List<CountryRow>>
 
-    /** Countries nobody has found a picture for yet. */
-    @Query("SELECT * FROM countries WHERE deleted = 0 AND imageUrl = ''")
-    fun observeWithoutPicture(): Flow<List<CountryEntity>>
+    /** Countries whose picture is [url]: blank for none looked for yet, or the none-found mark. */
+    @Query("SELECT * FROM countries WHERE deleted = 0 AND imageUrl = :url")
+    fun observeWithImageUrl(url: String): Flow<List<CountryEntity>>
 
     @Query("SELECT * FROM countries WHERE id = :id AND deleted = 0")
     fun observeById(id: String): Flow<CountryEntity?>

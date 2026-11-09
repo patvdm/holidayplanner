@@ -1,5 +1,6 @@
 package com.pat.app.holidayplanner.data.repo
 
+import com.pat.app.holidayplanner.domain.NO_PICTURE
 import com.pat.app.holidayplanner.domain.PictureOrigin
 import com.pat.app.holidayplanner.data.local.CountryEntity
 import com.pat.app.holidayplanner.data.local.CountryRow
@@ -67,7 +68,10 @@ class CountryRepository(
     suspend fun setPicture(id: String, url: String, origin: PictureOrigin) =
         edit(id) { it.copy(imageUrl = url.trim(), imageSource = origin.stored(url)) }
 
-    fun observeWithoutPicture(): Flow<List<CountryEntity>> = dao.observeWithoutPicture()
+    fun observeWithoutPicture(): Flow<List<CountryEntity>> = dao.observeWithImageUrl("")
+
+    /** Countries the picture search came back empty for. */
+    fun observeNoneFound(): Flow<List<CountryEntity>> = dao.observeWithImageUrl(NO_PICTURE)
 
     /** Reorders by rewriting one row: [previousKey] and [nextKey] are the new neighbours' keys. */
     suspend fun move(id: String, previousKey: String?, nextKey: String?) =

@@ -2,6 +2,8 @@ package com.pat.app.holidayplanner.data.repo
 
 import com.pat.app.holidayplanner.domain.PictureOrigin
 import com.pat.app.holidayplanner.data.remote.SpotPictureQuery
+import com.pat.app.holidayplanner.data.local.CityOption
+import com.pat.app.holidayplanner.data.local.CountryEntity
 import com.pat.app.holidayplanner.data.local.SpotListRow
 import kotlinx.coroutines.flow.first
 import com.pat.app.holidayplanner.data.prefs.AppPreferences
@@ -57,19 +59,7 @@ class PictureBackfill(
         spots.observeWithImageUrl(""),
     ) { noCountry, noCity, noSpot ->
         // Countries and cities first: they are few, and they head the screens people open first.
-        noCountry.map { country ->
-            Wanted(
-                id = country.meta.id,
-                lookup = { source.forPlace(country.name, within = "") },
-                store = { countries.setPicture(country.meta.id, it, PictureOrigin.AUTO) },
-            )
-        } + noCity.map { city ->
-            Wanted(
-                id = city.cityId,
-                lookup = { source.forPlace(city.cityName, within = city.countryName) },
-                store = { cities.setPicture(city.cityId, it, PictureOrigin.AUTO) },
-            )
-        } + noSpot.map { row ->
+        noCountry.map(::wantedCountry) + noCity.map(::wantedCity) + noSpot.map { row ->
             Wanted(
                 id = row.spot.meta.id,
                 lookup = { source.forSpot(queryFor(row)) },
@@ -78,8 +68,21 @@ class PictureBackfill(
         }
     }
 
+    private fun wantedCountry(country: CountryEntity) = Wanted(
+        id = country.meta.id,
+        lookup = { source.forPlace(country.name, within = "") },
+        store = { countries.setPicture(country.meta.id, it, PictureOrigin.AUTO) },
+    )
+
+    private fun wantedCity(city: CityOption) = Wanted(
+        id = city.cityId,
+        lookup = { source.forPlace(city.cityName, within = city.countryName) },
+        store = { cities.setPicture(city.cityId, it, PictureOrigin.AUTO) },
+    )
+
     /** Never returns while the app lives. Call it from a scope that outlives every screen. */
     suspend fun watch() {
+        retryPlacesWithoutPictureOnce()
         recheckAutomaticSpotPicturesOnce()
         wanted.conflate().collect { batch ->
             batch.filter { it.id !in tried }.take(MAX_PER_ROUND).forEach { row ->
@@ -88,6 +91,32 @@ class PictureBackfill(
                 delay(PAUSE_MS)
             }
         }
+    }
+
+    /**
+     * Countries and cities the search came back empty for are looked for once more, now that it
+     * reads the banner each Wikivoyage page names and steps past pages that only list the places
+     * sharing a name (Georgia). Only a find is written: one still without a picture keeps its flag.
+     */
+    private suspend fun retryPlacesWithoutPictureOnce() {
+        if (prefs.placePictureRetryDone.first()) return
+        var complete = true
+        var found = 0
+        val missing = countries.observeNoneFound().first().map(::wantedCountry) +
+            cities.observeNoneFound().first().map(::wantedCity)
+        missing.forEach { row ->
+            row.lookup()
+                .onSuccess { url ->
+                    if (url != null) {
+                        row.store(url)
+                        found++
+                    }
+                }
+                .onFailure { complete = false }
+            delay(RECHECK_PAUSE_MS)
+        }
+        if (complete) prefs.markPlacePictureRetryDone()
+        Log.d(TAG, "retry of places without a picture ${if (complete) "done" else "cut short"}, $found found")
     }
 
     /**
