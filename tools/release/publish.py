@@ -21,8 +21,9 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-JAVA_HOME = r"D:\Program Files\Android Studio\jbr"
-ADB = r"D:\Work\AndroidSDK\platform-tools\adb.exe"
+# Android Studio's own JDK where it is installed on this PC; otherwise whatever JAVA_HOME says.
+_STUDIO_JBR = Path(r"D:\Program Files\Android Studio\jbr")
+JAVA_HOME = str(_STUDIO_JBR) if _STUDIO_JBR.exists() else os.environ.get("JAVA_HOME", "")
 USER_AGENT = "HolidayPlanner-publish/1.0"
 
 
@@ -33,6 +34,13 @@ def local_properties():
             key, value = line.split("=", 1)
             props[key.strip()] = value.strip()
     return props
+
+
+def adb(props):
+    """adb from the Android SDK that local.properties names, or the one on the PATH."""
+    sdk = props.get("sdk.dir", "").replace("\\:", ":").replace("\\\\", "\\")
+    exe = Path(sdk) / "platform-tools" / ("adb.exe" if os.name == "nt" else "adb")
+    return str(exe) if sdk and exe.exists() else "adb"
 
 
 def fail(message):
@@ -61,7 +69,7 @@ def main():
     if dirty:
         fail("commit first; the version number comes from the commit count\n" + dirty)
 
-    env = dict(os.environ, JAVA_HOME=JAVA_HOME)
+    env = dict(os.environ, JAVA_HOME=JAVA_HOME) if JAVA_HOME else dict(os.environ)
     gradlew = str(ROOT / ("gradlew.bat" if os.name == "nt" else "gradlew"))
     run([gradlew, ":app:assembleRelease", "--console=plain", "-q"], env=env)
 
@@ -99,7 +107,7 @@ def main():
             fail(f"HTTP {error.code}: {body}")
 
     if options.install:
-        run([ADB, "install", "-r", str(apk)])
+        run([adb(props), "install", "-r", str(apk)])
 
 
 if __name__ == "__main__":

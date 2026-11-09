@@ -8,8 +8,8 @@ The backend is one Google Sheet with a tab per table, exposed through the Apps S
 1. Create a Google Sheet (any name). Open **Extensions → Apps Script**.
 2. Replace the editor contents with `Code.gs` and save.
 3. Select the `setup` function in the toolbar and **Run** it. Approve the permissions prompt.
-   The sheet now has the tabs `Users`, `Countries`, `Cities`, `Spots`, `Links`, `Hearts`, `Trips`,
-   `TripItems` and `RouteStops`, each with a frozen header row and plain-text formatting.
+   The sheet now has the tabs `Users`, `Countries`, `Cities`, `Spots`, `Links`, `Trips`, `TripItems`,
+   `Routes`, `RouteStops` and `Inbox`, each with a frozen header row and plain-text formatting.
 4. **Project Settings (gear) → Script properties → Add script property**: name `SECRET`, value a long
    random string. Put the same value in `local.properties` as `SHEETS_SECRET`.
 5. **Deploy → New deployment**. Type: **Web app**. Execute as: **Me**. Who has access: **Anyone**.

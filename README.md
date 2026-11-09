@@ -3,6 +3,10 @@
 Private Android app for collecting places to see, capturing shared links, and planning trips.
 Backend is a Google Sheet behind an Apps Script web app (see `backend/README.md`).
 
+> **Setting up your own copy?** Follow **[docs/your-own-copy.md](docs/your-own-copy.md)**. It walks
+> through your own sheet, keys and phone, step by step, and keeps your data apart from everyone
+> else's. The rest of this README is reference for working on the code.
+
 ## Setup
 
 1. Open the project in Android Studio (AGP 9.3, Kotlin 2.2, JDK 21).
@@ -52,7 +56,8 @@ Get the debug fingerprint with:
 
 ## Releasing
 
-There is no CI and no git remote: releases are built here and handed to the phones.
+There is no CI: releases are built on a PC and handed to the phones, or published to the update
+channel (see **Auto-updating** below, which replaces steps 4 and 5).
 
 1. Create a keystore once, and keep it somewhere safe. Losing it means a new application identity
    and a manual reinstall on both phones.
@@ -86,7 +91,7 @@ Without a keystore the release build is unsigned and will not install; debug bui
 
 ### Auto-updating
 
-Both phones update themselves from the app's own channel on the Cloudflare Worker, instead of the
+Phones update themselves from the app's own channel on the Cloudflare Worker, instead of the
 Firebase App Distribution the plan named: no extra accounts, and the Worker was already there for
 photos. Publishing is `python tools/release/publish.py`; setup and how updates arrive are in
 `tools/release/README.md`. The version number is the commit count, so steps 4 and 5 above are

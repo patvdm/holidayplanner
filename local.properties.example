@@ -1,0 +1,31 @@
+# Holiday Planner: your own keys and passwords.
+#
+# Copy the lines below into local.properties (the file Android Studio creates next to this one,
+# which already has sdk.dir in it). local.properties is never committed, so these stay on your PC.
+# The values are built into the app, so rebuild after changing any of them.
+#
+# Step-by-step: docs/your-own-copy.md
+
+# --- Required: your Google Sheet backend (guide step 2) ---------------------------------------
+# The Apps Script web app URL, ending in /exec.
+SHEETS_URL=
+# The same long random string you saved as the script property SECRET.
+SHEETS_SECRET=
+
+# --- Recommended: Google Maps key, for the map and place search (guide step 4) ------------------
+MAPS_API_KEY=
+
+# --- Optional: Cloudflare Worker, for fast photos and app updates (guide step 5) ----------------
+# e.g. https://holiday-planner.your-name.workers.dev  (no slash at the end)
+PHOTOS_URL=
+# The Worker's PHOTO_TOKEN secret.
+PHOTOS_TOKEN=
+# The Worker's RELEASE_TOKEN secret. Only this PC needs it; it is never put in the app.
+RELEASE_TOKEN=
+
+# --- Optional: signing key for release builds (guide step 6) ------------------------------------
+# Use forward slashes, e.g. C:/Users/you/keys/holidayplanner.jks. Keep it outside this folder.
+RELEASE_KEYSTORE=
+RELEASE_STORE_PASSWORD=
+RELEASE_KEY_ALIAS=holidayplanner
+RELEASE_KEY_PASSWORD=
